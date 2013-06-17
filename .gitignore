@@ -1,0 +1,11 @@
+# Gradle / Android Studio
+Jumble/build/
+.idea/
+.gradle/
+*.iml
+
+# Android
+local.properties
+
+# Java
+*.class
