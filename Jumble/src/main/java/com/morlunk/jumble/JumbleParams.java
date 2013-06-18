@@ -44,6 +44,9 @@ public class JumbleParams implements Parcelable {
     // Network
     public boolean forceTcp = false;
 
+    // Extra
+    public String clientName = "Plumble";
+
     public static final Parcelable.Creator<JumbleParams> CREATOR = new Parcelable.Creator<JumbleParams>() {
 
         @Override
@@ -72,6 +75,7 @@ public class JumbleParams implements Parcelable {
         out.writeValue(usePushToTalk);
         out.writeValue(useOpus);
         out.writeValue(forceTcp);
+        out.writeValue(clientName);
     }
 
     public void readFromParcel(Parcel in) {
@@ -84,6 +88,7 @@ public class JumbleParams implements Parcelable {
         usePushToTalk = (Boolean)in.readValue(Boolean.class.getClassLoader());
         useOpus = (Boolean)in.readValue(Boolean.class.getClassLoader());
         forceTcp = (Boolean)in.readValue(Boolean.class.getClassLoader());
+        clientName = in.readString();
     }
 
     @Override

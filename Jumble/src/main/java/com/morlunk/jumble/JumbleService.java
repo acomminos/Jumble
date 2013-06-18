@@ -18,11 +18,13 @@ package com.morlunk.jumble;
 
 import android.app.Service;
 import android.content.Intent;
+import android.os.Build;
 import android.os.IBinder;
 import android.os.RemoteException;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.ChannelManager;
 import com.morlunk.jumble.model.User;
+import com.morlunk.jumble.protobuf.Mumble;
 
 import java.util.List;
 

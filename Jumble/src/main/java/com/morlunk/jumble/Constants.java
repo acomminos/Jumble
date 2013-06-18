@@ -18,6 +18,15 @@ package com.morlunk.jumble;
 
 public class Constants {
 
+    public static final int PROTOCOL_MAJOR = 1;
+    public static final int PROTOCOL_MINOR = 2;
+    public static final int PROTOCOL_PATCH = 4;
+
+    public static final int PROTOCOL_VERSION = (PROTOCOL_MAJOR << 16) | (PROTOCOL_MINOR << 8) | PROTOCOL_PATCH;
+    public static final String PROTOCOL_STRING = PROTOCOL_MAJOR+"."+PROTOCOL_MINOR+"."+PROTOCOL_PATCH;
+
     public static final String TAG = "Jumble";
 
+    public static final String ACTION_CONNECT = "com.morlunk.jumble.CONNECT";
+    public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
 }

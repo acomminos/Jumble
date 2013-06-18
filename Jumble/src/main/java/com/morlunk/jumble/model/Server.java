@@ -46,18 +46,69 @@ public class Server implements Parcelable {
 
     private Server(Parcel in) {
         readFromParcel(in);
+
     }
 
     @Override
     public void writeToParcel(Parcel parcel, int i) {
-
+        parcel.writeString(mName);
+        parcel.writeString(mHost);
+        parcel.writeInt(mPort);
+        parcel.writeString(mUsername);
+        parcel.writeString(mPassword);
     }
 
     public void readFromParcel(Parcel in) {
+        mName = in.readString();
+        mHost = in.readString();
+        mPort = in.readInt();
+        mUsername = in.readString();
+        mPassword = in.readString();
     }
 
     @Override
     public int describeContents() {
         return 0;
     }
+
+    public String getName() {
+        return mName;
+    }
+
+    public void setName(String mName) {
+        this.mName = mName;
+    }
+
+    public String getHost() {
+        return mHost;
+    }
+
+    public void setHost(String mHost) {
+        this.mHost = mHost;
+    }
+
+    public int getPort() {
+        return mPort;
+    }
+
+    public void setPort(int mPort) {
+        this.mPort = mPort;
+    }
+
+    public String getUsername() {
+        return mUsername;
+    }
+
+    public void setUsername(String mUsername) {
+        this.mUsername = mUsername;
+    }
+
+    public String getPassword() {
+        return mPassword;
+    }
+
+    public void setPassword(String mPassword) {
+        this.mPassword = mPassword;
+    }
+
 }

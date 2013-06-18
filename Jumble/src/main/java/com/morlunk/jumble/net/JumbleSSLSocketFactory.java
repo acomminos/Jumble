@@ -40,9 +40,11 @@ public class JumbleSSLSocketFactory extends SSLSocketFactory {
 
     private SSLContext sslContext = SSLContext.getInstance(TLS);
 
-    public JumbleSSLSocketFactory(KeyStore keystore, String keystorePassword, KeyStore truststore) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException,
+    public JumbleSSLSocketFactory(KeyStore keystore, String keystorePassword) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException,
             UnrecoverableKeyException, NoSuchProviderException {
-        super(keystore, keystorePassword, truststore);
+        super(keystore, keystorePassword, null); // No need for trust store at the moment. FIXME security
+
+        setHostnameVerifier(ALLOW_ALL_HOSTNAME_VERIFIER); // FIXME security
 
         TrustManager trustManager = new X509TrustManager() {
             @Override
