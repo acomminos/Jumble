@@ -26,9 +26,15 @@ import com.morlunk.jumble.model.ChannelManager;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.protobuf.Mumble;
 
+import java.security.Security;
 import java.util.List;
 
 public class JumbleService extends Service {
+
+    static {
+        // Use Spongy Castle for crypto implementation so we can create and manage PKCS #12 (.p12) certificates.
+        Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
+    }
 
     private JumbleParams mParams;
     private ChannelManager mChannelManager;

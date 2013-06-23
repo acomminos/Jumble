@@ -21,11 +21,15 @@ import com.morlunk.jumble.model.Server;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
 
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSocket;
 import java.io.*;
 import java.net.*;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class JumbleConnection {
 
@@ -36,20 +40,46 @@ public class JumbleConnection {
     private String mKeyStorePassword;
 
     // Networking
-    private SSLSocket mTCPSocket;
-    private DatagramSocket mUDPSocket;
-    private DataInputStream mDataInput;
-    private DataOutputStream mDataOutput;
+    private ExecutorService mExecutorService;
+    private JumbleTCP mTCP;
+    private JumbleUDP mUDP;
 
-    public JumbleConnection() {
-
+    public JumbleConnection(Server host,
+                            KeyStore keyStore,
+                            String keyStorePassword) {
+        mServer = host;
+        mKeyStore = keyStore;
+        mKeyStorePassword = keyStorePassword;
+        mExecutorService = Executors.newFixedThreadPool(2); // One TCP thread, one UDP thread.
     }
 
-    public void connect(Server server) throws UnrecoverableKeyException, NoSuchAlgorithmException, IOException, KeyManagementException, KeyStoreException, NoSuchProviderException {
+    public void connect(Server server) {
         mServer = server;
+        mTCP = new JumbleTCP();
+        mUDP = new JumbleUDP();
+        mExecutorService.submit(mTCP);
+        mExecutorService.submit(mUDP);
+    }
 
-        mTCPSocket = createTCPSocket();
-        mUDPSocket = createUDPSocket();
+    /**
+     * Gracefully shuts down all networking.
+     */
+    public void disconnect() {
+        try {
+            mTCP.disconnect();
+            mUDP.disconnect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        mTCP = null;
+        mUDP = null;
+    }
+
+    /**
+     * Immediately shuts down all network threads.
+     */
+    public void forceDisconnect() {
+        mExecutorService.shutdownNow();
     }
 
     /**
@@ -70,44 +100,102 @@ public class JumbleConnection {
         mKeyStorePassword = certificatePassword;
     }
 
-    private SSLSocket createTCPSocket() throws IOException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, KeyManagementException {
-        JumbleSSLSocketFactory socketFactory = new JumbleSSLSocketFactory(mKeyStore, mKeyStorePassword);
-
-        SSLSocket socket = (SSLSocket)socketFactory.createSocket();
-        socket.setKeepAlive(true);
-        socket.setEnabledProtocols(new String[] {"TLS"});
-        socket.setUseClientMode(true);
-
-        HttpParams httpParams = new BasicHttpParams();
-        socketFactory.connectSocket(socket, mServer.getHost(), mServer.getPort(), null, 0, httpParams);
-
-        socket.startHandshake();
-
-        return socket;
-    }
-
-    private DatagramSocket createUDPSocket() throws SocketException, UnknownHostException {
-        DatagramSocket socket = new DatagramSocket();
-        socket.connect(InetAddress.getByName(mServer.getHost()), mServer.getPort());
-        return socket;
-    }
-
-    public void disconnect() {
-        try {
-            mTCPSocket.close();
-        } catch (IOException e) {
-            // We don't need to report an error in closing a socket.
-            e.printStackTrace();
-        }
-        mUDPSocket.close();
-
-        mServer = null;
-    }
-
     public void sendTCPMessage(Message message, JumbleMessageType messageType) throws IOException {
-        mDataOutput.writeShort(messageType.ordinal());
-        mDataOutput.writeInt(message.getSerializedSize());
-        message.writeTo(mDataOutput);
+        mTCP.sendMessage(message, messageType);
     }
 
+    /**
+     * Class to maintain and interface with the TCP connection to a Mumble server.
+     */
+    private class JumbleTCP implements Callable<Void> {
+        private SSLSocket mTCPSocket;
+        private DataInputStream mDataInput;
+        private DataOutputStream mDataOutput;
+
+        /**
+         * Attempts to disconnect gracefully.
+         * @throws IOException if the socket couldn't close as expected.
+         */
+        public void disconnect() throws IOException {
+            mDataOutput.close();
+            mDataInput.close();
+            mTCPSocket.close();
+        }
+
+        @Override
+        public Void call() throws SSLException {
+            try {
+                JumbleSSLSocketFactory socketFactory = new JumbleSSLSocketFactory(mKeyStore, mKeyStorePassword);
+
+                SSLSocket socket = (SSLSocket)socketFactory.createSocket();
+                socket.setKeepAlive(true);
+                socket.setEnabledProtocols(new String[] {"TLSv1"});
+                socket.setUseClientMode(true);
+
+                HttpParams httpParams = new BasicHttpParams();
+                socketFactory.connectSocket(socket, mServer.getHost(), mServer.getPort(), null, 0, httpParams);
+
+                socket.startHandshake();
+            } catch (KeyManagementException e) {
+                throw new SSLException("Could not recover keys from certificate!", e);
+            } catch (KeyStoreException e) {
+                throw new SSLException("Could not recover keys from certificate!", e);
+            } catch (UnrecoverableKeyException e) {
+                throw new SSLException("Could not recover keys from certificate!", e);
+            } catch (IOException e) {
+                throw new SSLException("An error occurred when creating the SSL socket.", e);
+            } catch (NoSuchProviderException e) {
+                /*
+                 * This will actually NEVER occur.
+                 * We use Spongy Castle to provide the algorithm and provider implementations.
+                 * There's no platform dependency.
+                 */
+                throw new RuntimeException("We use Spongy Castle- what? ", e);
+            } catch (NoSuchAlgorithmException e) {
+                /*
+                 * This will actually NEVER occur.
+                 * We use Spongy Castle to provide the algorithm and provider implementations.
+                 * There's no platform dependency.
+                 */
+                throw new RuntimeException("We use Spongy Castle- what? ", e);
+            }
+
+            return null;
+        }
+
+        /**
+         * Attempts to send a protobuf message over TCP.
+         * @param message The message to send.
+         * @param messageType The type of the message to send.
+         * @throws IOException if we can't write the message to the server.
+         */
+        public void sendMessage(Message message, JumbleMessageType messageType) throws IOException {
+            mDataOutput.writeShort(messageType.ordinal());
+            mDataOutput.writeInt(message.getSerializedSize());
+            message.writeTo(mDataOutput);
+        }
+    }
+
+    /**
+     * Class to maintain and receive packets from the UDP connection to a Mumble server.
+     */
+    private class JumbleUDP implements Callable<Void> {
+        private DatagramSocket mUDPSocket;
+
+        public void disconnect() {
+            mUDPSocket.disconnect();
+        }
+
+        @Override
+        public Void call() throws SocketException, UnknownHostException {
+            mUDPSocket = new DatagramSocket();
+            mUDPSocket.connect(InetAddress.getByName(mServer.getHost()), mServer.getPort());
+
+            return null;
+        }
+
+        public void sendData(byte[] data, JumbleUDPMessageType messageType) {
+
+        }
+    }
 }
