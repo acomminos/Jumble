@@ -24,6 +24,7 @@ import android.os.RemoteException;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.ChannelManager;
 import com.morlunk.jumble.model.User;
+import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.protobuf.Mumble;
 
 import java.security.Security;
@@ -37,6 +38,7 @@ public class JumbleService extends Service {
     }
 
     private JumbleParams mParams;
+    private JumbleConnection mConnection;
     private ChannelManager mChannelManager;
 
     private IJumbleService.Stub mBinder = new IJumbleService.Stub() {
