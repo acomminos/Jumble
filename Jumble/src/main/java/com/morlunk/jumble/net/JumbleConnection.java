@@ -251,7 +251,7 @@ public class JumbleConnection {
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            mListener.onUDPDataReceived(decryptedData, );
+                            mListener.onUDPDataReceived(decryptedData, dataType);
                         }
                     });
                 }
