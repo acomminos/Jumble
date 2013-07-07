@@ -38,30 +38,34 @@ import org.apache.http.conn.ssl.SSLSocketFactory;
 
 public class JumbleSSLSocketFactory extends SSLSocketFactory {
 
-    private SSLContext sslContext = SSLContext.getInstance(TLS);
+    /**
+     * A trust manager which will accept all remote certificates, regardless of validity.
+     * FIXME: this is poor cryptographic practice and allows for a potential MoM attack -AC
+     */
+    private static final TrustManager sPermissiveTrustManager = new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    };
+
+    private SSLContext mSslContext = SSLContext.getInstance(TLS);
 
     public JumbleSSLSocketFactory(KeyStore keystore, String keystorePassword) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException,
             UnrecoverableKeyException, NoSuchProviderException {
         super(keystore, keystorePassword, null); // No need for trust store at the moment. FIXME security
 
         setHostnameVerifier(ALLOW_ALL_HOSTNAME_VERIFIER); // FIXME security
-
-        TrustManager trustManager = new X509TrustManager() {
-            @Override
-            public X509Certificate[] getAcceptedIssuers() {
-                return null;
-            }
-
-            @Override
-            public void checkServerTrusted(X509Certificate[] chain, String authType)
-                    throws CertificateException {
-            }
-
-            @Override
-            public void checkClientTrusted(X509Certificate[] chain, String authType)
-                    throws CertificateException {
-            }
-        };
 
         KeyManager[] keyManagers = null;
 
@@ -71,17 +75,17 @@ public class JumbleSSLSocketFactory extends SSLSocketFactory {
             keyManagers = factory.getKeyManagers();
         }
 
-        sslContext.init(keyManagers, new TrustManager[] { trustManager }, new SecureRandom());
+        mSslContext.init(keyManagers, new TrustManager[] { sPermissiveTrustManager }, new SecureRandom());
     }
 
     @Override
     public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
-        return sslContext.getSocketFactory().createSocket(socket, host, port, autoClose);
+        return mSslContext.getSocketFactory().createSocket(socket, host, port, autoClose);
     }
 
     @Override
     public Socket createSocket() throws IOException {
-        return sslContext.getSocketFactory().createSocket();
+        return mSslContext.getSocketFactory().createSocket();
     }
 
 }

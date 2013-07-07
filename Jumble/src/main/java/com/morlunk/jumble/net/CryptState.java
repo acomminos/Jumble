@@ -16,10 +16,9 @@
 
 package com.morlunk.jumble.net;
 
-import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
+import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -37,6 +36,38 @@ import java.util.Timer;
  */
 public class CryptState {
 
+    /**
+     * Some functions that provide helpful cryptographic support, like being able to XOR a byte array.
+     */
+    private static class CryptSupport {
+
+        private static final int SHIFTBITS = 7;
+
+        public static void XOR(final byte[] dst, final byte[] blockA, final byte[] blockB) {
+            for(int i=0;i<AES_BLOCK_SIZE;i++)
+                dst[i] = (byte) (blockA[i] ^ blockB[i]);
+        }
+
+        public static void S2(final byte[] block) {
+            int carry = (block[0] >> SHIFTBITS) & 0x1;
+            for(int i=0;i<AES_BLOCK_SIZE-1;i++)
+                block[i] = (byte) ((block[i] << 1) | ((block[i+1] >> SHIFTBITS) & 0x1));
+            block[AES_BLOCK_SIZE-1] = (byte) ((block[AES_BLOCK_SIZE-1] << 1) & (carry * 0x87));
+        }
+
+        public static void S3(final byte[] block) {
+            int carry = (block[0] >> SHIFTBITS) & 0x1;
+            for(int i=0;i<AES_BLOCK_SIZE-1;i++)
+                block[i] ^= (block[i] << 1) | ((block[i+1] >> SHIFTBITS) & 0x1);
+            block[AES_BLOCK_SIZE-1] ^= (block[AES_BLOCK_SIZE-1] << 1) & (carry * 0x87);
+        }
+
+        public static void ZERO(final byte[] block) {
+            Arrays.fill(block, (byte)0);
+        }
+    }
+
+    private static final String AES_TRANSFORMATION = "AES/ECB/NoPadding";
     private static final int AES_BLOCK_SIZE = 16;
 
     byte[] mRawKey = new byte[AES_BLOCK_SIZE];
@@ -76,9 +107,9 @@ public class CryptState {
         mDecryptIV = div;
         SecretKey secretKey = new SecretKeySpec(rkey, "AES");
         try {
-            mEncryptKey = Cipher.getInstance("AES/ECB/NoPadding");
+            mEncryptKey = Cipher.getInstance(AES_TRANSFORMATION);
             mEncryptKey.init(Cipher.ENCRYPT_MODE, secretKey);
-            mDecryptKey = Cipher.getInstance("AES/ECB/NoPadding");
+            mDecryptKey = Cipher.getInstance(AES_TRANSFORMATION);
             mDecryptKey.init(Cipher.DECRYPT_MODE, secretKey);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
@@ -93,11 +124,84 @@ public class CryptState {
         mDecryptIV = iv;
     }
 
-    public void ocbEncrypt(byte[] plain, byte[] encrypted, int len, byte[] nonce, byte[] tag) {
+    public void ocbEncrypt(byte[] plain, byte[] encrypted, int len, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
+        final byte[] checksum = new byte[AES_BLOCK_SIZE],
+                        delta = new byte[AES_BLOCK_SIZE],
+                          tmp = new byte[AES_BLOCK_SIZE],
+                          pad = new byte[AES_BLOCK_SIZE];
+        System.arraycopy(mEncryptKey.doFinal(nonce), 0, delta, 0, AES_BLOCK_SIZE);
 
+        final ByteBuffer plainBuffer = ByteBuffer.wrap(plain);
+        final ByteBuffer encryptedBuffer = ByteBuffer.wrap(encrypted);
+        final byte[] plainRegion = new byte[AES_BLOCK_SIZE];
+        final byte[] encryptedRegion = new byte[AES_BLOCK_SIZE];
+
+        while(len > AES_BLOCK_SIZE) {
+            plainBuffer.get(plainRegion);
+            encryptedBuffer.get(encryptedRegion);
+
+            CryptSupport.S2(delta);
+            CryptSupport.XOR(tmp, delta, plainRegion);
+            mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, tmp);
+            CryptSupport.XOR(encryptedRegion, delta, tmp);
+            CryptSupport.XOR(checksum, checksum, plainRegion);
+            len -= AES_BLOCK_SIZE;
+        }
+
+        CryptSupport.S2(delta);
+        CryptSupport.ZERO(tmp);
+        tmp[AES_BLOCK_SIZE-1] = (byte) ((len * 8) & 0xFF);
+        CryptSupport.XOR(tmp, tmp, delta);
+        mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, pad);
+        System.arraycopy(plain, plainBuffer.position(), tmp, 0, len);
+        System.arraycopy(pad, len, tmp, len, AES_BLOCK_SIZE - len);
+        CryptSupport.XOR(checksum, checksum, tmp);
+        CryptSupport.XOR(tmp, pad, tmp);
+        System.arraycopy(tmp, 0, encrypted, encryptedBuffer.position(), len);
+
+        CryptSupport.S3(delta);
+        CryptSupport.XOR(tmp, delta, checksum);
+        mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, tag);
     }
 
-    public void ocbDecrypt(byte[] encrypted, byte[] plain, int len, byte[] nonce, byte[] tag) {
+    public void ocbDecrypt(byte[] encrypted, byte[] plain, int len, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
+        final byte[] checksum = new byte[AES_BLOCK_SIZE],
+                        delta = new byte[AES_BLOCK_SIZE],
+                          tmp = new byte[AES_BLOCK_SIZE],
+                          pad = new byte[AES_BLOCK_SIZE];
+
+        System.arraycopy(mEncryptKey.doFinal(nonce), 0, delta, 0, AES_BLOCK_SIZE);
+
+        final ByteBuffer plainBuffer = ByteBuffer.wrap(plain);
+        final ByteBuffer encryptedBuffer = ByteBuffer.wrap(encrypted);
+        final byte[] plainRegion = new byte[AES_BLOCK_SIZE];
+        final byte[] encryptedRegion = new byte[AES_BLOCK_SIZE];
+
+        while(len > AES_BLOCK_SIZE) {
+            plainBuffer.get(plainRegion);
+            encryptedBuffer.get(encryptedRegion);
+
+            CryptSupport.S2(delta);
+            CryptSupport.XOR(tmp, delta, encryptedRegion);
+            mDecryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, tmp);
+            CryptSupport.XOR(plainRegion, delta, tmp);
+            CryptSupport.XOR(checksum, checksum, plainRegion);
+            len -= AES_BLOCK_SIZE;
+        }
+
+        CryptSupport.S2(delta);
+        CryptSupport.ZERO(tmp);
+        tmp[AES_BLOCK_SIZE-1] = (byte) ((len * 8) & 0xFF);
+        CryptSupport.XOR(tmp, tmp, delta);
+        mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, pad);
+        System.arraycopy(encrypted, encryptedBuffer.position(), tmp, 0, len);
+        CryptSupport.XOR(tmp, tmp, pad);
+        CryptSupport.XOR(checksum, checksum, tmp);
+        System.arraycopy(tmp, 0, plain, plainBuffer.position(), len);
+
+        CryptSupport.S3(delta);
+        CryptSupport.XOR(tmp, delta, checksum);
+        mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, tag);
 
     }
 
@@ -175,7 +279,17 @@ public class CryptState {
 
         byte[] tagShiftedDst = new byte[plainLength];
         System.arraycopy(source, 4, tagShiftedDst, 0, plainLength);
-        ocbDecrypt(tagShiftedDst, dst, plainLength, mDecryptIV, tag);
+        try {
+            ocbDecrypt(tagShiftedDst, dst, plainLength, mDecryptIV, tag);
+        } catch (BadPaddingException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalBlockSizeException e) {
+            // Should never occur. We use a constant, reasonable block size.
+            throw new RuntimeException(e);
+        } catch (ShortBufferException e) {
+            // Should never occur. We use a constant, reasonable block size.
+            throw new RuntimeException(e);
+        }
 
         // Validate using first 3 bytes of the tag and bytes 1-3 of the source
         byte[] shiftedSource = new byte[3];
@@ -208,7 +322,17 @@ public class CryptState {
             if(++mEncryptIV[i] != 0)
                 break;
 
-        ocbEncrypt(source, dst, plainLength, mEncryptIV, tag);
+        try {
+            ocbEncrypt(source, dst, plainLength, mEncryptIV, tag);
+        } catch (BadPaddingException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalBlockSizeException e) {
+            // Should never occur. We use a constant, reasonable block size.
+            throw new RuntimeException(e);
+        } catch (ShortBufferException e) {
+            // Should never occur. We use a constant, reasonable block size.
+            throw new RuntimeException(e);
+        }
 
         dst[0] = mEncryptIV[0];
         dst[1] = tag[0];
