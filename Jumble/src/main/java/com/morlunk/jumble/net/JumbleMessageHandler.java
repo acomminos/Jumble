@@ -16,7 +16,10 @@
 
 package com.morlunk.jumble.net;
 
+import android.util.Log;
 import com.google.protobuf.Message;
+import com.morlunk.jumble.Constants;
+import com.morlunk.jumble.protobuf.Mumble;
 
 /**
  * Reads incoming protobuf TCP messages and performs the necessary action(s).
@@ -25,6 +28,13 @@ import com.google.protobuf.Message;
 public class JumbleMessageHandler {
 
     public void handleMessage(Message message, JumbleMessageType messageType) {
+        Log.v(Constants.TAG, "IN: "+messageType);
 
+        switch(messageType) {
+            case UDPTunnel:
+                Mumble.UDPTunnel udpTunnel = (Mumble.UDPTunnel)message;
+
+                break;
+        }
     }
 }

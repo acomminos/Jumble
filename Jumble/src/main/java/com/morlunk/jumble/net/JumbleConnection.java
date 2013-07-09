@@ -19,7 +19,9 @@ package com.morlunk.jumble.net;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import com.google.protobuf.Message;
+import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.protobuf.Mumble;
 import org.apache.http.params.BasicHttpParams;
@@ -36,14 +38,41 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class JumbleConnection {
-
     public interface JumbleConnectionListener {
         public void onConnectionEstablished();
         public void onConnectionDisconnected();
-        public void onConnectionError();
+        public void onConnectionError(JumbleConnectionException e);
 
         public void onTCPMessageReceived(Message message, JumbleMessageType messageType);
         public void onUDPDataReceived(byte[] data, JumbleUDPMessageType dataType);
+    }
+
+    public class JumbleConnectionException extends Exception {
+        /** Whether the user will be allowed to auto-reconnect. */
+        private boolean mAutoReconnect;
+
+        public JumbleConnectionException(String message, Throwable e, boolean autoReconnect) {
+            super(message, e);
+            mAutoReconnect = autoReconnect;
+        }
+
+        public JumbleConnectionException(String message, boolean autoReconnect) {
+            super(message);
+            mAutoReconnect = autoReconnect;
+        }
+
+        public JumbleConnectionException(Throwable e, boolean autoReconnect) {
+            super(e);
+            mAutoReconnect = autoReconnect;
+        }
+
+        public boolean isAutoReconnectAllowed() {
+            return mAutoReconnect;
+        }
+
+        public void setAutoReconnectAllowed(boolean autoReconnect) {
+            this.mAutoReconnect = autoReconnect;
+        }
     }
 
     private Context mContext;
@@ -57,10 +86,17 @@ public class JumbleConnection {
     private Looper mLooper;
 
     // Networking
-    private Server mServer;
     private JumbleTCP mTCP;
     private JumbleUDP mUDP;
     private boolean mConnected;
+    private CryptState mCryptState = new CryptState();
+
+    // Server
+    private Server mServer;
+    private String mServerVersion;
+    private String mServerRelease;
+    private String mServerOSName;
+    private String mServerOSVersion;
 
     /**
      * Creates a new JumbleConnection object to facilitate server connections.
@@ -116,16 +152,22 @@ public class JumbleConnection {
     }
 
     /**
+     * Handles an exception that would cause termination of the connection.
+     * @param e The exception that caused termination.
+     */
+    private void handleFatalException(JumbleConnectionException e) {
+        forceDisconnect();
+        if(mListener != null)
+            mListener.onConnectionError(e);
+    }
+
+    /**
      * Attempts to load the PKCS12 certificate from the specified path, and set up an SSL socket factory.
      * You must call this method before establishing a TCP connection.
      * @param certificatePath The absolute path of the PKCS12 (.p12) certificate. May be null.
      * @param certificatePassword The password to decrypt the key store. May be null.
-     * @throws KeyStoreException if an error occurred in the creation of the key store.
-     * @throws NoSuchAlgorithmException if the PKCS12 algorithm is not supported by the platform.
-     * @throws CertificateException if an exception occurred parsing the p12 file.
-     * @throws IOException if there was an error reading the p12 file.
      */
-    private void setupSocketFactory(String certificatePath, String certificatePassword) throws CertificateException, IOException {
+    private void setupSocketFactory(String certificatePath, String certificatePassword) throws JumbleConnectionException {
         try {
             KeyStore keyStore = null;
             if(certificatePath != null) {
@@ -135,12 +177,16 @@ public class JumbleConnection {
             }
             mSocketFactory = new JumbleSSLSocketFactory(keyStore, certificatePassword);
         } catch (KeyManagementException e) {
-            throw new CertificateException("Could not recover keys from certificate!", e);
+            throw new JumbleConnectionException("Could not recover keys from certificate", e, false);
         } catch (KeyStoreException e) {
-            throw new CertificateException("Could not recover keys from certificate!", e);
+            throw new JumbleConnectionException("Could not recover keys from certificate", e, false);
         } catch (UnrecoverableKeyException e) {
-            throw new CertificateException("Could not recover keys from certificate!", e);
-        } catch (NoSuchProviderException e) {
+            throw new JumbleConnectionException("Could not recover keys from certificate", e, false);
+        } catch (IOException e) {
+            throw new JumbleConnectionException("Could not read certificate file", e, false);
+        } catch (CertificateException e) {
+            e.printStackTrace();
+        }catch (NoSuchProviderException e) {
                 /*
                  * This will actually NEVER occur.
                  * We use Spongy Castle to provide the algorithm and provider implementations.
@@ -158,21 +204,14 @@ public class JumbleConnection {
     }
 
     public void sendTCPMessage(Message message, JumbleMessageType messageType) throws IOException {
+        Log.v(Constants.TAG, "OUT: "+messageType);
         mTCP.sendMessage(message, messageType);
-    }
-
-    public JumbleConnectionListener getListener() {
-        return mListener;
-    }
-
-    public void setListener(JumbleConnectionListener listener) {
-        mListener = listener;
     }
 
     /**
      * Class to maintain and interface with the TCP connection to a Mumble server.
      */
-    private class JumbleTCP implements Callable<Void> {
+    private class JumbleTCP implements Runnable {
         private SSLSocket mTCPSocket;
         private DataInputStream mDataInput;
         private DataOutputStream mDataOutput;
@@ -187,26 +226,38 @@ public class JumbleConnection {
             mTCPSocket.close();
         }
 
-        @Override
-        public Void call() throws SSLException, IOException {
-            SSLSocket socket = (SSLSocket)mSocketFactory.createSocket();
-            socket.setKeepAlive(true);
-            socket.setEnabledProtocols(new String[] {"TLSv1"});
-            socket.setUseClientMode(true);
+        public void run() {
+            try {
+                mTCPSocket = (SSLSocket)mSocketFactory.createSocket();
+                mTCPSocket.setKeepAlive(true);
+                mTCPSocket.setEnabledProtocols(new String[] {"TLSv1"});
+                mTCPSocket.setUseClientMode(true);
 
-            HttpParams httpParams = new BasicHttpParams();
-            mSocketFactory.connectSocket(socket, mServer.getHost(), mServer.getPort(), null, 0, httpParams);
+                HttpParams httpParams = new BasicHttpParams();
+                mSocketFactory.connectSocket(mTCPSocket, mServer.getHost(), mServer.getPort(), null, 0, httpParams);
 
-            socket.startHandshake();
-
-            while(mConnected) {
-                short messageType = mDataInput.readShort();
-                int messageLength = mDataInput.readInt();
-                byte[] data = new byte[messageLength];
-                mDataInput.readFully(data);
+                mTCPSocket.startHandshake();
+                mDataInput = new DataInputStream(mTCPSocket.getInputStream());
+                mDataOutput = new DataOutputStream(mTCPSocket.getOutputStream());
+            } catch (SocketException e) {
+                handleFatalException(new JumbleConnectionException("Could not open a connection to the host", e, false));
+                return;
+            } catch (IOException e) {
+                handleFatalException(new JumbleConnectionException("An error occurred when communicating with the host", e, false));
+                return;
             }
 
-            return null;
+            while(mConnected) {
+                try {
+                    short messageType = mDataInput.readShort();
+                    int messageLength = mDataInput.readInt();
+                    byte[] data = new byte[messageLength];
+                    mDataInput.readFully(data);
+                } catch (IOException e) {
+                    //
+                    e.printStackTrace();
+                }
+            }
         }
 
         /**
@@ -225,7 +276,7 @@ public class JumbleConnection {
     /**
      * Class to maintain and receive packets from the UDP connection to a Mumble server.
      */
-    private class JumbleUDP implements Callable<Void> {
+    private class JumbleUDP implements Runnable {
         private static final int BUFFER_SIZE = 1024;
         private DatagramSocket mUDPSocket;
 
@@ -234,16 +285,30 @@ public class JumbleConnection {
         }
 
         @Override
-        public Void call() throws IOException {
-            mUDPSocket = new DatagramSocket();
-            mUDPSocket.connect(InetAddress.getByName(mServer.getHost()), mServer.getPort());
+        public void run() {
+            try {
+                mUDPSocket = new DatagramSocket();
+                mUDPSocket.connect(InetAddress.getByName(mServer.getHost()), mServer.getPort());
+            } catch (SocketException e) {
+                handleFatalException(new JumbleConnectionException("Could not open a connection to the host", e, false));
+            } catch (UnknownHostException e) {
+                handleFatalException(new JumbleConnectionException("Unknown host", e, false));
+            }
+
             DatagramPacket packet = new DatagramPacket(new byte[BUFFER_SIZE], BUFFER_SIZE);
 
             while(mConnected) {
-                mUDPSocket.receive(packet);
+                try {
+                    mUDPSocket.receive(packet);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    continue;
+                }
 
-                // TODO DECRYPT
-                final byte[] decryptedData = null;
+                // Decrypt UDP packet using OCB-AES128
+                final byte[] decryptedData = new byte[packet.getLength()];
+                mCryptState.decrypt(packet.getData(), decryptedData, packet.getLength());
+
                 final JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[decryptedData[0] >> 5 & 0x7];
 
                 if(mListener != null) {
@@ -256,12 +321,10 @@ public class JumbleConnection {
                     });
                 }
             }
-
-            return null;
         }
 
-        public void sendData(byte[] data, JumbleUDPMessageType messageType) {
-
+        public void sendMessage(byte[] data, JumbleUDPMessageType messageType) {
+            byte[] encryptedData = mCryptState.encrypt(data, );
         }
     }
 }
