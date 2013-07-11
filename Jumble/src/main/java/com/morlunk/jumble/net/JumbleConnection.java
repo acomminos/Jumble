@@ -278,6 +278,8 @@ public class JumbleConnection {
                     final byte[] data = new byte[messageLength];
                     mDataInput.readFully(data);
 
+                    Log.v(Constants.TAG, "IN: "+JumbleTCPMessageType.values()[messageType]);
+
                     if(mListener != null) {
                         mMainHandler.post(new Runnable() {
                             @Override
@@ -287,8 +289,20 @@ public class JumbleConnection {
                         });
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    handleFatalException(new JumbleConnectionException("Lost connection to server", e, true));
+                    break;
                 }
+            }
+
+            mConnected = false;
+
+            if(mListener != null) {
+                mMainHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListener.onConnectionDisconnected();
+                    }
+                });
             }
         }
 

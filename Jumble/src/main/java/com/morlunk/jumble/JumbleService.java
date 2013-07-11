@@ -18,6 +18,7 @@ package com.morlunk.jumble;
 
 import android.app.Service;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -99,25 +100,32 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         Log.v(Constants.TAG, "Connected");
 
         // Send version information and authenticate.
-        Mumble.Version.Builder version = Mumble.Version.newBuilder();
+        final Mumble.Version.Builder version = Mumble.Version.newBuilder();
         version.setRelease(mParams.clientName);
         version.setVersion(Constants.PROTOCOL_VERSION);
         version.setOs("Android");
         version.setOsVersion(Build.VERSION.RELEASE);
 
-        Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
+        final Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
         auth.setUsername(mParams.server.getUsername());
-        auth.setPassword(mParams.server.getPassword());
+        //auth.setPassword(mParams.userPassword);
         auth.addCeltVersions(Constants.CELT_VERSION);
         auth.setOpus(mParams.useOpus);
 
-        try {
-            mConnection.sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
-            mConnection.sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
-        } catch (IOException e) {
-            e.printStackTrace();
-            mConnection.disconnect(); // We need to be able to send these packets.
-        }
+            new AsyncTask<Void, Void, Void>() {
+
+                @Override
+                protected Void doInBackground(Void... voids) {
+                    try {
+                        mConnection.sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
+                        mConnection.sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        mConnection.disconnect(); // We need to be able to send these packets.
+                    }
+                    return null;
+                }
+            }.execute();
     }
 
     @Override

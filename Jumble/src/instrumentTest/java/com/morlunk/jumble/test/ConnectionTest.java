@@ -17,16 +17,22 @@
 package com.morlunk.jumble.test;
 
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Message;
+import android.os.RemoteException;
 import android.test.ActivityTestCase;
 import android.test.ServiceTestCase;
 import android.test.suitebuilder.annotation.LargeTest;
 import android.util.Log;
 import com.morlunk.jumble.Constants;
+import com.morlunk.jumble.IJumbleObserver;
 import com.morlunk.jumble.JumbleParams;
 import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.net.JumbleConnection;
 import junit.framework.Test;
+
+import java.util.UUID;
 
 /**
  * Created by andrew on 09/07/13.
@@ -42,7 +48,7 @@ public class ConnectionTest extends ServiceTestCase {
 
         JumbleParams params = new JumbleParams();
 
-        Server server = new Server("Test Server", "morlunk.com", 64738, "Jumble_Client", null);
+        Server server = new Server("Test Server", "morlunk.com", 64738, "Jumble_Test_" + UUID.randomUUID().toString(), "");
         params.server = server;
 
         Intent intent = new Intent(JumbleService.ACTION_CONNECT);
@@ -54,10 +60,11 @@ public class ConnectionTest extends ServiceTestCase {
     @LargeTest
     public void testConnection() throws JumbleConnection.JumbleConnectionException, InterruptedException {
         JumbleService service = (JumbleService) getService();
+
         service.connect();
         while(!service.isConnected()) {
             Log.v(Constants.TAG, "Not connected");
-            Thread.sleep(10000);
+            Thread.sleep(100000);
         }
     }
 }
