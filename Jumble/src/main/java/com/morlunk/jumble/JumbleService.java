@@ -21,21 +21,29 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.util.Log;
+import com.google.protobuf.Message;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.ChannelManager;
+import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleConnection;
+import com.morlunk.jumble.net.JumbleTCPMessageType;
+import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.protobuf.Mumble;
 
+import java.io.IOException;
 import java.security.Security;
-import java.util.List;
 
-public class JumbleService extends Service {
+public class JumbleService extends Service implements JumbleConnection.JumbleConnectionListener {
 
     static {
         // Use Spongy Castle for crypto implementation so we can create and manage PKCS #12 (.p12) certificates.
         Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
     }
+
+    public static final String ACTION_CONNECT = "com.morlunk.jumble.connect";
+    public static final String EXTRA_PARAMS = "params";
 
     private JumbleParams mParams;
     private JumbleConnection mConnection;
@@ -44,8 +52,13 @@ public class JumbleService extends Service {
     private IJumbleService.Stub mBinder = new IJumbleService.Stub() {
 
         @Override
-        public void connect(JumbleParams params) throws RemoteException {
-            mParams = params;
+        public boolean isConnected() throws RemoteException {
+            return mConnection.isConnected();
+        }
+
+        @Override
+        public Server getConnectedServer() throws RemoteException {
+            return null;
         }
 
         @Override
@@ -59,7 +72,72 @@ public class JumbleService extends Service {
         }
     };
 
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if(intent.getAction().equals(ACTION_CONNECT)) {
+            mParams = intent.getParcelableExtra(EXTRA_PARAMS);
+            //connect();
+        }
+        return START_NOT_STICKY;
+    }
+
     public IBinder onBind(Intent intent) {
         return mBinder;
+    }
+
+    public void connect() throws JumbleConnection.JumbleConnectionException {
+        mConnection = new JumbleConnection(this, this, mParams.certificatePath, mParams.certificatePassword); // FIXME
+        mConnection.connect(mParams.server);
+    }
+
+    public boolean isConnected() {
+        return mConnection.isConnected();
+    }
+
+    @Override
+    public void onConnectionEstablished() {
+        Log.v(Constants.TAG, "Connected");
+
+        // Send version information and authenticate.
+        Mumble.Version.Builder version = Mumble.Version.newBuilder();
+        version.setRelease(mParams.clientName);
+        version.setVersion(Constants.PROTOCOL_VERSION);
+        version.setOs("Android");
+        version.setOsVersion(Build.VERSION.RELEASE);
+
+        Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
+        auth.setUsername(mParams.server.getUsername());
+        auth.setPassword(mParams.server.getPassword());
+        auth.addCeltVersions(Constants.CELT_VERSION);
+        auth.setOpus(mParams.useOpus);
+
+        try {
+            mConnection.sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
+            mConnection.sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
+        } catch (IOException e) {
+            e.printStackTrace();
+            mConnection.disconnect(); // We need to be able to send these packets.
+        }
+    }
+
+    @Override
+    public void onConnectionDisconnected() {
+        Log.v(Constants.TAG, "Disconnected");
+    }
+
+    @Override
+    public void onConnectionError(JumbleConnection.JumbleConnectionException e) {
+        Log.e(Constants.TAG, "Connection error: "+e.getMessage());
+        e.getCause().printStackTrace();
+    }
+
+    @Override
+    public void onTCPDataReceived(byte[] data, JumbleTCPMessageType messageType) {
+
+    }
+
+    @Override
+    public void onUDPDataReceived(byte[] data, JumbleUDPMessageType dataType) {
+
     }
 }

@@ -18,22 +18,18 @@ package com.morlunk.jumble.net;
 
 import android.content.Context;
 import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.model.Server;
-import com.morlunk.jumble.protobuf.Mumble;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
 
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSocket;
 import java.io.*;
 import java.net.*;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -43,7 +39,7 @@ public class JumbleConnection {
         public void onConnectionDisconnected();
         public void onConnectionError(JumbleConnectionException e);
 
-        public void onTCPMessageReceived(Message message, JumbleMessageType messageType);
+        public void onTCPDataReceived(byte[] data, JumbleTCPMessageType messageType);
         public void onUDPDataReceived(byte[] data, JumbleUDPMessageType dataType);
     }
 
@@ -83,9 +79,10 @@ public class JumbleConnection {
 
     // Threading
     private ExecutorService mExecutorService;
-    private Looper mLooper;
+    private Handler mMainHandler;
 
     // Networking
+    private InetAddress mHost;
     private JumbleTCP mTCP;
     private JumbleUDP mUDP;
     private boolean mConnected;
@@ -107,22 +104,28 @@ public class JumbleConnection {
      * @throws IOException if there was an error reading the p12 file.
      */
     public JumbleConnection(Context context,
+                            JumbleConnectionListener listener,
                             String certificatePath,
-                            String certificatePassword) throws CertificateException, IOException {
+                            String certificatePassword) throws JumbleConnectionException {
         mContext = context;
-        mLooper = context.getMainLooper();
+        mListener = listener;
+        mMainHandler = new Handler(context.getMainLooper());
         setupSocketFactory(certificatePath, certificatePassword);
     }
 
     public void connect(Server server) {
         mServer = server;
+        mConnected = false;
 
         mExecutorService = Executors.newFixedThreadPool(2); // One TCP thread, one UDP thread.
         mTCP = new JumbleTCP();
         mUDP = new JumbleUDP();
         mExecutorService.submit(mTCP);
         mExecutorService.submit(mUDP);
-        mConnected = true;
+    }
+
+    public boolean isConnected() {
+        return mConnected;
     }
 
     /**
@@ -155,10 +158,16 @@ public class JumbleConnection {
      * Handles an exception that would cause termination of the connection.
      * @param e The exception that caused termination.
      */
-    private void handleFatalException(JumbleConnectionException e) {
+    private void handleFatalException(final JumbleConnectionException e) {
         forceDisconnect();
-        if(mListener != null)
-            mListener.onConnectionError(e);
+        if(mListener != null) {
+            mMainHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mListener.onConnectionError(e);
+                }
+            });
+        }
     }
 
     /**
@@ -203,7 +212,7 @@ public class JumbleConnection {
         }
     }
 
-    public void sendTCPMessage(Message message, JumbleMessageType messageType) throws IOException {
+    public void sendTCPMessage(Message message, JumbleTCPMessageType messageType) throws IOException {
         Log.v(Constants.TAG, "OUT: "+messageType);
         mTCP.sendMessage(message, messageType);
     }
@@ -237,6 +246,9 @@ public class JumbleConnection {
                 mSocketFactory.connectSocket(mTCPSocket, mServer.getHost(), mServer.getPort(), null, 0, httpParams);
 
                 mTCPSocket.startHandshake();
+
+                Log.v(Constants.TAG, "Started handshake");
+
                 mDataInput = new DataInputStream(mTCPSocket.getInputStream());
                 mDataOutput = new DataOutputStream(mTCPSocket.getOutputStream());
             } catch (SocketException e) {
@@ -247,14 +259,34 @@ public class JumbleConnection {
                 return;
             }
 
+            mConnected = true;
+            if(mListener != null) {
+                mMainHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListener.onConnectionEstablished();
+                    }
+                });
+            }
+
+            Log.v(Constants.TAG, "Started listening");
+
             while(mConnected) {
                 try {
-                    short messageType = mDataInput.readShort();
+                    final short messageType = mDataInput.readShort();
                     int messageLength = mDataInput.readInt();
-                    byte[] data = new byte[messageLength];
+                    final byte[] data = new byte[messageLength];
                     mDataInput.readFully(data);
+
+                    if(mListener != null) {
+                        mMainHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mListener.onTCPDataReceived(data, JumbleTCPMessageType.values()[messageType]);
+                            }
+                        });
+                    }
                 } catch (IOException e) {
-                    //
                     e.printStackTrace();
                 }
             }
@@ -266,7 +298,7 @@ public class JumbleConnection {
          * @param messageType The type of the message to send.
          * @throws IOException if we can't write the message to the server.
          */
-        public void sendMessage(Message message, JumbleMessageType messageType) throws IOException {
+        public void sendMessage(Message message, JumbleTCPMessageType messageType) throws IOException {
             mDataOutput.writeShort(messageType.ordinal());
             mDataOutput.writeInt(message.getSerializedSize());
             message.writeTo(mDataOutput);
@@ -312,8 +344,7 @@ public class JumbleConnection {
                 final JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[decryptedData[0] >> 5 & 0x7];
 
                 if(mListener != null) {
-                    Handler handler = new Handler(mLooper);
-                    handler.post(new Runnable() {
+                    mMainHandler.post(new Runnable() {
                         @Override
                         public void run() {
                             mListener.onUDPDataReceived(decryptedData, dataType);
@@ -323,8 +354,14 @@ public class JumbleConnection {
             }
         }
 
-        public void sendMessage(byte[] data, JumbleUDPMessageType messageType) {
-            byte[] encryptedData = mCryptState.encrypt(data, );
+        public void sendMessage(byte[] data, int length, JumbleUDPMessageType messageType) throws IOException {
+            byte[] encryptedData = new byte[length];
+            mCryptState.encrypt(data, encryptedData, length);
+            DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
+            packet.setAddress(mHost);
+            packet.setPort(mServer.getPort());
+
+            mUDPSocket.send(packet);
         }
     }
 }

@@ -40,8 +40,12 @@ public class Server implements Parcelable {
         }
     };
 
-    public Server() {
-
+    public Server(String name, String host, int port, String username, String password) {
+        mName = name;
+        mHost = host;
+        mPort = port;
+        mUsername = username;
+        mPassword = password;
     }
 
     private Server(Parcel in) {

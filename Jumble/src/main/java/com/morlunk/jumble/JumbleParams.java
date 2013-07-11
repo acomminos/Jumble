@@ -60,6 +60,10 @@ public class JumbleParams implements Parcelable {
         }
     };
 
+    public JumbleParams() {
+
+    }
+
     private JumbleParams(Parcel in) {
         readFromParcel(in);
     }

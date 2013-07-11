@@ -19,12 +19,12 @@ package com.morlunk.jumble;
 import com.morlunk.jumble.JumbleParams;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.model.Channel;
+import com.morlunk.jumble.model.Server;
 
 interface IJumbleService {
 
-    /** Connects to a server using the passed parameters. */
-    void connect(in JumbleParams params);
-
+    boolean isConnected();
+    Server getConnectedServer();
     User getUserWithId(int id);
     Channel getChannelWithId(int id);
 

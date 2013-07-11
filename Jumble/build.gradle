@@ -3,10 +3,10 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.4'
+        classpath 'com.android.tools.build:gradle:0.4.3'
     }
 }
-apply plugin: 'android'
+apply plugin: 'android-library'
 
 repositories {
     mavenCentral()
@@ -25,6 +25,8 @@ android {
     buildToolsVersion "17.0.0"
 
     defaultConfig {
+        testPackageName "com.morlunk.jumble.test"
+        testInstrumentationRunner "android.test.InstrumentationTestRunner"
         minSdkVersion 7
         targetSdkVersion 17
     }

@@ -27,7 +27,7 @@ import com.morlunk.jumble.protobuf.Mumble;
  */
 public class JumbleMessageHandler {
 
-    public void handleMessage(Message message, JumbleMessageType messageType) {
+    public void handleMessage(Message message, JumbleTCPMessageType messageType) {
         Log.v(Constants.TAG, "IN: "+messageType);
 
         switch(messageType) {
