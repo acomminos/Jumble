@@ -45,7 +45,7 @@ public class JumbleParams implements Parcelable {
     public boolean forceTcp = false;
 
     // Extra
-    public String clientName = "Plumble";
+    public String clientName = "Jumble Client";
 
     public static final Parcelable.Creator<JumbleParams> CREATOR = new Parcelable.Creator<JumbleParams>() {
 

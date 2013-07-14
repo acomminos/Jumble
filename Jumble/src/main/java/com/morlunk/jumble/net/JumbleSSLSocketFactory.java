@@ -40,7 +40,7 @@ public class JumbleSSLSocketFactory extends SSLSocketFactory {
 
     /**
      * A trust manager which will accept all remote certificates, regardless of validity.
-     * FIXME: this is poor cryptographic practice and allows for a potential MoM attack -AC
+     * FIXME: this is poor cryptographic practice and allows for a potential MitM attack -AC
      */
     private static final TrustManager sPermissiveTrustManager = new X509TrustManager() {
         @Override

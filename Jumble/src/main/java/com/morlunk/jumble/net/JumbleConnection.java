@@ -17,11 +17,15 @@
 package com.morlunk.jumble.net;
 
 import android.content.Context;
+import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
+import com.morlunk.jumble.JumbleParams;
 import com.morlunk.jumble.model.Server;
+import com.morlunk.jumble.protobuf.Mumble;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
 
@@ -43,36 +47,9 @@ public class JumbleConnection {
         public void onUDPDataReceived(byte[] data, JumbleUDPMessageType dataType);
     }
 
-    public class JumbleConnectionException extends Exception {
-        /** Whether the user will be allowed to auto-reconnect. */
-        private boolean mAutoReconnect;
-
-        public JumbleConnectionException(String message, Throwable e, boolean autoReconnect) {
-            super(message, e);
-            mAutoReconnect = autoReconnect;
-        }
-
-        public JumbleConnectionException(String message, boolean autoReconnect) {
-            super(message);
-            mAutoReconnect = autoReconnect;
-        }
-
-        public JumbleConnectionException(Throwable e, boolean autoReconnect) {
-            super(e);
-            mAutoReconnect = autoReconnect;
-        }
-
-        public boolean isAutoReconnectAllowed() {
-            return mAutoReconnect;
-        }
-
-        public void setAutoReconnectAllowed(boolean autoReconnect) {
-            this.mAutoReconnect = autoReconnect;
-        }
-    }
-
     private Context mContext;
     private JumbleConnectionListener mListener;
+    private JumbleParams mParams;
 
     // Authentication
     private JumbleSSLSocketFactory mSocketFactory;
@@ -89,32 +66,92 @@ public class JumbleConnection {
     private CryptState mCryptState = new CryptState();
 
     // Server
-    private Server mServer;
-    private String mServerVersion;
+    private int mServerVersion;
     private String mServerRelease;
     private String mServerOSName;
     private String mServerOSVersion;
 
     /**
+     * Handles packets received that are critical to the connection state.
+     */
+    private JumbleMessageHandler mConnectionMessageHandler = new JumbleMessageHandler() {
+
+        @Override
+        public void messageServerSync(Mumble.ServerSync msg) {
+            /* TODO list:
+             * - start UDP ping thread
+             * - set user session
+             * - other great things
+             */
+            mMainHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mListener.onConnectionEstablished();
+                }
+            });
+
+        }
+
+        @Override
+        public void messageReject(final Mumble.Reject msg) {
+            if(mListener != null) {
+                mMainHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListener.onConnectionError(new JumbleConnectionException(msg));
+                    }
+                });
+            }
+            disconnect();
+        }
+
+        @Override
+        public void messageUserRemove(final Mumble.UserRemove msg) {
+            /* TODO CHECK SESSION ID, IF EQUAL TO USER SESSION DISCONNECT
+
+            if(mListener != null) {
+                mMainHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListener.onConnectionError(new JumbleConnectionException(msg));
+                    }
+                });
+            }
+            disconnect();
+            */
+        }
+
+        @Override
+        public void messageCryptSetup(Mumble.CryptSetup msg) {
+        }
+
+        @Override
+        public void messageVersion(Mumble.Version msg) {
+            mServerVersion = msg.getVersion();
+            mServerRelease = msg.getRelease();
+            mServerOSName = msg.getOs();
+            mServerOSVersion = msg.getOsVersion();
+        }
+    };
+
+    /**
      * Creates a new JumbleConnection object to facilitate server connections.
      * @param context An Android context.
-     * @param certificatePath The absolute path of the PKCS12 (.p12) certificate.
-     * @param certificatePassword The password to decrypt the key store.
+     * @param params Jumble parameters for connection.
      * @throws CertificateException if an exception occurred parsing the p12 file.
      * @throws IOException if there was an error reading the p12 file.
      */
     public JumbleConnection(Context context,
                             JumbleConnectionListener listener,
-                            String certificatePath,
-                            String certificatePassword) throws JumbleConnectionException {
+                            JumbleParams params) throws JumbleConnectionException {
         mContext = context;
         mListener = listener;
+        mParams = params;
         mMainHandler = new Handler(context.getMainLooper());
-        setupSocketFactory(certificatePath, certificatePassword);
+        setupSocketFactory(mParams.certificatePath , mParams.certificatePassword);
     }
 
-    public void connect(Server server) {
-        mServer = server;
+    public void connect() {
         mConnected = false;
 
         mExecutorService = Executors.newFixedThreadPool(2); // One TCP thread, one UDP thread.
@@ -243,7 +280,7 @@ public class JumbleConnection {
                 mTCPSocket.setUseClientMode(true);
 
                 HttpParams httpParams = new BasicHttpParams();
-                mSocketFactory.connectSocket(mTCPSocket, mServer.getHost(), mServer.getPort(), null, 0, httpParams);
+                mSocketFactory.connectSocket(mTCPSocket, mParams.server.getHost(), mParams.server.getPort(), null, 0, httpParams);
 
                 mTCPSocket.startHandshake();
 
@@ -251,6 +288,22 @@ public class JumbleConnection {
 
                 mDataInput = new DataInputStream(mTCPSocket.getInputStream());
                 mDataOutput = new DataOutputStream(mTCPSocket.getOutputStream());
+
+                // Send version information and authenticate.
+                final Mumble.Version.Builder version = Mumble.Version.newBuilder();
+                version.setRelease(mParams.clientName);
+                version.setVersion(Constants.PROTOCOL_VERSION);
+                version.setOs("Android");
+                version.setOsVersion(Build.VERSION.RELEASE);
+
+                final Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
+                auth.setUsername(mParams.server.getUsername());
+                //auth.setPassword(mParams.userPassword);
+                auth.addCeltVersions(Constants.CELT_VERSION);
+                auth.setOpus(mParams.useOpus);
+
+                sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
+                sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
             } catch (SocketException e) {
                 handleFatalException(new JumbleConnectionException("Could not open a connection to the host", e, false));
                 return;
@@ -260,14 +313,6 @@ public class JumbleConnection {
             }
 
             mConnected = true;
-            if(mListener != null) {
-                mMainHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mListener.onConnectionEstablished();
-                    }
-                });
-            }
 
             Log.v(Constants.TAG, "Started listening");
 
@@ -280,6 +325,12 @@ public class JumbleConnection {
 
                     Log.v(Constants.TAG, "IN: "+JumbleTCPMessageType.values()[messageType]);
 
+                    try {
+                        mConnectionMessageHandler.handleMessage(data, JumbleTCPMessageType.values()[messageType]);
+                    } catch (InvalidProtocolBufferException e) {
+                        e.printStackTrace();
+                    }
+
                     if(mListener != null) {
                         mMainHandler.post(new Runnable() {
                             @Override
@@ -289,7 +340,8 @@ public class JumbleConnection {
                         });
                     }
                 } catch (IOException e) {
-                    handleFatalException(new JumbleConnectionException("Lost connection to server", e, true));
+                    if(!mConnected) // Only handle unexpected exceptions here. This could be the result of a clean disconnect like a Reject or UserRemove.
+                        handleFatalException(new JumbleConnectionException("Lost connection to server", e, true));
                     break;
                 }
             }
@@ -334,11 +386,9 @@ public class JumbleConnection {
         public void run() {
             try {
                 mUDPSocket = new DatagramSocket();
-                mUDPSocket.connect(InetAddress.getByName(mServer.getHost()), mServer.getPort());
+                mUDPSocket.connect(mHost, mParams.server.getPort());
             } catch (SocketException e) {
                 handleFatalException(new JumbleConnectionException("Could not open a connection to the host", e, false));
-            } catch (UnknownHostException e) {
-                handleFatalException(new JumbleConnectionException("Unknown host", e, false));
             }
 
             DatagramPacket packet = new DatagramPacket(new byte[BUFFER_SIZE], BUFFER_SIZE);
@@ -348,7 +398,7 @@ public class JumbleConnection {
                     mUDPSocket.receive(packet);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    continue;
+                    break;
                 }
 
                 // Decrypt UDP packet using OCB-AES128
@@ -373,7 +423,7 @@ public class JumbleConnection {
             mCryptState.encrypt(data, encryptedData, length);
             DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
             packet.setAddress(mHost);
-            packet.setPort(mServer.getPort());
+            packet.setPort(mParams.server.getPort());
 
             mUDPSocket.send(packet);
         }

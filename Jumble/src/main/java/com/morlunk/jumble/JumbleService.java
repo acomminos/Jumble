@@ -29,6 +29,8 @@ import com.morlunk.jumble.model.ChannelManager;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleConnection;
+import com.morlunk.jumble.net.JumbleConnectionException;
+import com.morlunk.jumble.net.JumbleMessageHandler;
 import com.morlunk.jumble.net.JumbleTCPMessageType;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.protobuf.Mumble;
@@ -73,6 +75,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
     };
 
+    private JumbleMessageHandler mMessageHandler = new JumbleMessageHandler() {
+    };
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if(intent.getAction().equals(ACTION_CONNECT)) {
@@ -86,9 +91,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         return mBinder;
     }
 
-    public void connect() throws JumbleConnection.JumbleConnectionException {
-        mConnection = new JumbleConnection(this, this, mParams.certificatePath, mParams.certificatePassword); // FIXME
-        mConnection.connect(mParams.server);
+    public void connect() throws JumbleConnectionException {
+        mConnection = new JumbleConnection(this, this, mParams);
+        mConnection.connect();
     }
 
     public boolean isConnected() {
@@ -98,34 +103,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onConnectionEstablished() {
         Log.v(Constants.TAG, "Connected");
-
-        // Send version information and authenticate.
-        final Mumble.Version.Builder version = Mumble.Version.newBuilder();
-        version.setRelease(mParams.clientName);
-        version.setVersion(Constants.PROTOCOL_VERSION);
-        version.setOs("Android");
-        version.setOsVersion(Build.VERSION.RELEASE);
-
-        final Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
-        auth.setUsername(mParams.server.getUsername());
-        //auth.setPassword(mParams.userPassword);
-        auth.addCeltVersions(Constants.CELT_VERSION);
-        auth.setOpus(mParams.useOpus);
-
-            new AsyncTask<Void, Void, Void>() {
-
-                @Override
-                protected Void doInBackground(Void... voids) {
-                    try {
-                        mConnection.sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
-                        mConnection.sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        mConnection.disconnect(); // We need to be able to send these packets.
-                    }
-                    return null;
-                }
-            }.execute();
     }
 
     @Override
@@ -134,7 +111,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     }
 
     @Override
-    public void onConnectionError(JumbleConnection.JumbleConnectionException e) {
+    public void onConnectionError(JumbleConnectionException e) {
         Log.e(Constants.TAG, "Connection error: "+e.getMessage());
         e.getCause().printStackTrace();
     }

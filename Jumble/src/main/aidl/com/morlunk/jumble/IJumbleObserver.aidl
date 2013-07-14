@@ -19,9 +19,11 @@ package com.morlunk.jumble;
 import com.morlunk.jumble.model.Channel;
 
 interface IJumbleObserver {
+    // Connection
     void onConnected();
     void onDisconnected();
-    void onError();
+    void onConnectionError();
+
     //void onChannelAdded(out Channel channel);
     //void onChannelStateUpdated(out Channel channel);
     //void onChannelRemoved(out Channel channel);

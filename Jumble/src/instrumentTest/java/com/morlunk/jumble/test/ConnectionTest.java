@@ -16,55 +16,83 @@
 
 package com.morlunk.jumble.test;
 
-import android.content.Intent;
-import android.os.Handler;
-import android.os.Message;
-import android.os.RemoteException;
-import android.test.ActivityTestCase;
-import android.test.ServiceTestCase;
+import android.test.AndroidTestCase;
 import android.test.suitebuilder.annotation.LargeTest;
-import android.util.Log;
-import com.morlunk.jumble.Constants;
-import com.morlunk.jumble.IJumbleObserver;
+
 import com.morlunk.jumble.JumbleParams;
-import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.net.JumbleConnection;
-import junit.framework.Test;
+import com.morlunk.jumble.net.JumbleConnectionException;
+import com.morlunk.jumble.net.JumbleTCPMessageType;
+import com.morlunk.jumble.net.JumbleUDPMessageType;
 
 import java.util.UUID;
 
 /**
  * Created by andrew on 09/07/13.
  */
-public class ConnectionTest extends ServiceTestCase {
-    public ConnectionTest() {
-        super(JumbleService.class);
-    }
+public class ConnectionTest extends AndroidTestCase {
 
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-
-        JumbleParams params = new JumbleParams();
-
-        Server server = new Server("Test Server", "morlunk.com", 64738, "Jumble_Test_" + UUID.randomUUID().toString(), "");
-        params.server = server;
-
-        Intent intent = new Intent(JumbleService.ACTION_CONNECT);
-        intent.putExtra(JumbleService.EXTRA_PARAMS, params);
-
-        startService(intent);
-    }
+    /**
+     * Standard host testing specifications:
+     * - Passwordless
+     * - Does not require certificate
+     * - Runs protocol version 1.2.4
+     */
+    private static final String HOST = "morlunk.com";
+    private static final int HOST_PORT = 64738;
 
     @LargeTest
-    public void testConnection() throws JumbleConnection.JumbleConnectionException, InterruptedException {
-        JumbleService service = (JumbleService) getService();
+    public void testConnection() throws JumbleConnectionException, InterruptedException {
+        JumbleParams params = new JumbleParams();
 
-        service.connect();
-        while(!service.isConnected()) {
-            Log.v(Constants.TAG, "Not connected");
-            Thread.sleep(100000);
+        final Object lock = new Object();
+
+        params.server = new Server("Test Server", HOST, HOST_PORT, "Jumble-Test-" + UUID.randomUUID().toString(), "");
+        JumbleConnection.JumbleConnectionListener connectionListener = new JumbleConnection.JumbleConnectionListener() {
+            @Override
+            public void onConnectionEstablished() {
+                synchronized (lock) {
+                    lock.notify();
+                }
+            }
+
+            @Override
+            public void onConnectionDisconnected() {
+                synchronized (lock) {
+                    lock.notify();
+                }
+            }
+
+            @Override
+            public void onConnectionError(JumbleConnectionException e) {
+                switch (e.getReason()) {
+                    case REJECT:
+                        fail("Reject: "+e.getReject().getReason());
+                    case USER_REMOVE:
+                        fail("UserRemove: "+e.getUserRemove().getReason());
+                    case OTHER:
+                        fail("Other: "+e.getMessage());
+                }
+            }
+
+            @Override
+            public void onTCPDataReceived(byte[] data, JumbleTCPMessageType messageType) {
+            }
+
+            @Override
+            public void onUDPDataReceived(byte[] data, JumbleUDPMessageType dataType) {
+
+            }
+        };
+
+        JumbleConnection connection = new JumbleConnection(getContext(), connectionListener, params);
+        connection.connect();
+
+        synchronized (lock) {
+            lock.wait();
         }
+
+        connection.disconnect();
     }
 }
