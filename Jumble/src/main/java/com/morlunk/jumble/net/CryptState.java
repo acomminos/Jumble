@@ -68,7 +68,7 @@ public class CryptState {
     }
 
     private static final String AES_TRANSFORMATION = "AES/ECB/NoPadding";
-    private static final int AES_BLOCK_SIZE = 16;
+    public static final int AES_BLOCK_SIZE = 16;
 
     byte[] mRawKey = new byte[AES_BLOCK_SIZE];
     byte[] mEncryptIV = new byte[AES_BLOCK_SIZE];
@@ -122,6 +122,10 @@ public class CryptState {
 
     public void setDecryptIV(byte[] iv) {
         mDecryptIV = iv;
+    }
+
+    public byte[] getEncryptIV() {
+        return mEncryptIV;
     }
 
     public void ocbEncrypt(byte[] plain, byte[] encrypted, int len, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {

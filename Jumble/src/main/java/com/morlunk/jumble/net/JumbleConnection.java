@@ -20,6 +20,8 @@ import android.content.Context;
 import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
+
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
@@ -36,15 +38,15 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class JumbleConnection {
     public interface JumbleConnectionListener {
         public void onConnectionEstablished();
         public void onConnectionDisconnected();
         public void onConnectionError(JumbleConnectionException e);
-
-        public void onTCPDataReceived(byte[] data, JumbleTCPMessageType messageType);
-        public void onUDPDataReceived(byte[] data, JumbleUDPMessageType dataType);
     }
 
     private Context mContext;
@@ -56,6 +58,7 @@ public class JumbleConnection {
 
     // Threading
     private ExecutorService mExecutorService;
+    private ScheduledExecutorService mPingExecutorService;
     private Handler mMainHandler;
 
     // Networking
@@ -64,6 +67,7 @@ public class JumbleConnection {
     private JumbleUDP mUDP;
     private boolean mConnected;
     private CryptState mCryptState = new CryptState();
+    private long mStartTimestamp; // Time that the connection was initiated in nanoseconds
 
     // Server
     private int mServerVersion;
@@ -79,10 +83,13 @@ public class JumbleConnection {
         @Override
         public void messageServerSync(Mumble.ServerSync msg) {
             /* TODO list:
-             * - start UDP ping thread
              * - set user session
              * - other great things
              */
+
+            // Start TCP/UDP ping thread. FIXME is this the right place?
+            mPingExecutorService.scheduleAtFixedRate(mPingRunnable, 0, 5, TimeUnit.SECONDS);
+
             mMainHandler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -123,6 +130,31 @@ public class JumbleConnection {
 
         @Override
         public void messageCryptSetup(Mumble.CryptSetup msg) {
+            try {
+                if(msg.hasKey() && msg.hasClientNonce() && msg.hasServerNonce()) {
+                    ByteString key = msg.getKey();
+                    ByteString clientNonce = msg.getClientNonce();
+                    ByteString serverNonce = msg.getServerNonce();
+                    if(key.size() == CryptState.AES_BLOCK_SIZE &&
+                            clientNonce.size() == CryptState.AES_BLOCK_SIZE &&
+                            serverNonce.size() == CryptState.AES_BLOCK_SIZE)
+                        mCryptState.setKey(key.toByteArray(), clientNonce.toByteArray(), serverNonce.toByteArray());
+                } else if(msg.hasServerNonce()) {
+                    ByteString serverNonce = msg.getServerNonce();
+                    if(serverNonce.size() == CryptState.AES_BLOCK_SIZE) {
+                        mCryptState.mUiResync++;
+                        mCryptState.setDecryptIV(serverNonce.toByteArray());
+                    }
+                } else {
+                    Mumble.CryptSetup.Builder csb = Mumble.CryptSetup.newBuilder();
+                    csb.setClientNonce(ByteString.copyFrom(mCryptState.getEncryptIV()));
+                    sendTCPMessage(csb.build(), JumbleTCPMessageType.CryptSetup);
+                }
+            } catch (InvalidKeyException e) {
+                handleFatalException(new JumbleConnectionException("Received invalid cryptographic nonce from server", e, true));
+            } catch (IOException e) {
+                handleFatalException(new JumbleConnectionException("Failed to send client nonce to server", e, true));
+            }
         }
 
         @Override
@@ -131,6 +163,30 @@ public class JumbleConnection {
             mServerRelease = msg.getRelease();
             mServerOSName = msg.getOs();
             mServerOSVersion = msg.getOsVersion();
+        }
+    };
+
+    private Runnable mPingRunnable = new Runnable() {
+        @Override
+        public void run() {
+
+            if(mUDP != null) {
+                byte[] buffer = new byte[256];
+
+            }
+
+            Mumble.Ping.Builder pb = Mumble.Ping.newBuilder();
+            pb.setTimestamp((System.nanoTime()-mStartTimestamp)/1000000);
+            pb.setGood(mCryptState.mUiGood);
+            pb.setLate(mCryptState.mUiLate);
+            pb.setLost(mCryptState.mUiLost);
+            pb.setResync(mCryptState.mUiResync);
+
+            try {
+                sendTCPMessage(pb.build(), JumbleTCPMessageType.Ping);
+            } catch (IOException e) {
+                handleFatalException(new JumbleConnectionException("Failed to ping remote server.", e, true));
+            }
         }
     };
 
@@ -148,13 +204,15 @@ public class JumbleConnection {
         mListener = listener;
         mParams = params;
         mMainHandler = new Handler(context.getMainLooper());
-        setupSocketFactory(mParams.certificatePath , mParams.certificatePassword);
+        setupSocketFactory(mParams.certificatePath, mParams.certificatePassword);
     }
 
     public void connect() {
         mConnected = false;
+        mStartTimestamp = System.nanoTime();
 
         mExecutorService = Executors.newFixedThreadPool(2); // One TCP thread, one UDP thread.
+        mPingExecutorService = Executors.newSingleThreadScheduledExecutor();
         mTCP = new JumbleTCP();
         mUDP = new JumbleUDP();
         mExecutorService.submit(mTCP);
@@ -179,6 +237,7 @@ public class JumbleConnection {
         mTCP = null;
         mUDP = null;
         mExecutorService.shutdown();
+        mPingExecutorService.shutdown();
     }
 
     /**
@@ -187,6 +246,7 @@ public class JumbleConnection {
     public void forceDisconnect() {
         mConnected = false;
         mExecutorService.shutdownNow();
+        mPingExecutorService.shutdownNow();
         mTCP = null;
         mUDP = null;
     }
@@ -208,18 +268,17 @@ public class JumbleConnection {
     }
 
     /**
-     * Attempts to load the PKCS12 certificate from the specified path, and set up an SSL socket factory.
+     * Attempts to load the PKCS12 certificate from the specified stream, and sets up an SSL socket factory.
      * You must call this method before establishing a TCP connection.
-     * @param certificatePath The absolute path of the PKCS12 (.p12) certificate. May be null.
+     * @param certificateStream The input stream of a PKCS12 (.p12) certificate. May be null.
      * @param certificatePassword The password to decrypt the key store. May be null.
      */
-    private void setupSocketFactory(String certificatePath, String certificatePassword) throws JumbleConnectionException {
+    protected void setupSocketFactory(InputStream certificateStream, String certificatePassword) throws JumbleConnectionException {
         try {
             KeyStore keyStore = null;
-            if(certificatePath != null) {
-                InputStream certificateStream = new FileInputStream(certificatePath);
+            if(certificateStream != null) {
                 keyStore = KeyStore.getInstance("PKCS12");
-                keyStore.load(certificateStream, certificatePassword.toCharArray());
+                keyStore.load(certificateStream, certificatePassword != null ? certificatePassword.toCharArray() : new char[0]);
             }
             mSocketFactory = new JumbleSSLSocketFactory(keyStore, certificatePassword);
         } catch (KeyManagementException e) {
@@ -246,6 +305,20 @@ public class JumbleConnection {
                  * There's no platform dependency.
                  */
             throw new RuntimeException("We use Spongy Castle- what? ", e);
+        }
+    }
+
+    /**
+     * Wrapper to load a P12 into a socket factory via a path..
+     * @param certificateFile
+     * @param certificatePassword
+     * @throws JumbleConnectionException
+     */
+    protected void setupSocketFactory(String certificateFile, String certificatePassword) throws JumbleConnectionException {
+        try {
+            setupSocketFactory(certificateFile != null ? new FileInputStream(certificateFile) : null, certificatePassword);
+        } catch (FileNotFoundException e) {
+            throw new JumbleConnectionException("Could not find certificate file", e, false);
         }
     }
 
@@ -330,15 +403,6 @@ public class JumbleConnection {
                     } catch (InvalidProtocolBufferException e) {
                         e.printStackTrace();
                     }
-
-                    if(mListener != null) {
-                        mMainHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                mListener.onTCPDataReceived(data, JumbleTCPMessageType.values()[messageType]);
-                            }
-                        });
-                    }
                 } catch (IOException e) {
                     if(!mConnected) // Only handle unexpected exceptions here. This could be the result of a clean disconnect like a Reject or UserRemove.
                         handleFatalException(new JumbleConnectionException("Lost connection to server", e, true));
@@ -406,15 +470,6 @@ public class JumbleConnection {
                 mCryptState.decrypt(packet.getData(), decryptedData, packet.getLength());
 
                 final JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[decryptedData[0] >> 5 & 0x7];
-
-                if(mListener != null) {
-                    mMainHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            mListener.onUDPDataReceived(decryptedData, dataType);
-                        }
-                    });
-                }
             }
         }
 

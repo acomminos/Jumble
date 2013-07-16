@@ -115,14 +115,4 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         Log.e(Constants.TAG, "Connection error: "+e.getMessage());
         e.getCause().printStackTrace();
     }
-
-    @Override
-    public void onTCPDataReceived(byte[] data, JumbleTCPMessageType messageType) {
-
-    }
-
-    @Override
-    public void onUDPDataReceived(byte[] data, JumbleUDPMessageType dataType) {
-
-    }
 }

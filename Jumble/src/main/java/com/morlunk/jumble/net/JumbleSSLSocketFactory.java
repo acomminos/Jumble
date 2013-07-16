@@ -71,7 +71,7 @@ public class JumbleSSLSocketFactory extends SSLSocketFactory {
 
         if(keystore != null) {
             KeyManagerFactory factory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            factory.init(keystore, keystorePassword.toCharArray());
+            factory.init(keystore, keystorePassword != null ? keystorePassword.toCharArray() : null);
             keyManagers = factory.getKeyManagers();
         }
 
