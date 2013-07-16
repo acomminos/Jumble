@@ -17,6 +17,7 @@
 package com.morlunk.jumble.net;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Message;
 import com.morlunk.jumble.protobuf.Mumble;
 
 /**
@@ -27,91 +28,184 @@ import com.morlunk.jumble.protobuf.Mumble;
 public class JumbleMessageHandler {
 
     /**
-     * Reroutes TCP messages into the various responder methods of this class.
-     * @param data Raw TCP data of the message.
-     * @param messageType The type of the message.
+     * Gets the protobuf message from the passed TCP data.
+     * We isolate this so we can first parse the message and then inform all handlers. Saves processing power.
+     * @param data Raw protobuf TCP data.
+     * @param messageType Type of the message.
+     * @return The parsed protobuf message.
      * @throws InvalidProtocolBufferException Called if the messageType does not match the data.
      */
-    public final void handleMessage(byte[] data, JumbleTCPMessageType messageType) throws InvalidProtocolBufferException {
+    public static final Message getProtobufMessage(byte[] data, JumbleTCPMessageType messageType) throws InvalidProtocolBufferException {
         switch (messageType) {
             case Authenticate:
-                messageAuthenticate(Mumble.Authenticate.parseFrom(data));
+                return Mumble.Authenticate.parseFrom(data);
+            case BanList:
+                return Mumble.BanList.parseFrom(data);
+            case Reject:
+                return Mumble.Reject.parseFrom(data);
+            case ServerSync:
+                return Mumble.ServerSync.parseFrom(data);
+            case ServerConfig:
+                return Mumble.ServerConfig.parseFrom(data);
+            case PermissionDenied:
+                return Mumble.PermissionDenied.parseFrom(data);
+            case UDPTunnel:
+                return Mumble.UDPTunnel.parseFrom(data);
+            case UserState:
+                return Mumble.UserState.parseFrom(data);
+            case UserRemove:
+                return Mumble.UserRemove.parseFrom(data);
+            case ChannelState:
+                return Mumble.ChannelState.parseFrom(data);
+            case ChannelRemove:
+                return Mumble.ChannelRemove.parseFrom(data);
+            case TextMessage:
+                return Mumble.TextMessage.parseFrom(data);
+            case ACL:
+                return Mumble.ACL.parseFrom(data);
+            case QueryUsers:
+                return Mumble.QueryUsers.parseFrom(data);
+            case Ping:
+                return Mumble.Ping.parseFrom(data);
+            case CryptSetup:
+                return Mumble.CryptSetup.parseFrom(data);
+            case ContextAction:
+                return Mumble.ContextAction.parseFrom(data);
+            case ContextActionModify:
+                return Mumble.ContextActionModify.parseFrom(data);
+            case Version:
+                return Mumble.Version.parseFrom(data);
+            case UserList:
+                return Mumble.UserList.parseFrom(data);
+            case PermissionQuery:
+                return Mumble.PermissionQuery.parseFrom(data);
+            case CodecVersion:
+                return Mumble.CodecVersion.parseFrom(data);
+            case UserStats:
+                return Mumble.UserStats.parseFrom(data);
+            case RequestBlob:
+                return Mumble.RequestBlob.parseFrom(data);
+            case SuggestConfig:
+                return Mumble.SuggestConfig.parseFrom(data);
+            default:
+                throw new InvalidProtocolBufferException("Unknown TCP data passed.");
+        }
+    }
+
+
+    /**
+     * Reroutes TCP messages into the various responder methods of this class.
+     * @param msg Protobuf message.
+     * @param messageType The type of the message.
+     */
+    public final void handleTCPMessage(Message msg, JumbleTCPMessageType messageType) {
+        switch (messageType) {
+            case Authenticate:
+                messageAuthenticate((Mumble.Authenticate) msg);
                 break;
             case BanList:
-                messageBanList(Mumble.BanList.parseFrom(data));
+                messageBanList((Mumble.BanList) msg);
                 break;
             case Reject:
-                messageReject(Mumble.Reject.parseFrom(data));
+                messageReject((Mumble.Reject) msg);
                 break;
             case ServerSync:
-                messageServerSync(Mumble.ServerSync.parseFrom(data));
+                messageServerSync((Mumble.ServerSync) msg);
                 break;
             case ServerConfig:
-                messageServerConfig(Mumble.ServerConfig.parseFrom(data));
+                messageServerConfig((Mumble.ServerConfig) msg);
                 break;
             case PermissionDenied:
-                messagePermissionDenied(Mumble.PermissionDenied.parseFrom(data));
+                messagePermissionDenied((Mumble.PermissionDenied) msg);
                 break;
             case UDPTunnel:
-                messageUDPTunnel(Mumble.UDPTunnel.parseFrom(data));
+                messageUDPTunnel((Mumble.UDPTunnel) msg);
                 break;
             case UserState:
-                messageUserState(Mumble.UserState.parseFrom(data));
+                messageUserState((Mumble.UserState) msg);
                 break;
             case UserRemove:
-                messageUserRemove(Mumble.UserRemove.parseFrom(data));
+                messageUserRemove((Mumble.UserRemove) msg);
                 break;
             case ChannelState:
-                messageChannelState(Mumble.ChannelState.parseFrom(data));
+                messageChannelState((Mumble.ChannelState) msg);
                 break;
             case ChannelRemove:
-                messageChannelRemove(Mumble.ChannelRemove.parseFrom(data));
+                messageChannelRemove((Mumble.ChannelRemove) msg);
                 break;
             case TextMessage:
-                messageTextMessage(Mumble.TextMessage.parseFrom(data));
+                messageTextMessage((Mumble.TextMessage) msg);
                 break;
             case ACL:
-                messageACL(Mumble.ACL.parseFrom(data));
+                messageACL((Mumble.ACL) msg);
                 break;
             case QueryUsers:
-                messageQueryUsers(Mumble.QueryUsers.parseFrom(data));
+                messageQueryUsers((Mumble.QueryUsers) msg);
                 break;
             case Ping:
-                messagePing(Mumble.Ping.parseFrom(data));
+                messagePing((Mumble.Ping) msg);
                 break;
             case CryptSetup:
-                messageCryptSetup(Mumble.CryptSetup.parseFrom(data));
+                messageCryptSetup((Mumble.CryptSetup) msg);
                 break;
             case ContextAction:
-                messageContextAction(Mumble.ContextAction.parseFrom(data));
+                messageContextAction((Mumble.ContextAction) msg);
                 break;
             case ContextActionModify:
-                Mumble.ContextActionModify actionModify = Mumble.ContextActionModify.parseFrom(data);
-                if(actionModify.getOperation() == Mumble.ContextActionModify.Operation.Add)
+                Mumble.ContextActionModify actionModify = (Mumble.ContextActionModify) msg;
+                if (actionModify.getOperation() == Mumble.ContextActionModify.Operation.Add)
                     messageContextActionModify(actionModify);
-                else if(actionModify.getOperation() == Mumble.ContextActionModify.Operation.Remove)
+                else if (actionModify.getOperation() == Mumble.ContextActionModify.Operation.Remove)
                     messageRemoveContextAction(actionModify);
                 break;
             case Version:
-                messageVersion(Mumble.Version.parseFrom(data));
+                messageVersion((Mumble.Version) msg);
                 break;
             case UserList:
-                messageUserList(Mumble.UserList.parseFrom(data));
+                messageUserList((Mumble.UserList) msg);
                 break;
             case PermissionQuery:
-                messagePermissionQuery(Mumble.PermissionQuery.parseFrom(data));
+                messagePermissionQuery((Mumble.PermissionQuery) msg);
                 break;
             case CodecVersion:
-                messageCodecVersion(Mumble.CodecVersion.parseFrom(data));
+                messageCodecVersion((Mumble.CodecVersion) msg);
                 break;
             case UserStats:
-                messageUserStats(Mumble.UserStats.parseFrom(data));
+                messageUserStats((Mumble.UserStats) msg);
                 break;
             case RequestBlob:
-                messageRequestBlob(Mumble.RequestBlob.parseFrom(data));
+                messageRequestBlob((Mumble.RequestBlob) msg);
                 break;
             case SuggestConfig:
-                messageSuggestConfig(Mumble.SuggestConfig.parseFrom(data));
+                messageSuggestConfig((Mumble.SuggestConfig) msg);
+                break;
+            case VoiceTarget:
+                messageVoiceTarget((Mumble.VoiceTarget) msg);
+                break;
+        }
+    }
+
+    /**
+     * Reroutes UDP messages into the various responder methods of this class.
+     * @param data Raw UDP data of the message.
+     * @param messageType The type of the message.
+     */
+    public final void handleUDPMessage(byte[] data, JumbleUDPMessageType messageType) {
+        switch (messageType) {
+            case UDPVoiceCELTAlpha:
+                messageUDPCELTAlpha(data);
+                break;
+            case UDPPing:
+                messageUDPPing(data);
+                break;
+            case UDPVoiceSpeex:
+                messageUDPSpeex(data);
+                break;
+            case UDPVoiceCELTBeta:
+                messageUDPCELTBeta(data);
+                break;
+            case UDPVoiceOpus:
+                messageUDPOpus(data);
                 break;
         }
     }
@@ -142,4 +236,11 @@ public class JumbleMessageHandler {
     public void messageUserStats(Mumble.UserStats msg) {};
     public void messageRequestBlob(Mumble.RequestBlob msg) {};
     public void messageSuggestConfig(Mumble.SuggestConfig msg) {};
+    public void messageVoiceTarget(Mumble.VoiceTarget msg) {};
+
+    public void messageUDPCELTAlpha(byte[] data) {};
+    public void messageUDPPing(byte[] data) {};
+    public void messageUDPSpeex(byte[] data) {};
+    public void messageUDPCELTBeta(byte[] data) {};
+    public void messageUDPOpus(byte[] data) {};
 }

@@ -26,7 +26,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.JumbleParams;
-import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.protobuf.Mumble;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
@@ -36,10 +35,12 @@ import java.io.*;
 import java.net.*;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class JumbleConnection {
@@ -75,6 +76,12 @@ public class JumbleConnection {
     private String mServerOSName;
     private String mServerOSVersion;
 
+    // Session
+    private int mSession;
+
+    // Message handlers
+    private ConcurrentLinkedQueue<JumbleMessageHandler> mHandlers = new ConcurrentLinkedQueue<JumbleMessageHandler>();
+
     /**
      * Handles packets received that are critical to the connection state.
      */
@@ -89,6 +96,8 @@ public class JumbleConnection {
 
             // Start TCP/UDP ping thread. FIXME is this the right place?
             mPingExecutorService.scheduleAtFixedRate(mPingRunnable, 0, 5, TimeUnit.SECONDS);
+
+            mSession = msg.getSession();
 
             mMainHandler.post(new Runnable() {
                 @Override
@@ -114,18 +123,17 @@ public class JumbleConnection {
 
         @Override
         public void messageUserRemove(final Mumble.UserRemove msg) {
-            /* TODO CHECK SESSION ID, IF EQUAL TO USER SESSION DISCONNECT
-
-            if(mListener != null) {
-                mMainHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mListener.onConnectionError(new JumbleConnectionException(msg));
-                    }
-                });
+            if(msg.getActor() == mSession) {
+                if(mListener != null) {
+                    mMainHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            mListener.onConnectionError(new JumbleConnectionException(msg));
+                        }
+                    });
+                }
+                disconnect();
             }
-            disconnect();
-            */
         }
 
         @Override
@@ -204,6 +212,7 @@ public class JumbleConnection {
         mListener = listener;
         mParams = params;
         mMainHandler = new Handler(context.getMainLooper());
+        mHandlers.add(mConnectionMessageHandler);
         setupSocketFactory(mParams.certificatePath, mParams.certificatePassword);
     }
 
@@ -396,10 +405,15 @@ public class JumbleConnection {
                     final byte[] data = new byte[messageLength];
                     mDataInput.readFully(data);
 
-                    Log.v(Constants.TAG, "IN: "+JumbleTCPMessageType.values()[messageType]);
+                    JumbleTCPMessageType tcpMessageType = JumbleTCPMessageType.values()[messageType];
+
+                    Log.v(Constants.TAG, "IN: "+tcpMessageType);
 
                     try {
-                        mConnectionMessageHandler.handleMessage(data, JumbleTCPMessageType.values()[messageType]);
+                        Message message = JumbleMessageHandler.getProtobufMessage(data, tcpMessageType);
+                        for(JumbleMessageHandler handler : mHandlers) {
+                            handler.handleTCPMessage(message, tcpMessageType);
+                        }
                     } catch (InvalidProtocolBufferException e) {
                         e.printStackTrace();
                     }
