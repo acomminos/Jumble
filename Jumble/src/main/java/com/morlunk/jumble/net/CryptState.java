@@ -87,12 +87,26 @@ public class CryptState {
 
     Cipher mEncryptKey;
     Cipher mDecryptKey;
-    Timer mLastGood;
-    Timer mLastRequest;
+    long mLastGoodStart;
+    long mLastRequestStart;
     boolean mInit = false;
 
     public boolean isValid() {
         return mInit;
+    }
+
+    /**
+     * @return The time since the last good decrypt in microseconds.
+     */
+    public long getLastGoodElapsed() {
+        return (System.nanoTime()-mLastGoodStart)/1000;
+    }
+
+    /**
+     * @return The time since the last request in microseconds.
+     */
+    public long getLastRequestElapsed() {
+        return (System.nanoTime()-mLastRequestStart)/1000;
     }
 
     /* No need to create a shared secret, no server implementation.
@@ -120,12 +134,12 @@ public class CryptState {
         mInit = true;
     }
 
-    public void setDecryptIV(byte[] iv) {
-        mDecryptIV = iv;
-    }
-
     public byte[] getEncryptIV() {
         return mEncryptIV;
+    }
+
+    public byte[] getDecryptIV() {
+        return mDecryptIV;
     }
 
     public void ocbEncrypt(byte[] plain, byte[] encrypted, int len, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
@@ -314,7 +328,7 @@ public class CryptState {
         mUiLate += late;
         mUiLost += lost;
 
-        //mLastGood.restart(); FIXME
+        mLastGoodStart = System.nanoTime();
         return true;
     }
 

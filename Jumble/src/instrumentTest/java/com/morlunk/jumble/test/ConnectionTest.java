@@ -19,7 +19,9 @@ package com.morlunk.jumble.test;
 import android.content.Context;
 import android.test.AndroidTestCase;
 import android.test.suitebuilder.annotation.LargeTest;
+import android.util.Log;
 
+import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.JumbleParams;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.net.JumbleConnection;
@@ -38,7 +40,7 @@ import java.util.UUID;
  */
 public class ConnectionTest extends AndroidTestCase {
 
-    private static final String HOST = "morlunk.com";
+    private static final String HOST = "pi.morlunk.com";
     private static final int PORT = 64739;
     private static final String USERNAME = "Jumble-Unit-Tests";
     private static final String PASSWORD = "";
@@ -54,6 +56,7 @@ public class ConnectionTest extends AndroidTestCase {
     @LargeTest
     public void testBasicConnection() throws JumbleConnectionException, InterruptedException {
         final JumbleParams params = new JumbleParams();
+        params.forceTcp = true; // Easier for testing
         params.server = new Server("Test Server", HOST, PORT, USERNAME, PASSWORD);
         final Object lock = new Object();
 
@@ -73,15 +76,16 @@ public class ConnectionTest extends AndroidTestCase {
      * @throws JumbleConnectionException
      * @throws InterruptedException
      */
-    //@LargeTest
+    /*
+    @LargeTest
     public void testCertificateConnection() throws JumbleConnectionException, InterruptedException, IOException {
         final JumbleParams params = new JumbleParams();
         params.server = new Server("Test Server", HOST, PORT, USERNAME, PASSWORD);
 
-        /*
+
          * In order to better integrate with AIDL, we need to be able to pass a string for the certificate path.
          * Thus, we need to move the certificate in the assets/ folder into temp storage.
-         */
+
 
         InputStream cis = getContext().getAssets().open(CERTIFICATE_NAME);
         FileOutputStream fos = getContext().openFileOutput(CERTIFICATE_NAME, Context.MODE_PRIVATE);
@@ -106,6 +110,7 @@ public class ConnectionTest extends AndroidTestCase {
 
         connection.disconnect();
     }
+    */
 
     /**
      * Allows for locking the test thread until the network has finished connecting.
@@ -142,6 +147,11 @@ public class ConnectionTest extends AndroidTestCase {
                 case OTHER:
                     fail("Other: "+e.getMessage());
             }
+        }
+
+        @Override
+        public void onConnectionWarning(String warning) {
+            Log.w(Constants.TAG, warning);
         }
     }
 }

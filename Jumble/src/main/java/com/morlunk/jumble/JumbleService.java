@@ -75,14 +75,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
     };
 
-    private JumbleMessageHandler mMessageHandler = new JumbleMessageHandler() {
+    private JumbleMessageHandler mMessageHandler = new JumbleMessageHandler.Stub() {
     };
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if(intent.getAction().equals(ACTION_CONNECT)) {
             mParams = intent.getParcelableExtra(EXTRA_PARAMS);
-            //connect();
         }
         return START_NOT_STICKY;
     }
@@ -93,7 +92,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     public void connect() throws JumbleConnectionException {
         mConnection = new JumbleConnection(this, this, mParams);
+        mConnection.addMessageHandler(mMessageHandler);
         mConnection.connect();
+    }
+
+    public void disconnect() {
+        mConnection.removeMessageHandler(mMessageHandler);
+        mConnection.disconnect();
+        mConnection = null;
     }
 
     public boolean isConnected() {
@@ -114,5 +120,10 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void onConnectionError(JumbleConnectionException e) {
         Log.e(Constants.TAG, "Connection error: "+e.getMessage());
         e.getCause().printStackTrace();
+    }
+
+    @Override
+    public void onConnectionWarning(String warning) {
+        Log.e(Constants.TAG, "Connection warning: "+warning);
     }
 }

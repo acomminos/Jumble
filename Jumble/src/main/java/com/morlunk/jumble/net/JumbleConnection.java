@@ -33,10 +33,9 @@ import org.apache.http.params.HttpParams;
 import javax.net.ssl.SSLSocket;
 import java.io.*;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,6 +47,7 @@ public class JumbleConnection {
         public void onConnectionEstablished();
         public void onConnectionDisconnected();
         public void onConnectionError(JumbleConnectionException e);
+        public void onConnectionWarning(String warning);
     }
 
     private Context mContext;
@@ -66,6 +66,7 @@ public class JumbleConnection {
     private InetAddress mHost;
     private JumbleTCP mTCP;
     private JumbleUDP mUDP;
+    private boolean mUsingUDP = true;
     private boolean mConnected;
     private CryptState mCryptState = new CryptState();
     private long mStartTimestamp; // Time that the connection was initiated in nanoseconds
@@ -85,14 +86,19 @@ public class JumbleConnection {
     /**
      * Handles packets received that are critical to the connection state.
      */
-    private JumbleMessageHandler mConnectionMessageHandler = new JumbleMessageHandler() {
+    private JumbleMessageHandler mConnectionMessageHandler = new JumbleMessageHandler.Stub() {
 
         @Override
         public void messageServerSync(Mumble.ServerSync msg) {
-            /* TODO list:
-             * - set user session
-             * - other great things
-             */
+            // Protocol says we're supposed to send a dummy UDPTunnel packet here to let the server know we don't like UDP.
+            if(mParams.forceTcp) {
+                try {
+                    byte[] buffer = new byte[3];
+                    mTCP.sendMessage(buffer, JumbleTCPMessageType.UDPTunnel);
+                } catch (IOException e) {
+                    Log.e(Constants.TAG, "Couldn't send dummy UDPTunnel packet.");
+                }
+            }
 
             // Start TCP/UDP ping thread. FIXME is this the right place?
             mPingExecutorService.scheduleAtFixedRate(mPingRunnable, 0, 5, TimeUnit.SECONDS);
@@ -143,6 +149,7 @@ public class JumbleConnection {
                     ByteString key = msg.getKey();
                     ByteString clientNonce = msg.getClientNonce();
                     ByteString serverNonce = msg.getServerNonce();
+
                     if(key.size() == CryptState.AES_BLOCK_SIZE &&
                             clientNonce.size() == CryptState.AES_BLOCK_SIZE &&
                             serverNonce.size() == CryptState.AES_BLOCK_SIZE)
@@ -151,7 +158,7 @@ public class JumbleConnection {
                     ByteString serverNonce = msg.getServerNonce();
                     if(serverNonce.size() == CryptState.AES_BLOCK_SIZE) {
                         mCryptState.mUiResync++;
-                        mCryptState.setDecryptIV(serverNonce.toByteArray());
+                        mCryptState.mDecryptIV = serverNonce.toByteArray();
                     }
                 } else {
                     Mumble.CryptSetup.Builder csb = Mumble.CryptSetup.newBuilder();
@@ -161,7 +168,7 @@ public class JumbleConnection {
             } catch (InvalidKeyException e) {
                 handleFatalException(new JumbleConnectionException("Received invalid cryptographic nonce from server", e, true));
             } catch (IOException e) {
-                handleFatalException(new JumbleConnectionException("Failed to send client nonce to server", e, true));
+                handleFatalException(new JumbleConnectionException("Could not resync crypt state with server", e, true));
             }
         }
 
@@ -172,19 +179,70 @@ public class JumbleConnection {
             mServerOSName = msg.getOs();
             mServerOSVersion = msg.getOsVersion();
         }
+
+        @Override
+        public void messagePing(Mumble.Ping msg) {
+            mCryptState.mUiRemoteGood = msg.getGood();
+            mCryptState.mUiRemoteLate = msg.getLate();
+            mCryptState.mUiRemoteLost = msg.getLost();
+            mCryptState.mUiRemoteResync = msg.getResync();
+
+            // In microseconds
+            long elapsed = getElapsed();
+
+            if(((mCryptState.mUiRemoteGood == 0) || (mCryptState.mUiGood == 0)) && mUsingUDP && elapsed > 20000000) {
+                mUsingUDP = false;
+                if(!mParams.forceTcp && mListener != null) {
+                    if((mCryptState.mUiRemoteGood == 0) && (mCryptState.mUiGood == 0))
+                        mListener.onConnectionWarning("UDP packets cannot be sent to or received from the server. Switching to TCP mode.");
+                    else if(mCryptState.mUiRemoteGood == 0)
+                        mListener.onConnectionWarning("UDP packets cannot be sent to the server. Switching to TCP mode.");
+                    else
+                        mListener.onConnectionWarning("UDP packets cannot be received from the server. Switching to TCP mode.");
+                }
+            } else if (!mUsingUDP && (mCryptState.mUiRemoteGood > 3) && (mCryptState.mUiGood > 3)) {
+                mUsingUDP = true;
+                if (!mParams.forceTcp && mListener != null)
+                    mListener.onConnectionWarning("UDP packets can be sent to and received from the server. Switching back to UDP mode.");
+            }
+        }
+
+        @Override
+        public void messageUDPPing(byte[] data) {
+            byte[] timedata = new byte[8];
+            System.arraycopy(data, 1, timedata, 0, 8);
+            ByteBuffer buffer = ByteBuffer.allocate(8);
+            buffer.put(timedata);
+            buffer.flip();
+
+            long timestamp = buffer.getLong();
+            // TODO refresh UDP?
+        }
     };
 
     private Runnable mPingRunnable = new Runnable() {
         @Override
         public void run() {
 
-            if(mUDP != null) {
-                byte[] buffer = new byte[256];
+            // In microseconds
+            long t = getElapsed();
 
+            if(!mParams.forceTcp) {
+                byte[] buffer = new byte[256];
+                buffer[0] = (byte) (JumbleUDPMessageType.UDPPing.ordinal() << 5);
+                byte[] data = new byte[255];
+                PacketDataStream dataStream = new PacketDataStream(data, 255);
+                dataStream.writeLong(t);
+                System.arraycopy(data, 0, buffer, 1, 255);
+                try {
+                    sendUDPMessage(buffer, JumbleUDPMessageType.UDPPing, true);
+                } catch (IOException e) {
+                    Log.e(Constants.TAG, "Failed to send UDP ping");
+                }
             }
 
             Mumble.Ping.Builder pb = Mumble.Ping.newBuilder();
-            pb.setTimestamp((System.nanoTime()-mStartTimestamp)/1000000);
+            pb.setTimestamp(t);
             pb.setGood(mCryptState.mUiGood);
             pb.setLate(mCryptState.mUiLate);
             pb.setLost(mCryptState.mUiLost);
@@ -208,6 +266,12 @@ public class JumbleConnection {
     public JumbleConnection(Context context,
                             JumbleConnectionListener listener,
                             JumbleParams params) throws JumbleConnectionException {
+        try {
+            mHost = InetAddress.getByName(params.server.getHost());
+        } catch (UnknownHostException e) {
+            throw new JumbleConnectionException("Could not resolve host", e, true);
+        }
+
         mContext = context;
         mListener = listener;
         mParams = params;
@@ -218,18 +282,31 @@ public class JumbleConnection {
 
     public void connect() {
         mConnected = false;
+        mUsingUDP = !mParams.forceTcp;
         mStartTimestamp = System.nanoTime();
 
-        mExecutorService = Executors.newFixedThreadPool(2); // One TCP thread, one UDP thread.
+        mExecutorService = Executors.newFixedThreadPool(mParams.forceTcp ? 1 : 2); // One TCP thread, one UDP thread (if not forcing TCP).
         mPingExecutorService = Executors.newSingleThreadScheduledExecutor();
+
         mTCP = new JumbleTCP();
-        mUDP = new JumbleUDP();
         mExecutorService.submit(mTCP);
-        mExecutorService.submit(mUDP);
+        // We'll start UDP thread after TCP is established. FIXME?
     }
 
     public boolean isConnected() {
         return mConnected;
+    }
+
+    public long getElapsed() {
+        return (System.nanoTime()-mStartTimestamp)/1000;
+    }
+
+    public void addMessageHandler(JumbleMessageHandler handler) {
+        mHandlers.add(handler);
+    }
+
+    public void removeMessageHandler(JumbleMessageHandler handler) {
+        mHandlers.remove(handler);
     }
 
     /**
@@ -239,7 +316,7 @@ public class JumbleConnection {
         mConnected = false;
         try {
             mTCP.disconnect();
-            mUDP.disconnect();
+            if(mUDP != null) mUDP.disconnect();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -332,8 +409,221 @@ public class JumbleConnection {
     }
 
     public void sendTCPMessage(Message message, JumbleTCPMessageType messageType) throws IOException {
-        Log.v(Constants.TAG, "OUT: "+messageType);
         mTCP.sendMessage(message, messageType);
+    }
+
+    public void sendUDPMessage(byte[] data, JumbleUDPMessageType messageType, boolean force) throws IOException {
+        mUDP.sendMessage(data, data.length, messageType, force);
+    }
+
+    private final void handleTCPMessage(byte[] data, int length, JumbleTCPMessageType messageType) {
+        Log.v(Constants.TAG, "IN: "+messageType);
+
+        if(messageType == JumbleTCPMessageType.UDPTunnel) {
+            handleUDPMessage(data);
+            return;
+        }
+
+        try {
+            Message message = getProtobufMessage(data, messageType);
+            for(JumbleMessageHandler handler : mHandlers) {
+                broadcastTCPMessage(handler, message, messageType);
+            }
+        } catch (InvalidProtocolBufferException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private final void handleUDPMessage(byte[] data) {
+        final JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[data[0] >> 5 & 0x7];
+        for(JumbleMessageHandler handler : mHandlers) {
+            broadcastUDPMessage(handler, data, dataType);
+        }
+    }
+
+    /**
+     * Gets the protobuf message from the passed TCP data.
+     * We isolate this so we can first parse the message and then inform all handlers. Saves processing power.
+     * @param data Raw protobuf TCP data.
+     * @param messageType Type of the message.
+     * @return The parsed protobuf message.
+     * @throws InvalidProtocolBufferException Called if the messageType does not match the data.
+     */
+    public static final Message getProtobufMessage(byte[] data, JumbleTCPMessageType messageType) throws InvalidProtocolBufferException {
+        switch (messageType) {
+            case Authenticate:
+                return Mumble.Authenticate.parseFrom(data);
+            case BanList:
+                return Mumble.BanList.parseFrom(data);
+            case Reject:
+                return Mumble.Reject.parseFrom(data);
+            case ServerSync:
+                return Mumble.ServerSync.parseFrom(data);
+            case ServerConfig:
+                return Mumble.ServerConfig.parseFrom(data);
+            case PermissionDenied:
+                return Mumble.PermissionDenied.parseFrom(data);
+            case UDPTunnel:
+                return Mumble.UDPTunnel.parseFrom(data);
+            case UserState:
+                return Mumble.UserState.parseFrom(data);
+            case UserRemove:
+                return Mumble.UserRemove.parseFrom(data);
+            case ChannelState:
+                return Mumble.ChannelState.parseFrom(data);
+            case ChannelRemove:
+                return Mumble.ChannelRemove.parseFrom(data);
+            case TextMessage:
+                return Mumble.TextMessage.parseFrom(data);
+            case ACL:
+                return Mumble.ACL.parseFrom(data);
+            case QueryUsers:
+                return Mumble.QueryUsers.parseFrom(data);
+            case Ping:
+                return Mumble.Ping.parseFrom(data);
+            case CryptSetup:
+                return Mumble.CryptSetup.parseFrom(data);
+            case ContextAction:
+                return Mumble.ContextAction.parseFrom(data);
+            case ContextActionModify:
+                return Mumble.ContextActionModify.parseFrom(data);
+            case Version:
+                return Mumble.Version.parseFrom(data);
+            case UserList:
+                return Mumble.UserList.parseFrom(data);
+            case PermissionQuery:
+                return Mumble.PermissionQuery.parseFrom(data);
+            case CodecVersion:
+                return Mumble.CodecVersion.parseFrom(data);
+            case UserStats:
+                return Mumble.UserStats.parseFrom(data);
+            case RequestBlob:
+                return Mumble.RequestBlob.parseFrom(data);
+            case SuggestConfig:
+                return Mumble.SuggestConfig.parseFrom(data);
+            default:
+                throw new InvalidProtocolBufferException("Unknown TCP data passed.");
+        }
+    }
+
+
+    /**
+     * Reroutes TCP messages into the various responder methods of the handler.
+     * @param handler Handler.
+     * @param msg Protobuf message.
+     * @param messageType The type of the message.
+     */
+    public final void broadcastTCPMessage(JumbleMessageHandler handler, Message msg, JumbleTCPMessageType messageType) {
+        switch (messageType) {
+            case Authenticate:
+                handler.messageAuthenticate((Mumble.Authenticate) msg);
+                break;
+            case BanList:
+                handler.messageBanList((Mumble.BanList) msg);
+                break;
+            case Reject:
+                handler.messageReject((Mumble.Reject) msg);
+                break;
+            case ServerSync:
+                handler.messageServerSync((Mumble.ServerSync) msg);
+                break;
+            case ServerConfig:
+                handler.messageServerConfig((Mumble.ServerConfig) msg);
+                break;
+            case PermissionDenied:
+                handler.messagePermissionDenied((Mumble.PermissionDenied) msg);
+                break;
+            case UDPTunnel:
+                handler.messageUDPTunnel((Mumble.UDPTunnel) msg);
+                break;
+            case UserState:
+                handler.messageUserState((Mumble.UserState) msg);
+                break;
+            case UserRemove:
+                handler.messageUserRemove((Mumble.UserRemove) msg);
+                break;
+            case ChannelState:
+                handler.messageChannelState((Mumble.ChannelState) msg);
+                break;
+            case ChannelRemove:
+                handler.messageChannelRemove((Mumble.ChannelRemove) msg);
+                break;
+            case TextMessage:
+                handler.messageTextMessage((Mumble.TextMessage) msg);
+                break;
+            case ACL:
+                handler.messageACL((Mumble.ACL) msg);
+                break;
+            case QueryUsers:
+                handler.messageQueryUsers((Mumble.QueryUsers) msg);
+                break;
+            case Ping:
+                handler.messagePing((Mumble.Ping) msg);
+                break;
+            case CryptSetup:
+                handler.messageCryptSetup((Mumble.CryptSetup) msg);
+                break;
+            case ContextAction:
+                handler.messageContextAction((Mumble.ContextAction) msg);
+                break;
+            case ContextActionModify:
+                Mumble.ContextActionModify actionModify = (Mumble.ContextActionModify) msg;
+                if (actionModify.getOperation() == Mumble.ContextActionModify.Operation.Add)
+                    handler.messageContextActionModify(actionModify);
+                else if (actionModify.getOperation() == Mumble.ContextActionModify.Operation.Remove)
+                    handler.messageRemoveContextAction(actionModify);
+                break;
+            case Version:
+                handler.messageVersion((Mumble.Version) msg);
+                break;
+            case UserList:
+                handler.messageUserList((Mumble.UserList) msg);
+                break;
+            case PermissionQuery:
+                handler.messagePermissionQuery((Mumble.PermissionQuery) msg);
+                break;
+            case CodecVersion:
+                handler.messageCodecVersion((Mumble.CodecVersion) msg);
+                break;
+            case UserStats:
+                handler.messageUserStats((Mumble.UserStats) msg);
+                break;
+            case RequestBlob:
+                handler.messageRequestBlob((Mumble.RequestBlob) msg);
+                break;
+            case SuggestConfig:
+                handler.messageSuggestConfig((Mumble.SuggestConfig) msg);
+                break;
+            case VoiceTarget:
+                handler.messageVoiceTarget((Mumble.VoiceTarget) msg);
+                break;
+        }
+    }
+
+    /**
+     * Reroutes UDP messages into the various responder methods of the passed handler.
+     * @param handler Handler to notify.
+     * @param data Raw UDP data of the message.
+     * @param messageType The type of the message.
+     */
+    public final void broadcastUDPMessage(JumbleMessageHandler handler, byte[] data, JumbleUDPMessageType messageType) {
+        switch (messageType) {
+            case UDPVoiceCELTAlpha:
+                handler.messageUDPCELTAlpha(data);
+                break;
+            case UDPPing:
+                handler.messageUDPPing(data);
+                break;
+            case UDPVoiceSpeex:
+                handler.messageUDPSpeex(data);
+                break;
+            case UDPVoiceCELTBeta:
+                handler.messageUDPCELTBeta(data);
+                break;
+            case UDPVoiceOpus:
+                handler.messageUDPOpus(data);
+                break;
+        }
     }
 
     /**
@@ -380,7 +670,7 @@ public class JumbleConnection {
 
                 final Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
                 auth.setUsername(mParams.server.getUsername());
-                //auth.setPassword(mParams.userPassword);
+                auth.setPassword(mParams.server.getPassword());
                 auth.addCeltVersions(Constants.CELT_VERSION);
                 auth.setOpus(mParams.useOpus);
 
@@ -398,6 +688,11 @@ public class JumbleConnection {
 
             Log.v(Constants.TAG, "Started listening");
 
+            if(!mParams.forceTcp) {
+                mUDP = new JumbleUDP();
+                mExecutorService.submit(mUDP);
+            }
+
             while(mConnected) {
                 try {
                     final short messageType = mDataInput.readShort();
@@ -406,17 +701,7 @@ public class JumbleConnection {
                     mDataInput.readFully(data);
 
                     JumbleTCPMessageType tcpMessageType = JumbleTCPMessageType.values()[messageType];
-
-                    Log.v(Constants.TAG, "IN: "+tcpMessageType);
-
-                    try {
-                        Message message = JumbleMessageHandler.getProtobufMessage(data, tcpMessageType);
-                        for(JumbleMessageHandler handler : mHandlers) {
-                            handler.handleTCPMessage(message, tcpMessageType);
-                        }
-                    } catch (InvalidProtocolBufferException e) {
-                        e.printStackTrace();
-                    }
+                    handleTCPMessage(data, messageLength, tcpMessageType);
                 } catch (IOException e) {
                     if(!mConnected) // Only handle unexpected exceptions here. This could be the result of a clean disconnect like a Reject or UserRemove.
                         handleFatalException(new JumbleConnectionException("Lost connection to server", e, true));
@@ -443,9 +728,26 @@ public class JumbleConnection {
          * @throws IOException if we can't write the message to the server.
          */
         public void sendMessage(Message message, JumbleTCPMessageType messageType) throws IOException {
+            Log.v(Constants.TAG, "OUT: "+messageType);
             mDataOutput.writeShort(messageType.ordinal());
             mDataOutput.writeInt(message.getSerializedSize());
             message.writeTo(mDataOutput);
+        }
+        /**
+         * Attempts to send a protobuf message over TCP.
+         * @param message The data to send.
+         * @param messageType The type of the message to send.
+         * @throws IOException if we can't write the message to the server.
+         */
+        public void sendMessage(byte[] message, JumbleTCPMessageType messageType) throws IOException {
+            Log.v(Constants.TAG, "OUT: "+messageType);
+            mDataOutput.writeShort(messageType.ordinal());
+            mDataOutput.writeInt(message.length);
+            mDataOutput.write(message);
+        }
+
+        public void sendData(byte[] data) throws  IOException {
+            mDataOutput.write(data);
         }
     }
 
@@ -453,7 +755,7 @@ public class JumbleConnection {
      * Class to maintain and receive packets from the UDP connection to a Mumble server.
      */
     private class JumbleUDP implements Runnable {
-        private static final int BUFFER_SIZE = 1024;
+        private static final int BUFFER_SIZE = 2048;
         private DatagramSocket mUDPSocket;
 
         public void disconnect() {
@@ -471,30 +773,47 @@ public class JumbleConnection {
 
             DatagramPacket packet = new DatagramPacket(new byte[BUFFER_SIZE], BUFFER_SIZE);
 
+            Log.v(Constants.TAG, "Created UDP socket");
+
             while(mConnected) {
                 try {
                     mUDPSocket.receive(packet);
+                    // Decrypt UDP packet using OCB-AES128
+                    final byte[] decryptedData = new byte[packet.getLength()];
+                    if(!mCryptState.decrypt(packet.getData(), decryptedData, packet.getLength()) &&
+                            mCryptState.getLastGoodElapsed() > 5000000 &&
+                            mCryptState.getLastRequestElapsed() > 5000000) {
+                        // If decryption fails, request resync
+                        mCryptState.mLastRequestStart = System.nanoTime();
+                        Mumble.CryptSetup.Builder csb = Mumble.CryptSetup.newBuilder();
+                        mTCP.sendMessage(csb.build(), JumbleTCPMessageType.CryptSetup);
+                    }
+                    handleUDPMessage(decryptedData);
                 } catch (IOException e) {
                     e.printStackTrace();
                     break;
                 }
-
-                // Decrypt UDP packet using OCB-AES128
-                final byte[] decryptedData = new byte[packet.getLength()];
-                mCryptState.decrypt(packet.getData(), decryptedData, packet.getLength());
-
-                final JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[decryptedData[0] >> 5 & 0x7];
             }
         }
 
-        public void sendMessage(byte[] data, int length, JumbleUDPMessageType messageType) throws IOException {
-            byte[] encryptedData = new byte[length];
-            mCryptState.encrypt(data, encryptedData, length);
-            DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
-            packet.setAddress(mHost);
-            packet.setPort(mParams.server.getPort());
+        public void sendMessage(byte[] data, int length, JumbleUDPMessageType messageType, boolean force) throws IOException {
+            if(!mCryptState.isValid())
+                return;
 
-            mUDPSocket.send(packet);
+            if(!force && (mParams.forceTcp || !mUsingUDP)) {
+                ByteBuffer bb = ByteBuffer.allocate(length + 6);
+                bb.putShort((short) JumbleUDPMessageType.UDPPing.ordinal());
+                bb.putInt(length);
+                bb.put(data);
+                mTCP.sendData(bb.array());
+            } else {
+                byte[] encryptedData = new byte[length];
+                mCryptState.encrypt(data, encryptedData, length);
+                DatagramPacket packet = new DatagramPacket(encryptedData, length);
+                packet.setAddress(mHost);
+                packet.setPort(mParams.server.getPort());
+                mUDPSocket.send(packet);
+            }
         }
     }
 }

@@ -29,6 +29,11 @@ public class PacketDataStream {
     private int mOvershoot;
     private boolean mOk;
 
+    public PacketDataStream(byte[] data, int len) {
+        mData = data;
+        mMaxSize = len;
+    }
+
     public int size() {
         return mOffset;
     }
