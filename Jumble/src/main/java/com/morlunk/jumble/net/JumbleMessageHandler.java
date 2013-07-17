@@ -47,11 +47,8 @@ public interface JumbleMessageHandler {
     public void messageSuggestConfig(Mumble.SuggestConfig msg);
     public void messageVoiceTarget(Mumble.VoiceTarget msg);
 
-    public void messageUDPCELTAlpha(byte[] data);
     public void messageUDPPing(byte[] data);
-    public void messageUDPSpeex(byte[] data);
-    public void messageUDPCELTBeta(byte[] data);
-    public void messageUDPOpus(byte[] data);
+    public void messageVoiceData(byte[] data);
 
     /**
      * Reads incoming protobuf TCP messages and performs the necessary action(s).
@@ -59,38 +56,34 @@ public interface JumbleMessageHandler {
      * Created by andrew on 24/06/13.
      */
     public static class Stub implements JumbleMessageHandler {
-        public void messageAuthenticate(Mumble.Authenticate msg) {};
-        public void messageBanList(Mumble.BanList msg) {};
-        public void messageReject(Mumble.Reject msg) {};
-        public void messageServerSync(Mumble.ServerSync msg) {};
-        public void messageServerConfig(Mumble.ServerConfig msg) {};
-        public void messagePermissionDenied(Mumble.PermissionDenied msg) {};
-        public void messageUDPTunnel(Mumble.UDPTunnel msg) {};
-        public void messageUserState(Mumble.UserState msg) {};
-        public void messageUserRemove(Mumble.UserRemove msg) {};
-        public void messageChannelState(Mumble.ChannelState msg) {};
-        public void messageChannelRemove(Mumble.ChannelRemove msg) {};
-        public void messageTextMessage(Mumble.TextMessage msg) {};
-        public void messageACL(Mumble.ACL msg) {};
-        public void messageQueryUsers(Mumble.QueryUsers msg) {};
-        public void messagePing(Mumble.Ping msg) {};
-        public void messageCryptSetup(Mumble.CryptSetup msg) {};
-        public void messageContextAction(Mumble.ContextAction msg) {};
-        public void messageContextActionModify(Mumble.ContextActionModify msg) {};
-        public void messageRemoveContextAction(Mumble.ContextActionModify msg) {};
-        public void messageVersion(Mumble.Version msg) {};
-        public void messageUserList(Mumble.UserList msg) {};
-        public void messagePermissionQuery(Mumble.PermissionQuery msg) {};
-        public void messageCodecVersion(Mumble.CodecVersion msg) {};
-        public void messageUserStats(Mumble.UserStats msg) {};
-        public void messageRequestBlob(Mumble.RequestBlob msg) {};
-        public void messageSuggestConfig(Mumble.SuggestConfig msg) {};
-        public void messageVoiceTarget(Mumble.VoiceTarget msg) {};
-
-        public void messageUDPCELTAlpha(byte[] data) {};
-        public void messageUDPPing(byte[] data) {};
-        public void messageUDPSpeex(byte[] data) {};
-        public void messageUDPCELTBeta(byte[] data) {};
-        public void messageUDPOpus(byte[] data) {};
+        public void messageAuthenticate(Mumble.Authenticate msg) {}
+        public void messageBanList(Mumble.BanList msg) {}
+        public void messageReject(Mumble.Reject msg) {}
+        public void messageServerSync(Mumble.ServerSync msg) {}
+        public void messageServerConfig(Mumble.ServerConfig msg) {}
+        public void messagePermissionDenied(Mumble.PermissionDenied msg) {}
+        public void messageUDPTunnel(Mumble.UDPTunnel msg) {}
+        public void messageUserState(Mumble.UserState msg) {}
+        public void messageUserRemove(Mumble.UserRemove msg) {}
+        public void messageChannelState(Mumble.ChannelState msg) {}
+        public void messageChannelRemove(Mumble.ChannelRemove msg) {}
+        public void messageTextMessage(Mumble.TextMessage msg) {}
+        public void messageACL(Mumble.ACL msg) {}
+        public void messageQueryUsers(Mumble.QueryUsers msg) {}
+        public void messagePing(Mumble.Ping msg) {}
+        public void messageCryptSetup(Mumble.CryptSetup msg) {}
+        public void messageContextAction(Mumble.ContextAction msg) {}
+        public void messageContextActionModify(Mumble.ContextActionModify msg) {}
+        public void messageRemoveContextAction(Mumble.ContextActionModify msg) {}
+        public void messageVersion(Mumble.Version msg) {}
+        public void messageUserList(Mumble.UserList msg) {}
+        public void messagePermissionQuery(Mumble.PermissionQuery msg) {}
+        public void messageCodecVersion(Mumble.CodecVersion msg) {}
+        public void messageUserStats(Mumble.UserStats msg) {}
+        public void messageRequestBlob(Mumble.RequestBlob msg) {}
+        public void messageSuggestConfig(Mumble.SuggestConfig msg) {}
+        public void messageVoiceTarget(Mumble.VoiceTarget msg) {}
+        public void messageUDPPing(byte[] data) {}
+        public void messageVoiceData(byte[] data) {}
     }
 }

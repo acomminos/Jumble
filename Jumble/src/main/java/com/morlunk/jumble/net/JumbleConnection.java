@@ -608,20 +608,14 @@ public class JumbleConnection {
      */
     public final void broadcastUDPMessage(JumbleMessageHandler handler, byte[] data, JumbleUDPMessageType messageType) {
         switch (messageType) {
-            case UDPVoiceCELTAlpha:
-                handler.messageUDPCELTAlpha(data);
-                break;
             case UDPPing:
                 handler.messageUDPPing(data);
                 break;
+            case UDPVoiceCELTAlpha:
             case UDPVoiceSpeex:
-                handler.messageUDPSpeex(data);
-                break;
             case UDPVoiceCELTBeta:
-                handler.messageUDPCELTBeta(data);
-                break;
             case UDPVoiceOpus:
-                handler.messageUDPOpus(data);
+                handler.messageVoiceData(data);
                 break;
         }
     }

@@ -24,6 +24,7 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 import com.google.protobuf.Message;
+import com.morlunk.jumble.audio.Audio;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.ChannelManager;
 import com.morlunk.jumble.model.Server;
@@ -51,6 +52,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private JumbleParams mParams;
     private JumbleConnection mConnection;
     private ChannelManager mChannelManager;
+    private Audio mAudio;
 
     private IJumbleService.Stub mBinder = new IJumbleService.Stub() {
 

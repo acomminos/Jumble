@@ -1,0 +1,9 @@
+[submodule "Jumble/src/main/jni/celt"]
+	path = Jumble/src/main/jni/celt
+	url = git://git.xiph.org/celt.git
+[submodule "Jumble/src/main/jni/speex"]
+	path = Jumble/src/main/jni/speex
+	url = git://git.xiph.org/speex.git
+[submodule "Jumble/src/main/jni/opus"]
+	path = Jumble/src/main/jni/opus
+	url = git://git.xiph.org/opus.git
