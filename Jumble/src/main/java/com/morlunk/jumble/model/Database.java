@@ -14,22 +14,10 @@
  * limitations under the License.
  */
 
-package com.morlunk.jumble;
+package com.morlunk.jumble.model;
 
-import com.morlunk.jumble.JumbleParams;
-import com.morlunk.jumble.model.User;
-import com.morlunk.jumble.model.Channel;
-import com.morlunk.jumble.model.Server;
-import com.morlunk.jumble.IJumbleObserver;
-
-interface IJumbleService {
-
-    boolean isConnected();
-    Server getConnectedServer();
-    User getUserWithId(int id);
-    Channel getChannelWithId(int id);
-    List getChannelList();
-
-    void registerObserver(in IJumbleObserver observer);
-    void unregisterObserver(in IJumbleObserver observer);
+/**
+ * Created by andrew on 19/07/13.
+ */
+public class Database {
 }

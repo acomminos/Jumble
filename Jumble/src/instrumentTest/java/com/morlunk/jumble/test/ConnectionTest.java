@@ -36,12 +36,13 @@ import java.io.InputStream;
 import java.util.UUID;
 
 /**
+ * Test class used to verify that the user will be able to perform basic connections to servers, with different paramters.
  * Created by andrew on 09/07/13.
  */
 public class ConnectionTest extends AndroidTestCase {
 
     private static final String HOST = "pi.morlunk.com";
-    private static final int PORT = 64739;
+    private static final int PORT = 64738;
     private static final String USERNAME = "Jumble-Unit-Tests";
     private static final String PASSWORD = "";
 

@@ -14,22 +14,26 @@
  * limitations under the License.
  */
 
-package com.morlunk.jumble;
+package com.morlunk.jumble.test;
 
-import com.morlunk.jumble.JumbleParams;
-import com.morlunk.jumble.model.User;
-import com.morlunk.jumble.model.Channel;
-import com.morlunk.jumble.model.Server;
-import com.morlunk.jumble.IJumbleObserver;
+import android.content.Intent;
+import android.test.ServiceTestCase;
 
-interface IJumbleService {
+import com.morlunk.jumble.JumbleService;
 
-    boolean isConnected();
-    Server getConnectedServer();
-    User getUserWithId(int id);
-    Channel getChannelWithId(int id);
-    List getChannelList();
+/**
+ * Created by andrew on 18/07/13.
+ */
+public class ServiceTest extends ServiceTestCase<JumbleService> {
 
-    void registerObserver(in IJumbleObserver observer);
-    void unregisterObserver(in IJumbleObserver observer);
+    public ServiceTest() {
+        super(JumbleService.class);
+    }
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+
+        startService(new Intent(getContext(), JumbleService.class));
+    }
 }

@@ -17,6 +17,7 @@
 package com.morlunk.jumble;
 
 import com.morlunk.jumble.model.Channel;
+import com.morlunk.jumble.model.User;
 
 interface IJumbleObserver {
     // Connection
@@ -24,7 +25,17 @@ interface IJumbleObserver {
     void onDisconnected();
     void onConnectionError();
 
-    //void onChannelAdded(out Channel channel);
-    //void onChannelStateUpdated(out Channel channel);
-    //void onChannelRemoved(out Channel channel);
+    // Channel
+    void onChannelAdded(out Channel channel);
+    void onChannelStateUpdated(out Channel channel);
+    void onChannelRemoved(out Channel channel);
+
+    // User
+    void onUserConnected(out User user);
+    void onUserStateUpdated(out User user);
+    void onUserRemoved(out User user);
+
+    // Logging
+    void onLogInfo(String message);
+    void onLogWarning(String message);
 }

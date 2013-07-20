@@ -38,7 +38,7 @@ public class User implements Parcelable {
     private boolean mPrioritySpeaker;
     private boolean mRecording;
 
-    private Channel mChannel;
+    private int mChannel;
 
     public static final Parcelable.Creator<User> CREATOR = new Parcelable.Creator<User>() {
 
@@ -57,6 +57,11 @@ public class User implements Parcelable {
 
     }
 
+    public User(int session, String name) {
+        mSession = session;
+        mName = name;
+    }
+
     private User(Parcel in) {
         readFromParcel(in);
     }
@@ -72,5 +77,109 @@ public class User implements Parcelable {
     @Override
     public int describeContents() {
         return 0;
+    }
+
+    public int getChannelId() {
+        return mChannel;
+    }
+
+    public void setChannelId(int channel) {
+        mChannel = channel;
+    }
+
+    public int getUserId() {
+        return mId;
+    }
+
+    public void setUserId(int mId) {
+        this.mId = mId;
+    }
+
+    public String getName() {
+        return mName;
+    }
+
+    public void setName(String mName) {
+        this.mName = mName;
+    }
+
+    public String getComment() {
+        return mComment;
+    }
+
+    public void setComment(String mComment) {
+        this.mComment = mComment;
+    }
+
+    public byte[] getCommentHash() {
+        return mCommentHash;
+    }
+
+    public void setCommentHash(byte[] mCommentHash) {
+        this.mCommentHash = mCommentHash;
+    }
+
+    public String getHash() {
+        return mHash;
+    }
+
+    public void setHash(String mHash) {
+        this.mHash = mHash;
+    }
+
+    public boolean isMuted() {
+        return mMuted;
+    }
+
+    public void setMuted(boolean mMuted) {
+        this.mMuted = mMuted;
+    }
+
+    public boolean isDeafened() {
+        return mDeafened;
+    }
+
+    public void setDeafened(boolean mDeafened) {
+        this.mDeafened = mDeafened;
+    }
+
+    public boolean isSuppressed() {
+        return mSuppressed;
+    }
+
+    public void setSuppressed(boolean mSuppressed) {
+        this.mSuppressed = mSuppressed;
+    }
+
+    public boolean isSelfMuted() {
+        return mSelfMuted;
+    }
+
+    public void setSelfMuted(boolean mSelfMuted) {
+        this.mSelfMuted = mSelfMuted;
+    }
+
+    public boolean isSelfDeafened() {
+        return mSelfDeafened;
+    }
+
+    public void setSelfDeafened(boolean mSelfDeafened) {
+        this.mSelfDeafened = mSelfDeafened;
+    }
+
+    public boolean isPrioritySpeaker() {
+        return mPrioritySpeaker;
+    }
+
+    public void setPrioritySpeaker(boolean mPrioritySpeaker) {
+        this.mPrioritySpeaker = mPrioritySpeaker;
+    }
+
+    public boolean isRecording() {
+        return mRecording;
+    }
+
+    public void setRecording(boolean mRecording) {
+        this.mRecording = mRecording;
     }
 }

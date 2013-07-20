@@ -29,6 +29,7 @@ import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.ChannelManager;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
+import com.morlunk.jumble.model.UserManager;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleConnectionException;
 import com.morlunk.jumble.net.JumbleMessageHandler;
@@ -38,6 +39,8 @@ import com.morlunk.jumble.protobuf.Mumble;
 
 import java.io.IOException;
 import java.security.Security;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class JumbleService extends Service implements JumbleConnection.JumbleConnectionListener {
 
@@ -52,7 +55,10 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private JumbleParams mParams;
     private JumbleConnection mConnection;
     private ChannelManager mChannelManager;
+    private UserManager mUserManager;
     private Audio mAudio;
+
+    private ConcurrentLinkedQueue<IJumbleObserver> mObservers = new ConcurrentLinkedQueue<IJumbleObserver>();
 
     private IJumbleService.Stub mBinder = new IJumbleService.Stub() {
 
@@ -75,6 +81,21 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         public Channel getChannelWithId(int id) throws RemoteException {
             return null;
         }
+
+        @Override
+        public List getChannelList() throws RemoteException {
+            return null;
+        }
+
+        @Override
+        public void registerObserver(IJumbleObserver observer) throws RemoteException {
+
+        }
+
+        @Override
+        public void unregisterObserver(IJumbleObserver observer) throws RemoteException {
+
+        }
     };
 
     private JumbleMessageHandler mMessageHandler = new JumbleMessageHandler.Stub() {
@@ -82,7 +103,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if(intent.getAction().equals(ACTION_CONNECT)) {
+        if(intent.getAction() != null && intent.getAction().equals(ACTION_CONNECT)) {
             mParams = intent.getParcelableExtra(EXTRA_PARAMS);
         }
         return START_NOT_STICKY;
@@ -94,12 +115,24 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     public void connect() throws JumbleConnectionException {
         mConnection = new JumbleConnection(this, this, mParams);
+
+        mChannelManager = new ChannelManager(this);
+        mUserManager = new UserManager(this);
+
+        // Add message handlers for all managers
         mConnection.addMessageHandler(mMessageHandler);
+        mConnection.addMessageHandler(mChannelManager);
+        mConnection.addMessageHandler(mUserManager);
+        mConnection.addMessageHandler(mAudio);
+
         mConnection.connect();
     }
 
     public void disconnect() {
         mConnection.removeMessageHandler(mMessageHandler);
+        mConnection.removeMessageHandler(mChannelManager);
+        mConnection.removeMessageHandler(mUserManager);
+        mConnection.removeMessageHandler(mAudio);
         mConnection.disconnect();
         mConnection = null;
     }
@@ -111,21 +144,69 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onConnectionEstablished() {
         Log.v(Constants.TAG, "Connected");
+        for(IJumbleObserver observer : mObservers)
+            try {
+                observer.onConnected();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
     }
 
     @Override
     public void onConnectionDisconnected() {
         Log.v(Constants.TAG, "Disconnected");
+
+        for(IJumbleObserver observer : mObservers)
+            try {
+                observer.onDisconnected();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+
+        mChannelManager = null;
+        mUserManager = null;
     }
 
     @Override
     public void onConnectionError(JumbleConnectionException e) {
         Log.e(Constants.TAG, "Connection error: "+e.getMessage());
-        e.getCause().printStackTrace();
+        for(IJumbleObserver observer : mObservers)
+            try {
+                observer.onConnectionError();
+            } catch (RemoteException e2) {
+                e2.printStackTrace();
+            }
     }
 
     @Override
     public void onConnectionWarning(String warning) {
         Log.e(Constants.TAG, "Connection warning: "+warning);
+        for(IJumbleObserver observer : mObservers)
+            try {
+                observer.onLogWarning(warning);
+            } catch (RemoteException e1) {
+                e1.printStackTrace();
+            }
     }
+
+    /**
+     * Returns the user ID of this user session.
+     * @return Identifier for the local user.
+     */
+    public int getSession() {
+        return mConnection.getSession();
+    }
+
+    public UserManager getUserManager() {
+        return mUserManager;
+    }
+
+    public ChannelManager getChannelManager() {
+        return mChannelManager;
+    }
+
+    /*
+     * --- HERE BE CALLBACKS ---
+     * This code will be called by components of the service like ChannelManager.
+     */
 }

@@ -19,6 +19,7 @@ package com.morlunk.jumble.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class Channel implements Parcelable {
@@ -29,8 +30,8 @@ public final class Channel implements Parcelable {
     private String mName;
     private String mDescription;
     private byte[] mDescriptionHash;
-    private List<Channel> mSubchannels;
-    private List<User> mUsers;
+    private List<Integer> mSubchannels = new ArrayList<Integer>();
+    private List<Integer> mUsers = new ArrayList<Integer>();
 
     public static final Parcelable.Creator<Channel> CREATOR = new Parcelable.Creator<Channel>() {
 
@@ -45,13 +46,7 @@ public final class Channel implements Parcelable {
         }
     };
 
-    public Channel(int id, String name, Channel parent) {
-        mId = id;
-        mName = name;
-        if(parent != null) {
-            mParent = parent;
-
-        }
+    public Channel() {
     }
 
     private Channel(Parcel in) {
@@ -82,12 +77,20 @@ public final class Channel implements Parcelable {
         int descriptionHashLength = in.readInt();
         mDescriptionHash = new byte[descriptionHashLength];
         in.readByteArray(mDescriptionHash);
-        mSubchannels = in.readArrayList(Channel.class.getClassLoader());
-        mUsers = in.readArrayList(User.class.getClassLoader());
+        mSubchannels = in.readArrayList(Integer.class.getClassLoader());
+        mUsers = in.readArrayList(Integer.class.getClassLoader());
     }
 
     @Override
     public int describeContents() {
         return 0;
+    }
+
+    public void addUser(int userId) {
+        mUsers.add(userId); // TODO sorting
+    }
+
+    public void removeUser(int userId) {
+        mUsers.remove(userId);
     }
 }

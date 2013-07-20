@@ -18,12 +18,19 @@ package com.morlunk.jumble.model;
 
 import android.util.SparseArray;
 
-public class ChannelManager {
+import com.morlunk.jumble.JumbleService;
+import com.morlunk.jumble.net.JumbleMessageHandler;
 
-    private SparseArray<Channel> mChannels;
+/**
+ * Created by andrew on 18/07/13.
+ */
+public class ChannelManager extends JumbleMessageHandler.Stub {
 
-    public ChannelManager() {
-        mChannels = new SparseArray<Channel>();
+    private JumbleService mService;
+    private SparseArray<Channel> mChannels = new SparseArray<Channel>();
+
+    public ChannelManager(JumbleService service) {
+        mService = service;
     }
 
     public Channel getChannel(int id) {

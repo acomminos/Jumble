@@ -309,6 +309,26 @@ public class JumbleConnection {
         mHandlers.remove(handler);
     }
 
+    public int getServerVersion() {
+        return mServerVersion;
+    }
+
+    public String getServerRelease() {
+        return mServerRelease;
+    }
+
+    public String getServerOSName() {
+        return mServerOSName;
+    }
+
+    public String getServerOSVersion() {
+        return mServerOSVersion;
+    }
+
+    public int getSession() {
+        return mSession;
+    }
+
     /**
      * Gracefully shuts down all networking.
      */
