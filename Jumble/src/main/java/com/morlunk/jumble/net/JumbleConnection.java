@@ -25,7 +25,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
-import com.morlunk.jumble.JumbleParams;
+import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.protobuf.Mumble;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
@@ -52,7 +52,7 @@ public class JumbleConnection {
 
     private Context mContext;
     private JumbleConnectionListener mListener;
-    private JumbleParams mParams;
+    private String mClientName;
 
     // Authentication
     private JumbleSSLSocketFactory mSocketFactory;
@@ -62,16 +62,19 @@ public class JumbleConnection {
     private ScheduledExecutorService mPingExecutorService;
     private Handler mMainHandler;
 
-    // Networking
+    // Networking and protocols
     private InetAddress mHost;
     private JumbleTCP mTCP;
     private JumbleUDP mUDP;
+    private boolean mForceTCP = false;
+    private boolean mUseOpus = true;
     private boolean mUsingUDP = true;
     private boolean mConnected;
     private CryptState mCryptState = new CryptState();
     private long mStartTimestamp; // Time that the connection was initiated in nanoseconds
 
     // Server
+    private Server mServer;
     private int mServerVersion;
     private String mServerRelease;
     private String mServerOSName;
@@ -91,7 +94,7 @@ public class JumbleConnection {
         @Override
         public void messageServerSync(Mumble.ServerSync msg) {
             // Protocol says we're supposed to send a dummy UDPTunnel packet here to let the server know we don't like UDP.
-            if(mParams.forceTcp) {
+            if(mForceTCP) {
                 try {
                     byte[] buffer = new byte[3];
                     mTCP.sendMessage(buffer, JumbleTCPMessageType.UDPTunnel);
@@ -192,7 +195,7 @@ public class JumbleConnection {
 
             if(((mCryptState.mUiRemoteGood == 0) || (mCryptState.mUiGood == 0)) && mUsingUDP && elapsed > 20000000) {
                 mUsingUDP = false;
-                if(!mParams.forceTcp && mListener != null) {
+                if(!mForceTCP && mListener != null) {
                     if((mCryptState.mUiRemoteGood == 0) && (mCryptState.mUiGood == 0))
                         mListener.onConnectionWarning("UDP packets cannot be sent to or received from the server. Switching to TCP mode.");
                     else if(mCryptState.mUiRemoteGood == 0)
@@ -202,7 +205,7 @@ public class JumbleConnection {
                 }
             } else if (!mUsingUDP && (mCryptState.mUiRemoteGood > 3) && (mCryptState.mUiGood > 3)) {
                 mUsingUDP = true;
-                if (!mParams.forceTcp && mListener != null)
+                if (!mForceTCP && mListener != null)
                     mListener.onConnectionWarning("UDP packets can be sent to and received from the server. Switching back to UDP mode.");
             }
         }
@@ -227,7 +230,7 @@ public class JumbleConnection {
             // In microseconds
             long t = getElapsed();
 
-            if(!mParams.forceTcp) {
+            if(!mForceTCP) {
                 byte[] buffer = new byte[256];
                 buffer[0] = (byte) (JumbleUDPMessageType.UDPPing.ordinal() << 5);
                 byte[] data = new byte[255];
@@ -259,33 +262,41 @@ public class JumbleConnection {
     /**
      * Creates a new JumbleConnection object to facilitate server connections.
      * @param context An Android context.
-     * @param params Jumble parameters for connection.
      * @throws CertificateException if an exception occurred parsing the p12 file.
      * @throws IOException if there was an error reading the p12 file.
      */
     public JumbleConnection(Context context,
                             JumbleConnectionListener listener,
-                            JumbleParams params) throws JumbleConnectionException {
-        try {
-            mHost = InetAddress.getByName(params.server.getHost());
-        } catch (UnknownHostException e) {
-            throw new JumbleConnectionException("Could not resolve host", e, true);
-        }
+                            Server server,
+                            String clientName,
+                            byte[] certificate,
+                            String certificatePassword,
+                            boolean forceTcp,
+                            boolean useOpus) throws JumbleConnectionException {
 
         mContext = context;
         mListener = listener;
-        mParams = params;
+        mServer = server;
+        mClientName = clientName;
+        mForceTCP = forceTcp;
+        mUseOpus = useOpus;
+
+        try {
+            mHost = InetAddress.getByName(mServer.getHost());
+        } catch (UnknownHostException e) {
+            throw new JumbleConnectionException("Could not resolve host", e, true);
+        }
         mMainHandler = new Handler(context.getMainLooper());
         mHandlers.add(mConnectionMessageHandler);
-        setupSocketFactory(mParams.certificatePath, mParams.certificatePassword);
+        setupSocketFactory(certificate, certificatePassword);
     }
 
     public void connect() {
         mConnected = false;
-        mUsingUDP = !mParams.forceTcp;
+        mUsingUDP = !mForceTCP;
         mStartTimestamp = System.nanoTime();
 
-        mExecutorService = Executors.newFixedThreadPool(mParams.forceTcp ? 1 : 2); // One TCP thread, one UDP thread (if not forcing TCP).
+        mExecutorService = Executors.newFixedThreadPool(mForceTCP ? 1 : 2); // One TCP thread, one UDP thread (if not forcing TCP).
         mPingExecutorService = Executors.newSingleThreadScheduledExecutor();
 
         mTCP = new JumbleTCP();
@@ -374,17 +385,18 @@ public class JumbleConnection {
     }
 
     /**
-     * Attempts to load the PKCS12 certificate from the specified stream, and sets up an SSL socket factory.
+     * Attempts to load the PKCS12 certificate from the passed data, and sets up an SSL socket factory.
      * You must call this method before establishing a TCP connection.
-     * @param certificateStream The input stream of a PKCS12 (.p12) certificate. May be null.
+     * @param certificate The binary representation of a PKCS12 (.p12) certificate. May be null.
      * @param certificatePassword The password to decrypt the key store. May be null.
      */
-    protected void setupSocketFactory(InputStream certificateStream, String certificatePassword) throws JumbleConnectionException {
+    protected void setupSocketFactory(byte[] certificate, String certificatePassword) throws JumbleConnectionException {
         try {
             KeyStore keyStore = null;
-            if(certificateStream != null) {
+            if(certificate != null) {
                 keyStore = KeyStore.getInstance("PKCS12");
-                keyStore.load(certificateStream, certificatePassword != null ? certificatePassword.toCharArray() : new char[0]);
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(certificate);
+                keyStore.load(inputStream, certificatePassword != null ? certificatePassword.toCharArray() : new char[0]);
             }
             mSocketFactory = new JumbleSSLSocketFactory(keyStore, certificatePassword);
         } catch (KeyManagementException e) {
@@ -411,20 +423,6 @@ public class JumbleConnection {
                  * There's no platform dependency.
                  */
             throw new RuntimeException("We use Spongy Castle- what? ", e);
-        }
-    }
-
-    /**
-     * Wrapper to load a P12 into a socket factory via a path..
-     * @param certificateFile
-     * @param certificatePassword
-     * @throws JumbleConnectionException
-     */
-    protected void setupSocketFactory(String certificateFile, String certificatePassword) throws JumbleConnectionException {
-        try {
-            setupSocketFactory(certificateFile != null ? new FileInputStream(certificateFile) : null, certificatePassword);
-        } catch (FileNotFoundException e) {
-            throw new JumbleConnectionException("Could not find certificate file", e, false);
         }
     }
 
@@ -666,7 +664,7 @@ public class JumbleConnection {
                 mTCPSocket.setUseClientMode(true);
 
                 HttpParams httpParams = new BasicHttpParams();
-                mSocketFactory.connectSocket(mTCPSocket, mParams.server.getHost(), mParams.server.getPort(), null, 0, httpParams);
+                mSocketFactory.connectSocket(mTCPSocket, mServer.getHost(), mServer.getPort(), null, 0, httpParams);
 
                 mTCPSocket.startHandshake();
 
@@ -677,16 +675,16 @@ public class JumbleConnection {
 
                 // Send version information and authenticate.
                 final Mumble.Version.Builder version = Mumble.Version.newBuilder();
-                version.setRelease(mParams.clientName);
+                version.setRelease(mClientName);
                 version.setVersion(Constants.PROTOCOL_VERSION);
                 version.setOs("Android");
                 version.setOsVersion(Build.VERSION.RELEASE);
 
                 final Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
-                auth.setUsername(mParams.server.getUsername());
-                auth.setPassword(mParams.server.getPassword());
+                auth.setUsername(mServer.getUsername());
+                auth.setPassword(mServer.getPassword());
                 auth.addCeltVersions(Constants.CELT_VERSION);
-                auth.setOpus(mParams.useOpus);
+                auth.setOpus(mUseOpus);
 
                 sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
                 sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
@@ -702,7 +700,7 @@ public class JumbleConnection {
 
             Log.v(Constants.TAG, "Started listening");
 
-            if(!mParams.forceTcp) {
+            if(!mForceTCP) {
                 mUDP = new JumbleUDP();
                 mExecutorService.submit(mUDP);
             }
@@ -780,7 +778,7 @@ public class JumbleConnection {
         public void run() {
             try {
                 mUDPSocket = new DatagramSocket();
-                mUDPSocket.connect(mHost, mParams.server.getPort());
+                mUDPSocket.connect(mHost, mServer.getPort());
             } catch (SocketException e) {
                 handleFatalException(new JumbleConnectionException("Could not open a connection to the host", e, false));
             }
@@ -814,7 +812,7 @@ public class JumbleConnection {
             if(!mCryptState.isValid())
                 return;
 
-            if(!force && (mParams.forceTcp || !mUsingUDP)) {
+            if(!force && (mForceTCP || !mUsingUDP)) {
                 ByteBuffer bb = ByteBuffer.allocate(length + 6);
                 bb.putShort((short) JumbleUDPMessageType.UDPPing.ordinal());
                 bb.putInt(length);
@@ -825,7 +823,7 @@ public class JumbleConnection {
                 mCryptState.encrypt(data, encryptedData, length);
                 DatagramPacket packet = new DatagramPacket(encryptedData, length);
                 packet.setAddress(mHost);
-                packet.setPort(mParams.server.getPort());
+                packet.setPort(mServer.getPort());
                 mUDPSocket.send(packet);
             }
         }

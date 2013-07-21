@@ -20,11 +20,14 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.IBinder;
+import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.util.Log;
 import com.google.protobuf.Message;
 import com.morlunk.jumble.audio.Audio;
+import com.morlunk.jumble.db.Database;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.ChannelManager;
 import com.morlunk.jumble.model.Server;
@@ -49,18 +52,56 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
     }
 
-    public static final String ACTION_CONNECT = "com.morlunk.jumble.connect";
-    public static final String EXTRA_PARAMS = "params";
+    public static final String ACTION_CONNECT = "com.morlunk.jumble.CONNECT";
+    public static final String EXTRAS_SERVER = "server";
+    public static final String EXTRAS_SHOW_CHAT_NOTIFICATION = "show_chat_notifications";
+    public static final String EXTRAS_AUTO_RECONNECT = "auto_reconnect";
+    public static final String EXTRAS_CERTIFICATE = "certificate";
+    public static final String EXTRAS_CERTIFICATE_PASSWORD = "certificate_password";
+    public static final String EXTRAS_DETECTION_THRESHOLD = "detection_threshold";
+    public static final String EXTRAS_PUSH_TO_TALK = "use_ptt";
+    public static final String EXTRAS_USE_OPUS = "use_opus";
+    public static final String EXTRAS_FORCE_TCP = "force_tcp";
+    public static final String EXTRAS_CLIENT_NAME = "client_name";
 
-    private JumbleParams mParams;
+    public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
+
+    // Service settings
+    public Server mServer;
+    public boolean mShowChatNotifications;
+    public boolean mAutoReconnect;
+    public byte[] mCertificate;
+    public String mCertificatePassword;
+    public int mDetectionThreshold;
+    public boolean mUsePushToTalk;
+    public boolean mUseOpus;
+    public boolean mForceTcp;
+    public String mClientName;
+
     private JumbleConnection mConnection;
+    private Database mDatabase;
     private ChannelManager mChannelManager;
     private UserManager mUserManager;
     private Audio mAudio;
 
-    private ConcurrentLinkedQueue<IJumbleObserver> mObservers = new ConcurrentLinkedQueue<IJumbleObserver>();
+    private RemoteCallbackList<IJumbleObserver> mObservers = new RemoteCallbackList<IJumbleObserver>();
 
     private IJumbleService.Stub mBinder = new IJumbleService.Stub() {
+
+        @Override
+        public void connect() throws RemoteException {
+            try {
+                JumbleService.this.connect();
+            } catch (JumbleConnectionException e) {
+                // TODO find a good way to throw remote exceptions
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void disconnect() throws RemoteException {
+            JumbleService.this.disconnect();
+        }
 
         @Override
         public boolean isConnected() throws RemoteException {
@@ -69,17 +110,17 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public Server getConnectedServer() throws RemoteException {
-            return null;
+            return mServer;
         }
 
         @Override
         public User getUserWithId(int id) throws RemoteException {
-            return null;
+            return mUserManager.getUser(id);
         }
 
         @Override
         public Channel getChannelWithId(int id) throws RemoteException {
-            return null;
+            return mChannelManager.getChannel(id);
         }
 
         @Override
@@ -89,24 +130,48 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void registerObserver(IJumbleObserver observer) throws RemoteException {
-
+            mObservers.register(observer);
         }
 
         @Override
         public void unregisterObserver(IJumbleObserver observer) throws RemoteException {
-
+            mObservers.unregister(observer);
         }
-    };
-
-    private JumbleMessageHandler mMessageHandler = new JumbleMessageHandler.Stub() {
     };
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if(intent.getAction() != null && intent.getAction().equals(ACTION_CONNECT)) {
-            mParams = intent.getParcelableExtra(EXTRA_PARAMS);
+        if(intent != null &&
+                intent.getAction() != null &&
+                intent.getAction().equals(ACTION_CONNECT)) {
+            // Get connection parameters
+            Bundle extras = intent.getExtras();
+            mServer = extras.getParcelable(EXTRAS_SERVER);
+            mShowChatNotifications = extras.getBoolean(EXTRAS_SHOW_CHAT_NOTIFICATION, true);
+            mAutoReconnect = extras.getBoolean(EXTRAS_AUTO_RECONNECT, true);
+            mCertificate = extras.getByteArray(EXTRAS_CERTIFICATE);
+            mCertificatePassword = extras.getString(EXTRAS_CERTIFICATE_PASSWORD);
+            mDetectionThreshold = extras.getInt(EXTRAS_DETECTION_THRESHOLD, 1400);
+            mUsePushToTalk = extras.getBoolean(EXTRAS_PUSH_TO_TALK, false);
+            mUseOpus = extras.getBoolean(EXTRAS_USE_OPUS, true);
+            mForceTcp = extras.getBoolean(EXTRAS_FORCE_TCP, false);
+            mClientName = extras.getString(EXTRAS_CLIENT_NAME, "Jumble");
+
+            // TODO connect here
         }
         return START_NOT_STICKY;
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        mDatabase = new Database(this);
+    }
+
+    @Override
+    public void onDestroy() {
+        mObservers.kill();
+        super.onDestroy();
     }
 
     public IBinder onBind(Intent intent) {
@@ -114,13 +179,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     }
 
     public void connect() throws JumbleConnectionException {
-        mConnection = new JumbleConnection(this, this, mParams);
+        mConnection = new JumbleConnection(this, this, mServer, mClientName, mCertificate, mCertificatePassword, mForceTcp, mUseOpus);
 
         mChannelManager = new ChannelManager(this);
         mUserManager = new UserManager(this);
 
         // Add message handlers for all managers
-        mConnection.addMessageHandler(mMessageHandler);
         mConnection.addMessageHandler(mChannelManager);
         mConnection.addMessageHandler(mUserManager);
         mConnection.addMessageHandler(mAudio);
@@ -129,7 +193,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     }
 
     public void disconnect() {
-        mConnection.removeMessageHandler(mMessageHandler);
         mConnection.removeMessageHandler(mChannelManager);
         mConnection.removeMessageHandler(mUserManager);
         mConnection.removeMessageHandler(mAudio);
@@ -144,24 +207,37 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onConnectionEstablished() {
         Log.v(Constants.TAG, "Connected");
-        for(IJumbleObserver observer : mObservers)
+
+        showNotification();
+
+        int i = mObservers.beginBroadcast();
+        while(i > 0) {
+            i--;
             try {
-                observer.onConnected();
+                mObservers.getBroadcastItem(i).onConnected();
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
+        }
+        mObservers.finishBroadcast();
     }
 
     @Override
     public void onConnectionDisconnected() {
         Log.v(Constants.TAG, "Disconnected");
 
-        for(IJumbleObserver observer : mObservers)
+        hideNotification();
+
+        int i = mObservers.beginBroadcast();
+        while(i > 0) {
+            i--;
             try {
-                observer.onDisconnected();
+                mObservers.getBroadcastItem(i).onDisconnected();
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
+        }
+        mObservers.finishBroadcast();
 
         mChannelManager = null;
         mUserManager = null;
@@ -170,23 +246,31 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onConnectionError(JumbleConnectionException e) {
         Log.e(Constants.TAG, "Connection error: "+e.getMessage());
-        for(IJumbleObserver observer : mObservers)
+        int i = mObservers.beginBroadcast();
+        while(i > 0) {
+            i--;
             try {
-                observer.onConnectionError();
+                mObservers.getBroadcastItem(i).onConnectionError(e.getMessage(), e.isAutoReconnectAllowed());
             } catch (RemoteException e2) {
                 e2.printStackTrace();
             }
+        }
+        mObservers.finishBroadcast();
     }
 
     @Override
     public void onConnectionWarning(String warning) {
         Log.e(Constants.TAG, "Connection warning: "+warning);
-        for(IJumbleObserver observer : mObservers)
+        int i = mObservers.beginBroadcast();
+        while(i > 0) {
+            i--;
             try {
-                observer.onLogWarning(warning);
-            } catch (RemoteException e1) {
-                e1.printStackTrace();
+                mObservers.getBroadcastItem(i).onLogWarning(warning);
+            } catch (RemoteException e2) {
+                e2.printStackTrace();
             }
+        }
+        mObservers.finishBroadcast();
     }
 
     /**
@@ -203,6 +287,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     public ChannelManager getChannelManager() {
         return mChannelManager;
+    }
+
+    private void showNotification() {
+
+    }
+
+    private void hideNotification() {
+
     }
 
     /*

@@ -23,7 +23,7 @@ interface IJumbleObserver {
     // Connection
     void onConnected();
     void onDisconnected();
-    void onConnectionError();
+    void onConnectionError(String message, boolean reconnecting);
 
     // Channel
     void onChannelAdded(out Channel channel);
@@ -34,6 +34,9 @@ interface IJumbleObserver {
     void onUserConnected(out User user);
     void onUserStateUpdated(out User user);
     void onUserRemoved(out User user);
+
+    // Messaging
+    void onMessageReceived(String message, in User actor);
 
     // Logging
     void onLogInfo(String message);

@@ -23,7 +23,8 @@ import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.IJumbleObserver;
 
 interface IJumbleService {
-
+    void connect();
+    void disconnect();
     boolean isConnected();
     Server getConnectedServer();
     User getUserWithId(int id);

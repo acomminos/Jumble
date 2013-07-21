@@ -26,7 +26,7 @@ public final class Channel implements Parcelable {
     private int mId;
     private int mPosition;
     private boolean mTemporary;
-    private Channel mParent;
+    private int mParent;
     private String mName;
     private String mDescription;
     private byte[] mDescriptionHash;
@@ -49,6 +49,17 @@ public final class Channel implements Parcelable {
     public Channel() {
     }
 
+    public Channel(int id, int parent, String name) {
+        mId = id;
+        mParent = parent;
+        mName = name;
+    }
+
+    public Channel(int id, int parent, String name, boolean temporary) {
+        this(id, parent, name);
+        mTemporary = temporary;
+    }
+
     private Channel(Parcel in) {
         readFromParcel(in);
     }
@@ -58,7 +69,7 @@ public final class Channel implements Parcelable {
         out.writeInt(mId);
         out.writeInt(mPosition);
         out.writeValue(mTemporary);
-        out.writeParcelable(mParent, 0);
+        out.writeInt(mParent);
         out.writeString(mName);
         out.writeString(mDescription);
         out.writeInt(mDescriptionHash.length); // Store length so we can re-initialize byte buffer on read
@@ -71,11 +82,10 @@ public final class Channel implements Parcelable {
         mId = in.readInt();
         mPosition = in.readInt();
         mTemporary = (Boolean)in.readValue(Boolean.class.getClassLoader());
-        mParent = in.readParcelable(Channel.class.getClassLoader());
+        mParent = in.readInt();
         mName = in.readString();
         mDescription = in.readString();
-        int descriptionHashLength = in.readInt();
-        mDescriptionHash = new byte[descriptionHashLength];
+        mDescriptionHash = new byte[in.readInt()];
         in.readByteArray(mDescriptionHash);
         mSubchannels = in.readArrayList(Integer.class.getClassLoader());
         mUsers = in.readArrayList(Integer.class.getClassLoader());
@@ -92,5 +102,61 @@ public final class Channel implements Parcelable {
 
     public void removeUser(int userId) {
         mUsers.remove(userId);
+    }
+
+    public int getId() {
+        return mId;
+    }
+
+    public void setId(int mId) {
+        this.mId = mId;
+    }
+
+    public int getPosition() {
+        return mPosition;
+    }
+
+    public void setPosition(int mPosition) {
+        this.mPosition = mPosition;
+    }
+
+    public boolean isTemporary() {
+        return mTemporary;
+    }
+
+    public void setTemporary(boolean mTemporary) {
+        this.mTemporary = mTemporary;
+    }
+
+    public int getParent() {
+        return mParent;
+    }
+
+    public void setParent(int mParent) {
+        this.mParent = mParent;
+    }
+
+    public String getName() {
+        return mName;
+    }
+
+    public void setName(String mName) {
+        this.mName = mName;
+    }
+
+    public String getDescription() {
+        return mDescription;
+    }
+
+    public void setDescription(String mDescription) {
+        this.mDescription = mDescription;
+    }
+
+    public byte[] getDescriptionHash() {
+        return mDescriptionHash;
+    }
+
+    public void setDescriptionHash(byte[] mDescriptionHash) {
+        this.mDescriptionHash = mDescriptionHash;
     }
 }
