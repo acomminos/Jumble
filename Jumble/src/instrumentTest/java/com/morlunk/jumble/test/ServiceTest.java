@@ -29,6 +29,7 @@ import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
 
+import java.io.InputStream;
 import java.util.List;
 
 /**
@@ -40,9 +41,11 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
     private static final int PORT = Constants.DEFAULT_PORT;
     private static final String USERNAME = "Jumble-Unit-Tests";
     private static final String PASSWORD = "";
+    private static final boolean USE_CERTIFICATE = true;
+    private static final String CERTIFICATE_NAME = "jumble-test.p12";
 
     private static final String TEST_COMMENT = "BEEP BOOP I AM JUMBLEBOT";
-    private static final int TEST_DELAY = 5000; // Time between tests, used to verify that the desired result has been achieved (i.e. seeing if comment was set).
+    private static final int TEST_DELAY = 3000; // Time between tests, used to verify that the desired result has been achieved (i.e. seeing if comment was set).
 
     private IJumbleService mBinder;
 
@@ -58,6 +61,15 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
         Server server = new Server("Test Server", HOST, PORT, USERNAME, PASSWORD);
         intent.putExtra(JumbleService.EXTRAS_SERVER, server);
         intent.putExtra(JumbleService.EXTRAS_FORCE_TCP, true); // Forcing TCP makes it easier to test.
+
+        if(USE_CERTIFICATE) {
+            InputStream cis = getContext().getAssets().open(CERTIFICATE_NAME);
+            byte[] certificate = new byte[cis.available()];
+            cis.read(certificate);
+            cis.close();
+            intent.putExtra(JumbleService.EXTRAS_CERTIFICATE, certificate);
+        }
+
         startService(intent);
         mBinder = (IJumbleService) bindService(intent);
 
@@ -80,7 +92,7 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
 
             @Override
             public void onConnectionError(String message, boolean reconnecting) throws RemoteException {
-
+                fail(message);
             }
 
             @Override

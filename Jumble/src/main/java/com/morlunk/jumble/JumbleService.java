@@ -16,6 +16,8 @@
 
 package com.morlunk.jumble;
 
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -24,6 +26,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import com.google.protobuf.Message;
 import com.morlunk.jumble.audio.Audio;
@@ -65,6 +68,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_CLIENT_NAME = "client_name";
 
     public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
+
+    public static final int NOTIFICATION_CONNECTION = 0;
 
     // Service settings
     public Server mServer;
@@ -133,7 +138,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void createChannel(int parent, String name, String description, int position, boolean temporary) throws RemoteException {
-
+            Mumble.ChannelState.Builder csb = Mumble.ChannelState.newBuilder();
+            csb.setParent(parent);
+            csb.setName(name);
+            csb.setDescription(description);
+            csb.setPosition(position);
+            csb.setTemporary(temporary);
+            mConnection.sendTCPMessage(csb.build(), JumbleTCPMessageType.ChannelState);
         }
 
         @Override
@@ -148,22 +159,38 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void registerUser(int session) throws RemoteException {
-
+            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+            usb.setSession(session);
+            usb.setUserId(0);
+            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
         }
 
         @Override
         public void kickBanUser(int session, String reason, boolean ban) throws RemoteException {
-
+            Mumble.UserRemove.Builder urb = Mumble.UserRemove.newBuilder();
+            urb.setSession(session);
+            urb.setReason(reason);
+            urb.setBan(ban);
+            mConnection.sendTCPMessage(urb.build(), JumbleTCPMessageType.UserRemove);
         }
 
         @Override
         public void sendUserTextMessage(int session, String message) throws RemoteException {
-
+            Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
+            tmb.addSession(session);
+            tmb.setMessage(message);
+            mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
         }
 
         @Override
         public void sendChannelTextMessage(int channel, String message, boolean tree) throws RemoteException {
-
+            Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
+            if(tree)
+                tmb.addTreeId(channel);
+            else
+                tmb.addChannelId(channel);
+            tmb.setMessage(message);
+            mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
         }
 
         @Override
@@ -176,7 +203,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void removeChannel(int channel) throws RemoteException {
-
+            Mumble.ChannelRemove.Builder crb = Mumble.ChannelRemove.newBuilder();
+            crb.setChannelId(channel);
+            mConnection.sendTCPMessage(crb.build(), JumbleTCPMessageType.ChannelRemove);
         }
 
         @Override
@@ -370,11 +399,15 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     }
 
     private void showNotification() {
-
+        NotificationCompat.Builder nb = new NotificationCompat.Builder(this);
+        nb.setContentTitle(mClientName);
+        nb.setSmallIcon(android.R.drawable.ic_menu_call);
+        nb.setContentText(getString(R.string.notification_connected));
+        startForeground(NOTIFICATION_CONNECTION, nb.build());
     }
 
     private void hideNotification() {
-
+        stopForeground(true);
     }
 
     /*
