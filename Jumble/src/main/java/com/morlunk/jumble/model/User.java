@@ -67,11 +67,40 @@ public class User implements Parcelable {
     }
 
     @Override
-    public void writeToParcel(Parcel parcel, int i) {
-
+    public void writeToParcel(Parcel out, int flags) {
+        out.writeInt(mSession);
+        out.writeInt(mId);
+        out.writeString(mName);
+        out.writeString(mComment);
+        out.writeInt(mCommentHash.length);
+        out.writeByteArray(mCommentHash);
+        out.writeString(mHash);
+        out.writeValue(mMuted);
+        out.writeValue(mDeafened);
+        out.writeValue(mSuppressed);
+        out.writeValue(mSelfMuted);
+        out.writeValue(mSelfDeafened);
+        out.writeValue(mPrioritySpeaker);
+        out.writeValue(mRecording);
+        out.writeInt(mChannel);
     }
 
     public void readFromParcel(Parcel in) {
+        mSession = in.readInt();
+        mId = in.readInt();
+        mName = in.readString();
+        mComment = in.readString();
+        mCommentHash = new byte[in.readInt()];
+        in.readByteArray(mCommentHash);
+        mHash = in.readString();
+        mMuted = (Boolean)in.readValue(Boolean.class.getClassLoader());
+        mDeafened = (Boolean)in.readValue(Boolean.class.getClassLoader());
+        mSuppressed = (Boolean)in.readValue(Boolean.class.getClassLoader());
+        mSelfMuted = (Boolean)in.readValue(Boolean.class.getClassLoader());
+        mSelfDeafened = (Boolean)in.readValue(Boolean.class.getClassLoader());
+        mPrioritySpeaker = (Boolean)in.readValue(Boolean.class.getClassLoader());
+        mRecording = (Boolean)in.readValue(Boolean.class.getClassLoader());
+        mChannel = in.readInt();
     }
 
     @Override

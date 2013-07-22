@@ -170,8 +170,6 @@ public class JumbleConnection {
                 }
             } catch (InvalidKeyException e) {
                 handleFatalException(new JumbleConnectionException("Received invalid cryptographic nonce from server", e, true));
-            } catch (IOException e) {
-                handleFatalException(new JumbleConnectionException("Could not resync crypt state with server", e, true));
             }
         }
 
@@ -237,11 +235,7 @@ public class JumbleConnection {
                 PacketDataStream dataStream = new PacketDataStream(data, 255);
                 dataStream.writeLong(t);
                 System.arraycopy(data, 0, buffer, 1, 255);
-                try {
-                    sendUDPMessage(buffer, JumbleUDPMessageType.UDPPing, true);
-                } catch (IOException e) {
-                    Log.e(Constants.TAG, "Failed to send UDP ping");
-                }
+                sendUDPMessage(buffer, JumbleUDPMessageType.UDPPing, true);
             }
 
             Mumble.Ping.Builder pb = Mumble.Ping.newBuilder();
@@ -250,12 +244,7 @@ public class JumbleConnection {
             pb.setLate(mCryptState.mUiLate);
             pb.setLost(mCryptState.mUiLost);
             pb.setResync(mCryptState.mUiResync);
-
-            try {
-                sendTCPMessage(pb.build(), JumbleTCPMessageType.Ping);
-            } catch (IOException e) {
-                handleFatalException(new JumbleConnectionException("Failed to ping remote server.", e, true));
-            }
+            sendTCPMessage(pb.build(), JumbleTCPMessageType.Ping);
         }
     };
 
@@ -373,7 +362,6 @@ public class JumbleConnection {
      * @param e The exception that caused termination.
      */
     private void handleFatalException(final JumbleConnectionException e) {
-        forceDisconnect();
         if(mListener != null) {
             mMainHandler.post(new Runnable() {
                 @Override
@@ -382,6 +370,7 @@ public class JumbleConnection {
                 }
             });
         }
+        disconnect();
     }
 
     /**
@@ -426,12 +415,20 @@ public class JumbleConnection {
         }
     }
 
-    public void sendTCPMessage(Message message, JumbleTCPMessageType messageType) throws IOException {
-        mTCP.sendMessage(message, messageType);
+    public void sendTCPMessage(Message message, JumbleTCPMessageType messageType) {
+        try {
+            mTCP.sendMessage(message, messageType);
+        } catch (IOException e) {
+            e.printStackTrace(); // TODO handle me
+        }
     }
 
-    public void sendUDPMessage(byte[] data, JumbleUDPMessageType messageType, boolean force) throws IOException {
-        mUDP.sendMessage(data, data.length, messageType, force);
+    public void sendUDPMessage(byte[] data, JumbleUDPMessageType messageType, boolean force) {
+        try {
+            mUDP.sendMessage(data, data.length, messageType, force);
+        } catch (IOException e) {
+            e.printStackTrace(); // TODO handle me
+        }
     }
 
     private final void handleTCPMessage(byte[] data, int length, JumbleTCPMessageType messageType) {
@@ -715,7 +712,7 @@ public class JumbleConnection {
                     JumbleTCPMessageType tcpMessageType = JumbleTCPMessageType.values()[messageType];
                     handleTCPMessage(data, messageLength, tcpMessageType);
                 } catch (IOException e) {
-                    if(!mConnected) // Only handle unexpected exceptions here. This could be the result of a clean disconnect like a Reject or UserRemove.
+                    if(mConnected) // Only handle unexpected exceptions here. This could be the result of a clean disconnect like a Reject or UserRemove.
                         handleFatalException(new JumbleConnectionException("Lost connection to server", e, true));
                     break;
                 }

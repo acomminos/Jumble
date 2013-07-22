@@ -52,12 +52,14 @@ public class JumbleConnectionException extends Exception {
     }
 
     public JumbleConnectionException(Mumble.Reject reject) {
+        super(reject.getReason());
         mReject = reject;
         mReason = JumbleDisconnectReason.REJECT;
         mAutoReconnect = false;
     }
 
     public JumbleConnectionException(Mumble.UserRemove userRemove) {
+        super(userRemove.getReason());
         mUserRemove = userRemove;
         mReason = JumbleDisconnectReason.USER_REMOVE;
         mAutoReconnect = false;

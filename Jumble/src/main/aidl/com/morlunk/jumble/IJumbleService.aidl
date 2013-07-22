@@ -16,20 +16,39 @@
 
 package com.morlunk.jumble;
 
-import com.morlunk.jumble.JumbleParams;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.IJumbleObserver;
 
 interface IJumbleService {
-    void connect();
     void disconnect();
     boolean isConnected();
+
+    // Data
+    int getSession();
     Server getConnectedServer();
     User getUserWithId(int id);
     Channel getChannelWithId(int id);
     List getChannelList();
+
+    // Actions
+    void joinChannel(int channel);
+    void createChannel(int parent, String name, String description, int position, boolean temporary);
+    //void setTexture(byte[] texture);
+    void requestBanList();
+    void requestUserList();
+    //void requestACL(int channel);
+    void registerUser(int session);
+    void kickBanUser(int session, String reason, boolean ban);
+    void sendUserTextMessage(int session, String message);
+    void sendChannelTextMessage(int channel, String message, boolean tree);
+    void setUserComment(int session, String comment);
+    void removeChannel(int channel);
+    //void addChannelLink(int channel, int link);
+    //void requestChannelPermissions(int channel);
+    void setSelfMuteDeafState(boolean mute, boolean deaf);
+    //void announceRecordingState(boolean recording);
 
     void registerObserver(in IJumbleObserver observer);
     void unregisterObserver(in IJumbleObserver observer);

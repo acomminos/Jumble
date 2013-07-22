@@ -81,14 +81,14 @@ public final class Channel implements Parcelable {
     public void readFromParcel(Parcel in) {
         mId = in.readInt();
         mPosition = in.readInt();
-        mTemporary = (Boolean)in.readValue(Boolean.class.getClassLoader());
+        mTemporary = (Boolean)in.readValue(null);
         mParent = in.readInt();
         mName = in.readString();
         mDescription = in.readString();
         mDescriptionHash = new byte[in.readInt()];
         in.readByteArray(mDescriptionHash);
-        mSubchannels = in.readArrayList(Integer.class.getClassLoader());
-        mUsers = in.readArrayList(Integer.class.getClassLoader());
+        mSubchannels = in.readArrayList(null);
+        mUsers = in.readArrayList(null);
     }
 
     @Override

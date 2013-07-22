@@ -9,7 +9,12 @@
 
     <application android:allowBackup="true">
         <service android:name=".JumbleService"
-                 android:exported="true"/>
+                 android:exported="true">
+            <intent-filter>
+                <action android:name="com.morlunk.jumble.ACTION_CONNECT"/>
+                <action android:name="com.morlunk.jumble.ACTION_DISCONNECT"/>
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

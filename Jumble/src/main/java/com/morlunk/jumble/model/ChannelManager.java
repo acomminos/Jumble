@@ -22,8 +22,11 @@ import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.net.JumbleMessageHandler;
 import com.morlunk.jumble.protobuf.Mumble;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -47,7 +50,7 @@ public class ChannelManager extends JumbleMessageHandler.Stub {
     }
 
     private JumbleService mService;
-    private SparseArray<Channel> mChannels = new SparseArray<Channel>();
+    private HashMap<Integer, Channel> mChannels = new HashMap<Integer, Channel>();
 
     public ChannelManager(JumbleService service) {
         mService = service;
@@ -55,6 +58,10 @@ public class ChannelManager extends JumbleMessageHandler.Stub {
 
     public Channel getChannel(int id) {
         return mChannels.get(id);
+    }
+
+    public List<Channel> getChannels() {
+        return new ArrayList<Channel>(mChannels.values());
     }
 
     @Override
@@ -66,11 +73,12 @@ public class ChannelManager extends JumbleMessageHandler.Stub {
         Channel parent = mChannels.get(msg.getParent());
 
         if(channel == null) {
-            if(msg.hasParent() && parent != null && msg.hasName()) {
+            //if(msg.hasParent() && parent != null && msg.hasName()) {
                 channel = new Channel(msg.getChannelId(), msg.getParent(), msg.getName(), msg.getTemporary());
-            }
-            else
-                return;
+                mChannels.put(msg.getChannelId(), channel);
+            //}
+            //else
+            //    return;
         }
 
         if(parent != null)

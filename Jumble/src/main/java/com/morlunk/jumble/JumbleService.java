@@ -89,16 +89,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private IJumbleService.Stub mBinder = new IJumbleService.Stub() {
 
         @Override
-        public void connect() throws RemoteException {
-            try {
-                JumbleService.this.connect();
-            } catch (JumbleConnectionException e) {
-                // TODO find a good way to throw remote exceptions
-                e.printStackTrace();
-            }
-        }
-
-        @Override
         public void disconnect() throws RemoteException {
             JumbleService.this.disconnect();
         }
@@ -106,6 +96,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public boolean isConnected() throws RemoteException {
             return mConnection.isConnected();
+        }
+
+        @Override
+        public int getSession() throws RemoteException {
+            return mConnection.getSession();
         }
 
         @Override
@@ -125,16 +120,85 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public List getChannelList() throws RemoteException {
-            return null;
+            return mChannelManager.getChannels();
         }
 
         @Override
-        public void registerObserver(IJumbleObserver observer) throws RemoteException {
+        public void joinChannel(int channel) throws RemoteException {
+            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+            usb.setSession(mConnection.getSession());
+            usb.setChannelId(channel);
+            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+        }
+
+        @Override
+        public void createChannel(int parent, String name, String description, int position, boolean temporary) throws RemoteException {
+
+        }
+
+        @Override
+        public void requestBanList() throws RemoteException {
+
+        }
+
+        @Override
+        public void requestUserList() throws RemoteException {
+
+        }
+
+        @Override
+        public void registerUser(int session) throws RemoteException {
+
+        }
+
+        @Override
+        public void kickBanUser(int session, String reason, boolean ban) throws RemoteException {
+
+        }
+
+        @Override
+        public void sendUserTextMessage(int session, String message) throws RemoteException {
+
+        }
+
+        @Override
+        public void sendChannelTextMessage(int channel, String message, boolean tree) throws RemoteException {
+
+        }
+
+        @Override
+        public void setUserComment(int session, String comment) throws RemoteException {
+            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+            usb.setSession(session);
+            usb.setComment(comment);
+            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+        }
+
+        @Override
+        public void removeChannel(int channel) throws RemoteException {
+
+        }
+
+        @Override
+        public void setSelfMuteDeafState(boolean mute, boolean deaf) throws RemoteException {
+            User currentUser = mUserManager.getUser(mConnection.getSession());
+            currentUser.setSelfMuted(mute);
+            currentUser.setSelfDeafened(deaf);
+
+            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+            usb.setSession(mConnection.getSession());
+            usb.setSelfMute(mute);
+            usb.setSelfDeaf(deaf);
+            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+        }
+
+        @Override
+        public void registerObserver(IJumbleObserver observer) {
             mObservers.register(observer);
         }
 
         @Override
-        public void unregisterObserver(IJumbleObserver observer) throws RemoteException {
+        public void unregisterObserver(IJumbleObserver observer) {
             mObservers.unregister(observer);
         }
     };
@@ -143,6 +207,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public int onStartCommand(Intent intent, int flags, int startId) {
         if(intent != null &&
                 intent.getAction() != null &&
+                intent.getExtras() != null &&
                 intent.getAction().equals(ACTION_CONNECT)) {
             // Get connection parameters
             Bundle extras = intent.getExtras();
@@ -155,11 +220,10 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mUsePushToTalk = extras.getBoolean(EXTRAS_PUSH_TO_TALK, false);
             mUseOpus = extras.getBoolean(EXTRAS_USE_OPUS, true);
             mForceTcp = extras.getBoolean(EXTRAS_FORCE_TCP, false);
-            mClientName = extras.getString(EXTRAS_CLIENT_NAME, "Jumble");
-
-            // TODO connect here
+            mClientName = extras.containsKey(EXTRAS_CLIENT_NAME) ? extras.getString(EXTRAS_CLIENT_NAME) : "Jumble";
+            connect();
         }
-        return START_NOT_STICKY;
+        return START_STICKY;
     }
 
     @Override
@@ -178,11 +242,27 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         return mBinder;
     }
 
-    public void connect() throws JumbleConnectionException {
-        mConnection = new JumbleConnection(this, this, mServer, mClientName, mCertificate, mCertificatePassword, mForceTcp, mUseOpus);
+    public void connect() {
+        try {
+            mConnection = new JumbleConnection(this, this, mServer, mClientName, mCertificate, mCertificatePassword, mForceTcp, mUseOpus);
+        } catch (JumbleConnectionException e) {
+            e.printStackTrace();
+
+            int i = mObservers.beginBroadcast();
+            while(i > 0) {
+                i--;
+                try {
+                    mObservers.getBroadcastItem(i).onConnectionError(e.getMessage(), e.isAutoReconnectAllowed());
+                } catch (RemoteException e2) {}
+            }
+            mObservers.finishBroadcast();
+
+            return;
+        }
 
         mChannelManager = new ChannelManager(this);
         mUserManager = new UserManager(this);
+        mAudio = new Audio();
 
         // Add message handlers for all managers
         mConnection.addMessageHandler(mChannelManager);

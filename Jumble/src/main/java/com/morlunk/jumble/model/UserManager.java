@@ -113,9 +113,10 @@ public class UserManager extends JumbleMessageHandler.Stub {
             }
             Channel old = mService.getChannelManager().getChannel(user.getChannelId());
 
-            if(channel != old) {
-                old.removeUser(user.getUserId());
-                channel.addUser(user.getUserId());
+            if(!channel.equals(old)) {
+                // TODO move user
+                //old.removeUser(user.getUserId());
+                //channel.addUser(user.getUserId());
             }
             /*
              * TODO: logging
