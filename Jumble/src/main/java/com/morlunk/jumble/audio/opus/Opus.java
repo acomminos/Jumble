@@ -103,6 +103,10 @@ public class Opus implements OpusConstants {
     return OpusJNI.opus_decoder_get_nb_samples(SWIGTYPE_p_OpusDecoder.getCPtr(dec), packet, len);
   }
 
+  public static void opus_pcm_soft_clip(float[] pcm, int frame_size, int channels, float[] softclip_mem) {
+    OpusJNI.opus_pcm_soft_clip(pcm, frame_size, channels, softclip_mem);
+  }
+
   public static int opus_repacketizer_get_size() {
     return OpusJNI.opus_repacketizer_get_size();
   }

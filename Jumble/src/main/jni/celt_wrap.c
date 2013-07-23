@@ -219,7 +219,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1BAD_1AR
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1INVALID_1MODE_1get(JNIEnv *jenv, jclass jcls) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1BUFFER_1TOO_1SMALL_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   int result;
   
@@ -291,18 +291,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1ALLOC_1
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1GET_1MODE_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
-  jint jresult = 0 ;
-  int result;
-  
-  (void)jenv;
-  (void)jcls;
-  result = (int)(1);
-  jresult = (jint)result; 
-  return jresult;
-}
-
-
 SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1SET_1COMPLEXITY_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   int result;
@@ -327,7 +315,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1SET_1PR
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1SET_1VBR_1RATE_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1SET_1BITRATE_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   int result;
   
@@ -363,49 +351,109 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1RESET_1
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1GET_1FRAME_1SIZE_1get(JNIEnv *jenv, jclass jcls) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1SET_1VBR_1CONSTRAINT_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   int result;
   
   (void)jenv;
   (void)jcls;
-  result = (int)(1000);
+  result = (int)(10);
   jresult = (jint)result; 
   return jresult;
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1GET_1LOOKAHEAD_1get(JNIEnv *jenv, jclass jcls) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1SET_1VBR_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   int result;
   
   (void)jenv;
   (void)jcls;
-  result = (int)(1001);
+  result = (int)(12);
   jresult = (jint)result; 
   return jresult;
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1GET_1SAMPLE_1RATE_1get(JNIEnv *jenv, jclass jcls) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1SET_1INPUT_1CLIPPING_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   int result;
   
   (void)jenv;
   (void)jcls;
-  result = (int)(1003);
+  result = (int)(14);
   jresult = (jint)result; 
   return jresult;
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1GET_1BITSTREAM_1VERSION_1get(JNIEnv *jenv, jclass jcls) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1GET_1AND_1CLEAR_1ERROR_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   int result;
   
   (void)jenv;
   (void)jcls;
-  result = (int)(2000);
+  result = (int)(15);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1GET_1LOOKAHEAD_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(17);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1SET_1CHANNELS_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(18);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1SET_1LOSS_1PERC_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(20);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1SET_1START_1BAND_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(10000);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_CELT_1SET_1END_1BAND_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(10001);
   jresult = (jint)result; 
   return jresult;
 }
@@ -453,16 +501,46 @@ SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1mode_1d
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1mode_1info(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jintArray jarg3) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encoder_1get_1size(JNIEnv *jenv, jclass jcls, jint jarg1) {
+  jint jresult = 0 ;
+  int arg1 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = (int)jarg1; 
+  result = (int)celt_encoder_get_size(arg1);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encoder_1get_1size_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2) {
   jint jresult = 0 ;
   CELTMode *arg1 = (CELTMode *) 0 ;
   int arg2 ;
-  celt_int32 *arg3 = (celt_int32 *) 0 ;
   int result;
   
   (void)jenv;
   (void)jcls;
   arg1 = *(CELTMode **)&jarg1; 
+  arg2 = (int)jarg2; 
+  result = (int)celt_encoder_get_size_custom((struct CELTMode const *)arg1,arg2);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encoder_1create(JNIEnv *jenv, jclass jcls, jint jarg1, jint jarg2, jintArray jarg3) {
+  jlong jresult = 0 ;
+  int arg1 ;
+  int arg2 ;
+  int *arg3 = (int *) 0 ;
+  CELTEncoder *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = (int)jarg1; 
   arg2 = (int)jarg2; 
   {
     if (!jarg3) {
@@ -473,10 +551,10 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1mode_1i
       SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
       return 0;
     }
-    arg3 = (celt_int32 *) (*jenv)->GetIntArrayElements(jenv, jarg3, 0); 
+    arg3 = (int *) (*jenv)->GetIntArrayElements(jenv, jarg3, 0); 
   }
-  result = (int)celt_mode_info((struct CELTMode const *)arg1,arg2,arg3);
-  jresult = (jint)result; 
+  result = (CELTEncoder *)celt_encoder_create(arg1,arg2,arg3);
+  *(CELTEncoder **)&jresult = result; 
   {
     (*jenv)->ReleaseIntArrayElements(jenv, jarg3, (jint *)arg3, 0); 
   }
@@ -485,7 +563,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1mode_1i
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encoder_1create(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jintArray jarg3) {
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encoder_1create_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jintArray jarg3) {
   jlong jresult = 0 ;
   CELTMode *arg1 = (CELTMode *) 0 ;
   int arg2 ;
@@ -507,10 +585,78 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encode
     }
     arg3 = (int *) (*jenv)->GetIntArrayElements(jenv, jarg3, 0); 
   }
-  result = (CELTEncoder *)celt_encoder_create((struct CELTMode const *)arg1,arg2,arg3);
+  result = (CELTEncoder *)celt_encoder_create_custom((struct CELTMode const *)arg1,arg2,arg3);
   *(CELTEncoder **)&jresult = result; 
   {
     (*jenv)->ReleaseIntArrayElements(jenv, jarg3, (jint *)arg3, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encoder_1init(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jint jarg3, jintArray jarg4) {
+  jlong jresult = 0 ;
+  CELTEncoder *arg1 = (CELTEncoder *) 0 ;
+  int arg2 ;
+  int arg3 ;
+  int *arg4 = (int *) 0 ;
+  CELTEncoder *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(CELTEncoder **)&jarg1; 
+  arg2 = (int)jarg2; 
+  arg3 = (int)jarg3; 
+  {
+    if (!jarg4) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg4) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg4 = (int *) (*jenv)->GetIntArrayElements(jenv, jarg4, 0); 
+  }
+  result = (CELTEncoder *)celt_encoder_init(arg1,arg2,arg3,arg4);
+  *(CELTEncoder **)&jresult = result; 
+  {
+    (*jenv)->ReleaseIntArrayElements(jenv, jarg4, (jint *)arg4, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encoder_1init_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jlong jarg2, jint jarg3, jintArray jarg4) {
+  jlong jresult = 0 ;
+  CELTEncoder *arg1 = (CELTEncoder *) 0 ;
+  CELTMode *arg2 = (CELTMode *) 0 ;
+  int arg3 ;
+  int *arg4 = (int *) 0 ;
+  CELTEncoder *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(CELTEncoder **)&jarg1; 
+  arg2 = *(CELTMode **)&jarg2; 
+  arg3 = (int)jarg3; 
+  {
+    if (!jarg4) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg4) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg4 = (int *) (*jenv)->GetIntArrayElements(jenv, jarg4, 0); 
+  }
+  result = (CELTEncoder *)celt_encoder_init_custom(arg1,(struct CELTMode const *)arg2,arg3,arg4);
+  *(CELTEncoder **)&jresult = result; 
+  {
+    (*jenv)->ReleaseIntArrayElements(jenv, jarg4, (jint *)arg4, 0); 
   }
   
   return jresult;
@@ -527,11 +673,11 @@ SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encoder
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encode_1float(JNIEnv *jenv, jclass jcls, jlong jarg1, jfloatArray jarg2, jfloatArray jarg3, jbyteArray jarg4, jint jarg5) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encode_1float(JNIEnv *jenv, jclass jcls, jlong jarg1, jfloatArray jarg2, jint jarg3, jbyteArray jarg4, jint jarg5) {
   jint jresult = 0 ;
   CELTEncoder *arg1 = (CELTEncoder *) 0 ;
   float *arg2 = (float *) 0 ;
-  float *arg3 = (float *) 0 ;
+  int arg3 ;
   unsigned char *arg4 = (unsigned char *) 0 ;
   int arg5 ;
   int result;
@@ -550,17 +696,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encode_
     }
     arg2 = (float *) (*jenv)->GetFloatArrayElements(jenv, jarg2, 0); 
   }
-  {
-    if (!jarg3) {
-      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
-      return 0;
-    }
-    if ((*jenv)->GetArrayLength(jenv, jarg3) == 0) {
-      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
-      return 0;
-    }
-    arg3 = (float *) (*jenv)->GetFloatArrayElements(jenv, jarg3, 0); 
-  }
+  arg3 = (int)jarg3; 
   {
     arg4 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg4, 0); 
   }
@@ -571,23 +707,19 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encode_
     (*jenv)->ReleaseFloatArrayElements(jenv, jarg2, (jfloat *)arg2, 0); 
   }
   {
-    (*jenv)->ReleaseFloatArrayElements(jenv, jarg3, (jfloat *)arg3, 0); 
-  }
-  {
     (*jenv)->ReleaseByteArrayElements(jenv, jarg4, (jbyte *) arg4, 0); 
   }
-  
   
   
   return jresult;
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encode(JNIEnv *jenv, jclass jcls, jlong jarg1, jshortArray jarg2, jshortArray jarg3, jbyteArray jarg4, jint jarg5) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encode(JNIEnv *jenv, jclass jcls, jlong jarg1, jshortArray jarg2, jint jarg3, jbyteArray jarg4, jint jarg5) {
   jint jresult = 0 ;
   CELTEncoder *arg1 = (CELTEncoder *) 0 ;
   celt_int16 *arg2 = (celt_int16 *) 0 ;
-  celt_int16 *arg3 = (celt_int16 *) 0 ;
+  int arg3 ;
   unsigned char *arg4 = (unsigned char *) 0 ;
   int arg5 ;
   int result;
@@ -606,17 +738,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encode(
     }
     arg2 = (celt_int16 *) (*jenv)->GetShortArrayElements(jenv, jarg2, 0); 
   }
-  {
-    if (!jarg3) {
-      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
-      return 0;
-    }
-    if ((*jenv)->GetArrayLength(jenv, jarg3) == 0) {
-      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
-      return 0;
-    }
-    arg3 = (celt_int16 *) (*jenv)->GetShortArrayElements(jenv, jarg3, 0); 
-  }
+  arg3 = (int)jarg3; 
   {
     arg4 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg4, 0); 
   }
@@ -627,12 +749,8 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encode(
     (*jenv)->ReleaseShortArrayElements(jenv, jarg2, (jshort *)arg2, 0); 
   }
   {
-    (*jenv)->ReleaseShortArrayElements(jenv, jarg3, (jshort *)arg3, 0); 
-  }
-  {
     (*jenv)->ReleaseByteArrayElements(jenv, jarg4, (jbyte *) arg4, 0); 
   }
-  
   
   
   return jresult;
@@ -671,7 +789,69 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1encoder
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decoder_1create(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jintArray jarg3) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decoder_1get_1size(JNIEnv *jenv, jclass jcls, jint jarg1) {
+  jint jresult = 0 ;
+  int arg1 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = (int)jarg1; 
+  result = (int)celt_decoder_get_size(arg1);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decoder_1get_1size_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2) {
+  jint jresult = 0 ;
+  CELTMode *arg1 = (CELTMode *) 0 ;
+  int arg2 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(CELTMode **)&jarg1; 
+  arg2 = (int)jarg2; 
+  result = (int)celt_decoder_get_size_custom((struct CELTMode const *)arg1,arg2);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decoder_1create(JNIEnv *jenv, jclass jcls, jint jarg1, jint jarg2, jintArray jarg3) {
+  jlong jresult = 0 ;
+  int arg1 ;
+  int arg2 ;
+  int *arg3 = (int *) 0 ;
+  CELTDecoder *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = (int)jarg1; 
+  arg2 = (int)jarg2; 
+  {
+    if (!jarg3) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg3) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg3 = (int *) (*jenv)->GetIntArrayElements(jenv, jarg3, 0); 
+  }
+  result = (CELTDecoder *)celt_decoder_create(arg1,arg2,arg3);
+  *(CELTDecoder **)&jresult = result; 
+  {
+    (*jenv)->ReleaseIntArrayElements(jenv, jarg3, (jint *)arg3, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decoder_1create_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jintArray jarg3) {
   jlong jresult = 0 ;
   CELTMode *arg1 = (CELTMode *) 0 ;
   int arg2 ;
@@ -693,10 +873,78 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decode
     }
     arg3 = (int *) (*jenv)->GetIntArrayElements(jenv, jarg3, 0); 
   }
-  result = (CELTDecoder *)celt_decoder_create((struct CELTMode const *)arg1,arg2,arg3);
+  result = (CELTDecoder *)celt_decoder_create_custom((struct CELTMode const *)arg1,arg2,arg3);
   *(CELTDecoder **)&jresult = result; 
   {
     (*jenv)->ReleaseIntArrayElements(jenv, jarg3, (jint *)arg3, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decoder_1init(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jint jarg3, jintArray jarg4) {
+  jlong jresult = 0 ;
+  CELTDecoder *arg1 = (CELTDecoder *) 0 ;
+  int arg2 ;
+  int arg3 ;
+  int *arg4 = (int *) 0 ;
+  CELTDecoder *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(CELTDecoder **)&jarg1; 
+  arg2 = (int)jarg2; 
+  arg3 = (int)jarg3; 
+  {
+    if (!jarg4) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg4) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg4 = (int *) (*jenv)->GetIntArrayElements(jenv, jarg4, 0); 
+  }
+  result = (CELTDecoder *)celt_decoder_init(arg1,arg2,arg3,arg4);
+  *(CELTDecoder **)&jresult = result; 
+  {
+    (*jenv)->ReleaseIntArrayElements(jenv, jarg4, (jint *)arg4, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decoder_1init_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jlong jarg2, jint jarg3, jintArray jarg4) {
+  jlong jresult = 0 ;
+  CELTDecoder *arg1 = (CELTDecoder *) 0 ;
+  CELTMode *arg2 = (CELTMode *) 0 ;
+  int arg3 ;
+  int *arg4 = (int *) 0 ;
+  CELTDecoder *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(CELTDecoder **)&jarg1; 
+  arg2 = *(CELTMode **)&jarg2; 
+  arg3 = (int)jarg3; 
+  {
+    if (!jarg4) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg4) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg4 = (int *) (*jenv)->GetIntArrayElements(jenv, jarg4, 0); 
+  }
+  result = (CELTDecoder *)celt_decoder_init_custom(arg1,(struct CELTMode const *)arg2,arg3,arg4);
+  *(CELTDecoder **)&jresult = result; 
+  {
+    (*jenv)->ReleaseIntArrayElements(jenv, jarg4, (jint *)arg4, 0); 
   }
   
   return jresult;
@@ -713,12 +961,13 @@ SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decoder
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decode_1float(JNIEnv *jenv, jclass jcls, jlong jarg1, jbyteArray jarg2, jint jarg3, jfloatArray jarg4) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decode_1float(JNIEnv *jenv, jclass jcls, jlong jarg1, jbyteArray jarg2, jint jarg3, jfloatArray jarg4, jint jarg5) {
   jint jresult = 0 ;
   CELTDecoder *arg1 = (CELTDecoder *) 0 ;
   unsigned char *arg2 = (unsigned char *) 0 ;
   int arg3 ;
   float *arg4 = (float *) 0 ;
+  int arg5 ;
   int result;
   
   (void)jenv;
@@ -739,7 +988,8 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decode_
     }
     arg4 = (float *) (*jenv)->GetFloatArrayElements(jenv, jarg4, 0); 
   }
-  result = (int)celt_decode_float(arg1,(unsigned char const *)arg2,arg3,arg4);
+  arg5 = (int)jarg5; 
+  result = (int)celt_decode_float(arg1,(unsigned char const *)arg2,arg3,arg4,arg5);
   jresult = (jint)result; 
   {
     (*jenv)->ReleaseByteArrayElements(jenv, jarg2, (jbyte *) arg2, 0); 
@@ -753,12 +1003,13 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decode_
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decode(JNIEnv *jenv, jclass jcls, jlong jarg1, jbyteArray jarg2, jint jarg3, jshortArray jarg4) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decode(JNIEnv *jenv, jclass jcls, jlong jarg1, jbyteArray jarg2, jint jarg3, jshortArray jarg4, jint jarg5) {
   jint jresult = 0 ;
   CELTDecoder *arg1 = (CELTDecoder *) 0 ;
   unsigned char *arg2 = (unsigned char *) 0 ;
   int arg3 ;
   celt_int16 *arg4 = (celt_int16 *) 0 ;
+  int arg5 ;
   int result;
   
   (void)jenv;
@@ -779,7 +1030,8 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt_CELTJNI_celt_1decode(
     }
     arg4 = (celt_int16 *) (*jenv)->GetShortArrayElements(jenv, jarg4, 0); 
   }
-  result = (int)celt_decode(arg1,(unsigned char const *)arg2,arg3,arg4);
+  arg5 = (int)jarg5; 
+  result = (int)celt_decode(arg1,(unsigned char const *)arg2,arg3,arg4,arg5);
   jresult = (jint)result; 
   {
     (*jenv)->ReleaseByteArrayElements(jenv, jarg2, (jbyte *) arg2, 0); 

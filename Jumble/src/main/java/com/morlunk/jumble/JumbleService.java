@@ -403,11 +403,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         nb.setContentTitle(mClientName);
         nb.setSmallIcon(android.R.drawable.ic_menu_call);
         nb.setContentText(getString(R.string.notification_connected));
-        startForeground(NOTIFICATION_CONNECTION, nb.build());
+        //startForeground(NOTIFICATION_CONNECTION, nb.build());
     }
 
     private void hideNotification() {
-        stopForeground(true);
+        //stopForeground(true);
     }
 
     /*

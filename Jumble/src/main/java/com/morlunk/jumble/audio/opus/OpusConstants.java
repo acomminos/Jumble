@@ -50,6 +50,8 @@ public interface OpusConstants {
   public final static int OPUS_SET_LSB_DEPTH_REQUEST = OpusJNI.OPUS_SET_LSB_DEPTH_REQUEST_get();
   public final static int OPUS_GET_LSB_DEPTH_REQUEST = OpusJNI.OPUS_GET_LSB_DEPTH_REQUEST_get();
   public final static int OPUS_GET_LAST_PACKET_DURATION_REQUEST = OpusJNI.OPUS_GET_LAST_PACKET_DURATION_REQUEST_get();
+  public final static int OPUS_SET_EXPERT_FRAME_DURATION_REQUEST = OpusJNI.OPUS_SET_EXPERT_FRAME_DURATION_REQUEST_get();
+  public final static int OPUS_GET_EXPERT_FRAME_DURATION_REQUEST = OpusJNI.OPUS_GET_EXPERT_FRAME_DURATION_REQUEST_get();
   public final static int OPUS_AUTO = OpusJNI.OPUS_AUTO_get();
   public final static int OPUS_BITRATE_MAX = OpusJNI.OPUS_BITRATE_MAX_get();
   public final static int OPUS_APPLICATION_VOIP = OpusJNI.OPUS_APPLICATION_VOIP_get();
@@ -62,5 +64,13 @@ public interface OpusConstants {
   public final static int OPUS_BANDWIDTH_WIDEBAND = OpusJNI.OPUS_BANDWIDTH_WIDEBAND_get();
   public final static int OPUS_BANDWIDTH_SUPERWIDEBAND = OpusJNI.OPUS_BANDWIDTH_SUPERWIDEBAND_get();
   public final static int OPUS_BANDWIDTH_FULLBAND = OpusJNI.OPUS_BANDWIDTH_FULLBAND_get();
+  public final static int OPUS_FRAMESIZE_ARG = OpusJNI.OPUS_FRAMESIZE_ARG_get();
+  public final static int OPUS_FRAMESIZE_2_5_MS = OpusJNI.OPUS_FRAMESIZE_2_5_MS_get();
+  public final static int OPUS_FRAMESIZE_5_MS = OpusJNI.OPUS_FRAMESIZE_5_MS_get();
+  public final static int OPUS_FRAMESIZE_10_MS = OpusJNI.OPUS_FRAMESIZE_10_MS_get();
+  public final static int OPUS_FRAMESIZE_20_MS = OpusJNI.OPUS_FRAMESIZE_20_MS_get();
+  public final static int OPUS_FRAMESIZE_40_MS = OpusJNI.OPUS_FRAMESIZE_40_MS_get();
+  public final static int OPUS_FRAMESIZE_60_MS = OpusJNI.OPUS_FRAMESIZE_60_MS_get();
+  public final static int OPUS_FRAMESIZE_VARIABLE = OpusJNI.OPUS_FRAMESIZE_VARIABLE_get();
   public final static int OPUS_RESET_STATE = OpusJNI.OPUS_RESET_STATE_get();
 }

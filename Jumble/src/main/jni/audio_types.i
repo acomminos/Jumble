@@ -18,4 +18,3 @@
 %apply int *INOUT { unsigned int * }
 %apply short *INOUT { short * }
 %apply float *INOUT { float * }
-%apply int *INOUT { void * }

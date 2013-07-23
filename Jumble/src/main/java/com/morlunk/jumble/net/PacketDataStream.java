@@ -84,13 +84,19 @@ public class PacketDataStream {
             mOk = false;
     }
 
-    int next() {
+    public int next() {
         if(mOffset < mMaxSize)
             return mData[mOffset++] & 0xFF;
         else {
             mOk = false;
             return 0;
         }
+    }
+
+    public byte[] dataBlock(int size) {
+        byte[] block = new byte[size];
+        System.arraycopy(mData, mOffset, block, 0, size);
+        return block;
     }
 
     public boolean readBool() {

@@ -55,6 +55,8 @@ public class OpusJNI {
   public final static native int OPUS_SET_LSB_DEPTH_REQUEST_get();
   public final static native int OPUS_GET_LSB_DEPTH_REQUEST_get();
   public final static native int OPUS_GET_LAST_PACKET_DURATION_REQUEST_get();
+  public final static native int OPUS_SET_EXPERT_FRAME_DURATION_REQUEST_get();
+  public final static native int OPUS_GET_EXPERT_FRAME_DURATION_REQUEST_get();
   public final static native int OPUS_AUTO_get();
   public final static native int OPUS_BITRATE_MAX_get();
   public final static native int OPUS_APPLICATION_VOIP_get();
@@ -67,6 +69,14 @@ public class OpusJNI {
   public final static native int OPUS_BANDWIDTH_WIDEBAND_get();
   public final static native int OPUS_BANDWIDTH_SUPERWIDEBAND_get();
   public final static native int OPUS_BANDWIDTH_FULLBAND_get();
+  public final static native int OPUS_FRAMESIZE_ARG_get();
+  public final static native int OPUS_FRAMESIZE_2_5_MS_get();
+  public final static native int OPUS_FRAMESIZE_5_MS_get();
+  public final static native int OPUS_FRAMESIZE_10_MS_get();
+  public final static native int OPUS_FRAMESIZE_20_MS_get();
+  public final static native int OPUS_FRAMESIZE_40_MS_get();
+  public final static native int OPUS_FRAMESIZE_60_MS_get();
+  public final static native int OPUS_FRAMESIZE_VARIABLE_get();
   public final static native int OPUS_RESET_STATE_get();
   public final static native byte[] opus_strerror(int jarg1);
   public final static native byte[] opus_get_version_string();
@@ -91,6 +101,7 @@ public class OpusJNI {
   public final static native int opus_packet_get_nb_frames(byte[] jarg1, int jarg2);
   public final static native int opus_packet_get_nb_samples(byte[] jarg1, int jarg2, int jarg3);
   public final static native int opus_decoder_get_nb_samples(long jarg1, byte[] jarg2, int jarg3);
+  public final static native void opus_pcm_soft_clip(float[] jarg1, int jarg2, int jarg3, float[] jarg4);
   public final static native int opus_repacketizer_get_size();
   public final static native long opus_repacketizer_init(long jarg1);
   public final static native long opus_repacketizer_create();

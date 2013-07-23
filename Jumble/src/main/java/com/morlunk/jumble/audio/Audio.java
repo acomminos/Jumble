@@ -23,6 +23,9 @@ import com.morlunk.jumble.net.JumbleMessageHandler;
  */
 public class Audio extends JumbleMessageHandler.Stub {
 
+    public static final int SAMPLE_RATE = 48000;
+    public static final int FRAME_SIZE = SAMPLE_RATE/100;
+
     @Override
     public void messageVoiceData(byte[] data) {
 

@@ -18,12 +18,31 @@ public class CELT implements CELTConstants {
     CELTJNI.celt_mode_destroy(SWIGTYPE_p_CELTMode.getCPtr(mode));
   }
 
-  public static int celt_mode_info(SWIGTYPE_p_CELTMode mode, int request, int[] value) {
-    return CELTJNI.celt_mode_info(SWIGTYPE_p_CELTMode.getCPtr(mode), request, value);
+  public static int celt_encoder_get_size(int channels) {
+    return CELTJNI.celt_encoder_get_size(channels);
   }
 
-  public static SWIGTYPE_p_CELTEncoder celt_encoder_create(SWIGTYPE_p_CELTMode mode, int channels, int[] error) {
-    long cPtr = CELTJNI.celt_encoder_create(SWIGTYPE_p_CELTMode.getCPtr(mode), channels, error);
+  public static int celt_encoder_get_size_custom(SWIGTYPE_p_CELTMode mode, int channels) {
+    return CELTJNI.celt_encoder_get_size_custom(SWIGTYPE_p_CELTMode.getCPtr(mode), channels);
+  }
+
+  public static SWIGTYPE_p_CELTEncoder celt_encoder_create(int sampling_rate, int channels, int[] error) {
+    long cPtr = CELTJNI.celt_encoder_create(sampling_rate, channels, error);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_CELTEncoder(cPtr, false);
+  }
+
+  public static SWIGTYPE_p_CELTEncoder celt_encoder_create_custom(SWIGTYPE_p_CELTMode mode, int channels, int[] error) {
+    long cPtr = CELTJNI.celt_encoder_create_custom(SWIGTYPE_p_CELTMode.getCPtr(mode), channels, error);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_CELTEncoder(cPtr, false);
+  }
+
+  public static SWIGTYPE_p_CELTEncoder celt_encoder_init(SWIGTYPE_p_CELTEncoder st, int sampling_rate, int channels, int[] error) {
+    long cPtr = CELTJNI.celt_encoder_init(SWIGTYPE_p_CELTEncoder.getCPtr(st), sampling_rate, channels, error);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_CELTEncoder(cPtr, false);
+  }
+
+  public static SWIGTYPE_p_CELTEncoder celt_encoder_init_custom(SWIGTYPE_p_CELTEncoder st, SWIGTYPE_p_CELTMode mode, int channels, int[] error) {
+    long cPtr = CELTJNI.celt_encoder_init_custom(SWIGTYPE_p_CELTEncoder.getCPtr(st), SWIGTYPE_p_CELTMode.getCPtr(mode), channels, error);
     return (cPtr == 0) ? null : new SWIGTYPE_p_CELTEncoder(cPtr, false);
   }
 
@@ -31,20 +50,43 @@ public class CELT implements CELTConstants {
     CELTJNI.celt_encoder_destroy(SWIGTYPE_p_CELTEncoder.getCPtr(st));
   }
 
-  public static int celt_encode_float(SWIGTYPE_p_CELTEncoder st, float[] pcm, float[] optional_synthesis, byte[] compressed, int nbCompressedBytes) {
-    return CELTJNI.celt_encode_float(SWIGTYPE_p_CELTEncoder.getCPtr(st), pcm, optional_synthesis, compressed, nbCompressedBytes);
+  public static int celt_encode_float(SWIGTYPE_p_CELTEncoder st, float[] pcm, int frame_size, byte[] compressed, int maxCompressedBytes) {
+    return CELTJNI.celt_encode_float(SWIGTYPE_p_CELTEncoder.getCPtr(st), pcm, frame_size, compressed, maxCompressedBytes);
   }
 
-  public static int celt_encode(SWIGTYPE_p_CELTEncoder st, short[] pcm, short[] optional_synthesis, byte[] compressed, int nbCompressedBytes) {
-    return CELTJNI.celt_encode(SWIGTYPE_p_CELTEncoder.getCPtr(st), pcm, optional_synthesis, compressed, nbCompressedBytes);
+  public static int celt_encode(SWIGTYPE_p_CELTEncoder st, short[] pcm, int frame_size, byte[] compressed, int maxCompressedBytes) {
+    return CELTJNI.celt_encode(SWIGTYPE_p_CELTEncoder.getCPtr(st), pcm, frame_size, compressed, maxCompressedBytes);
   }
 
   public static int celt_encoder_ctl(SWIGTYPE_p_CELTEncoder st, int request, int[] value) {
     return CELTJNI.celt_encoder_ctl(SWIGTYPE_p_CELTEncoder.getCPtr(st), request, value);
   }
 
-  public static SWIGTYPE_p_CELTDecoder celt_decoder_create(SWIGTYPE_p_CELTMode mode, int channels, int[] error) {
-    long cPtr = CELTJNI.celt_decoder_create(SWIGTYPE_p_CELTMode.getCPtr(mode), channels, error);
+  public static int celt_decoder_get_size(int channels) {
+    return CELTJNI.celt_decoder_get_size(channels);
+  }
+
+  public static int celt_decoder_get_size_custom(SWIGTYPE_p_CELTMode mode, int channels) {
+    return CELTJNI.celt_decoder_get_size_custom(SWIGTYPE_p_CELTMode.getCPtr(mode), channels);
+  }
+
+  public static SWIGTYPE_p_CELTDecoder celt_decoder_create(int sampling_rate, int channels, int[] error) {
+    long cPtr = CELTJNI.celt_decoder_create(sampling_rate, channels, error);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_CELTDecoder(cPtr, false);
+  }
+
+  public static SWIGTYPE_p_CELTDecoder celt_decoder_create_custom(SWIGTYPE_p_CELTMode mode, int channels, int[] error) {
+    long cPtr = CELTJNI.celt_decoder_create_custom(SWIGTYPE_p_CELTMode.getCPtr(mode), channels, error);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_CELTDecoder(cPtr, false);
+  }
+
+  public static SWIGTYPE_p_CELTDecoder celt_decoder_init(SWIGTYPE_p_CELTDecoder st, int sampling_rate, int channels, int[] error) {
+    long cPtr = CELTJNI.celt_decoder_init(SWIGTYPE_p_CELTDecoder.getCPtr(st), sampling_rate, channels, error);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_CELTDecoder(cPtr, false);
+  }
+
+  public static SWIGTYPE_p_CELTDecoder celt_decoder_init_custom(SWIGTYPE_p_CELTDecoder st, SWIGTYPE_p_CELTMode mode, int channels, int[] error) {
+    long cPtr = CELTJNI.celt_decoder_init_custom(SWIGTYPE_p_CELTDecoder.getCPtr(st), SWIGTYPE_p_CELTMode.getCPtr(mode), channels, error);
     return (cPtr == 0) ? null : new SWIGTYPE_p_CELTDecoder(cPtr, false);
   }
 
@@ -52,12 +94,12 @@ public class CELT implements CELTConstants {
     CELTJNI.celt_decoder_destroy(SWIGTYPE_p_CELTDecoder.getCPtr(st));
   }
 
-  public static int celt_decode_float(SWIGTYPE_p_CELTDecoder st, byte[] data, int len, float[] pcm) {
-    return CELTJNI.celt_decode_float(SWIGTYPE_p_CELTDecoder.getCPtr(st), data, len, pcm);
+  public static int celt_decode_float(SWIGTYPE_p_CELTDecoder st, byte[] data, int len, float[] pcm, int frame_size) {
+    return CELTJNI.celt_decode_float(SWIGTYPE_p_CELTDecoder.getCPtr(st), data, len, pcm, frame_size);
   }
 
-  public static int celt_decode(SWIGTYPE_p_CELTDecoder st, byte[] data, int len, short[] pcm) {
-    return CELTJNI.celt_decode(SWIGTYPE_p_CELTDecoder.getCPtr(st), data, len, pcm);
+  public static int celt_decode(SWIGTYPE_p_CELTDecoder st, byte[] data, int len, short[] pcm, int frame_size) {
+    return CELTJNI.celt_decode(SWIGTYPE_p_CELTDecoder.getCPtr(st), data, len, pcm, frame_size);
   }
 
   public static int celt_decoder_ctl(SWIGTYPE_p_CELTDecoder st, int request) {

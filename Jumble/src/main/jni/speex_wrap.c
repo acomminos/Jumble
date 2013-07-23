@@ -187,7 +187,9 @@ static void SWIGUNUSED SWIG_JavaThrowException(JNIEnv *jenv, SWIG_JavaExceptionC
 #define SWIG_contract_assert(nullreturn, expr, msg) if (!(expr)) {SWIG_JavaThrowException(jenv, SWIG_JavaIllegalArgumentException, msg); return nullreturn; } else
 
 
+#include <speex/speex.h>
 #include <speex/speex_types.h>
+#include <speex/speex_bits.h>
 #include <speex/speex_jitter.h>
 #include <speex/speex_echo.h>
 #include <speex/speex_resampler.h>
@@ -196,6 +198,2001 @@ static void SWIGUNUSED SWIG_JavaThrowException(JNIEnv *jenv, SWIG_JavaExceptionC
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1ENH_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(0);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1ENH_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(1);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1FRAME_1SIZE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(3);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1QUALITY_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(4);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1MODE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(6);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1MODE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(7);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1LOW_1MODE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(8);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1LOW_1MODE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(9);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1HIGH_1MODE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(10);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1HIGH_1MODE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(11);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1VBR_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(12);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1VBR_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(13);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1VBR_1QUALITY_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(14);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1VBR_1QUALITY_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(15);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1COMPLEXITY_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(16);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1COMPLEXITY_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(17);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1BITRATE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(18);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1BITRATE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(19);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1HANDLER_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(20);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1USER_1HANDLER_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(22);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1SAMPLING_1RATE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(24);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1SAMPLING_1RATE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(25);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1RESET_1STATE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(26);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1RELATIVE_1QUALITY_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(29);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1VAD_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(30);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1VAD_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(31);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1ABR_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(32);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1ABR_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(33);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1DTX_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(34);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1DTX_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(35);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1SUBMODE_1ENCODING_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(36);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1SUBMODE_1ENCODING_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(37);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1LOOKAHEAD_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(39);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1PLC_1TUNING_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(40);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1PLC_1TUNING_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(41);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1VBR_1MAX_1BITRATE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(42);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1VBR_1MAX_1BITRATE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(43);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1HIGHPASS_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(44);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1HIGHPASS_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(45);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1ACTIVITY_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(47);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1PF_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(0);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1GET_1PF_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(1);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1MODE_1FRAME_1SIZE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(0);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SUBMODE_1BITS_1PER_1FRAME_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(1);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1LIB_1GET_1MAJOR_1VERSION_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(1);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1LIB_1GET_1MINOR_1VERSION_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(3);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1LIB_1GET_1MICRO_1VERSION_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(5);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1LIB_1GET_1EXTRA_1VERSION_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(7);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1LIB_1GET_1VERSION_1STRING_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(9);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1NB_1MODES_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(3);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1MODEID_1NB_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(0);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1MODEID_1WB_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(1);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1MODEID_1UWB_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(2);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1mode_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  void *arg2 = (void *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  arg2 = *(void **)&jarg2; 
+  if (arg1) (arg1)->mode = (void const *)arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1mode_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  void *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (void *) ((arg1)->mode);
+  *(void **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1query_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  mode_query_func arg2 = (mode_query_func) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  arg2 = *(mode_query_func *)&jarg2; 
+  if (arg1) (arg1)->query = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1query_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  mode_query_func result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (mode_query_func) ((arg1)->query);
+  *(mode_query_func *)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1modeName_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jbyteArray jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  char *arg2 = (char *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  {
+    arg2 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg2, 0); 
+  }
+  {
+    if (arg2) {
+      arg1->modeName = (char const *) malloc(strlen((const char *)arg2)+1);
+      strcpy((char *)arg1->modeName, (const char *)arg2);
+    } else {
+      arg1->modeName = 0;
+    }
+  }
+  {
+    (*jenv)->ReleaseByteArrayElements(jenv, jarg2, (jbyte *) arg2, 0); 
+  }
+  
+}
+
+
+SWIGEXPORT jbyteArray JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1modeName_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jbyteArray jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  char *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (char *) ((arg1)->modeName);
+  if (result) jresult = (*jenv)->NewStringUTF(jenv, (const char *)result);
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1modeID_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  int arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  arg2 = (int)jarg2; 
+  if (arg1) (arg1)->modeID = arg2;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1modeID_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (int) ((arg1)->modeID);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1bitstream_1version_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  int arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  arg2 = (int)jarg2; 
+  if (arg1) (arg1)->bitstream_version = arg2;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1bitstream_1version_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (int) ((arg1)->bitstream_version);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1enc_1init_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  encoder_init_func arg2 = (encoder_init_func) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  arg2 = *(encoder_init_func *)&jarg2; 
+  if (arg1) (arg1)->enc_init = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1enc_1init_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  encoder_init_func result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (encoder_init_func) ((arg1)->enc_init);
+  *(encoder_init_func *)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1enc_1destroy_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  encoder_destroy_func arg2 = (encoder_destroy_func) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  arg2 = *(encoder_destroy_func *)&jarg2; 
+  if (arg1) (arg1)->enc_destroy = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1enc_1destroy_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  encoder_destroy_func result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (encoder_destroy_func) ((arg1)->enc_destroy);
+  *(encoder_destroy_func *)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1enc_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  encode_func arg2 = (encode_func) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  arg2 = *(encode_func *)&jarg2; 
+  if (arg1) (arg1)->enc = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1enc_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  encode_func result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (encode_func) ((arg1)->enc);
+  *(encode_func *)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1dec_1init_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  decoder_init_func arg2 = (decoder_init_func) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  arg2 = *(decoder_init_func *)&jarg2; 
+  if (arg1) (arg1)->dec_init = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1dec_1init_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  decoder_init_func result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (decoder_init_func) ((arg1)->dec_init);
+  *(decoder_init_func *)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1dec_1destroy_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  decoder_destroy_func arg2 = (decoder_destroy_func) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  arg2 = *(decoder_destroy_func *)&jarg2; 
+  if (arg1) (arg1)->dec_destroy = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1dec_1destroy_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  decoder_destroy_func result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (decoder_destroy_func) ((arg1)->dec_destroy);
+  *(decoder_destroy_func *)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1dec_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  decode_func arg2 = (decode_func) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  arg2 = *(decode_func *)&jarg2; 
+  if (arg1) (arg1)->dec = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1dec_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  decode_func result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (decode_func) ((arg1)->dec);
+  *(decode_func *)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1enc_1ctl_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  encoder_ctl_func arg2 = (encoder_ctl_func) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  arg2 = *(encoder_ctl_func *)&jarg2; 
+  if (arg1) (arg1)->enc_ctl = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1enc_1ctl_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  encoder_ctl_func result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (encoder_ctl_func) ((arg1)->enc_ctl);
+  *(encoder_ctl_func *)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1dec_1ctl_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  decoder_ctl_func arg2 = (decoder_ctl_func) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  arg2 = *(decoder_ctl_func *)&jarg2; 
+  if (arg1) (arg1)->dec_ctl = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexMode_1dec_1ctl_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  decoder_ctl_func result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  result = (decoder_ctl_func) ((arg1)->dec_ctl);
+  *(decoder_ctl_func *)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_new_1SpeexMode(JNIEnv *jenv, jclass jcls) {
+  jlong jresult = 0 ;
+  struct SpeexMode *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (struct SpeexMode *)calloc(1, sizeof(struct SpeexMode));
+  *(struct SpeexMode **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_delete_1SpeexMode(JNIEnv *jenv, jclass jcls, jlong jarg1) {
+  struct SpeexMode *arg1 = (struct SpeexMode *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(struct SpeexMode **)&jarg1; 
+  free((char *) arg1);
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1encoder_1init(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  SpeexMode *arg1 = (SpeexMode *) 0 ;
+  void *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexMode **)&jarg1; 
+  result = (void *)speex_encoder_init((SpeexMode const *)arg1);
+  *(void **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1encoder_1destroy(JNIEnv *jenv, jclass jcls, jlong jarg1) {
+  void *arg1 = (void *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(void **)&jarg1; 
+  speex_encoder_destroy(arg1);
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1encode(JNIEnv *jenv, jclass jcls, jlong jarg1, jfloatArray jarg2, jlong jarg3, jobject jarg3_) {
+  jint jresult = 0 ;
+  void *arg1 = (void *) 0 ;
+  float *arg2 = (float *) 0 ;
+  SpeexBits *arg3 = (SpeexBits *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg3_;
+  arg1 = *(void **)&jarg1; 
+  {
+    if (!jarg2) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg2) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg2 = (float *) (*jenv)->GetFloatArrayElements(jenv, jarg2, 0); 
+  }
+  arg3 = *(SpeexBits **)&jarg3; 
+  result = (int)speex_encode(arg1,arg2,arg3);
+  jresult = (jint)result; 
+  {
+    (*jenv)->ReleaseFloatArrayElements(jenv, jarg2, (jfloat *)arg2, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1encode_1int(JNIEnv *jenv, jclass jcls, jlong jarg1, jshortArray jarg2, jlong jarg3, jobject jarg3_) {
+  jint jresult = 0 ;
+  void *arg1 = (void *) 0 ;
+  spx_int16_t *arg2 = (spx_int16_t *) 0 ;
+  SpeexBits *arg3 = (SpeexBits *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg3_;
+  arg1 = *(void **)&jarg1; 
+  {
+    if (!jarg2) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg2) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg2 = (spx_int16_t *) (*jenv)->GetShortArrayElements(jenv, jarg2, 0); 
+  }
+  arg3 = *(SpeexBits **)&jarg3; 
+  result = (int)speex_encode_int(arg1,arg2,arg3);
+  jresult = (jint)result; 
+  {
+    (*jenv)->ReleaseShortArrayElements(jenv, jarg2, (jshort *)arg2, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1encoder_1ctl(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jintArray jarg3) {
+  jint jresult = 0 ;
+  void *arg1 = (void *) 0 ;
+  int arg2 ;
+  void *arg3 = (void *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(void **)&jarg1; 
+  arg2 = (int)jarg2; 
+  {
+    if (!jarg3) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg3) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg3 = (void *) (*jenv)->GetIntArrayElements(jenv, jarg3, 0); 
+  }
+  result = (int)speex_encoder_ctl(arg1,arg2,arg3);
+  jresult = (jint)result; 
+  {
+    (*jenv)->ReleaseIntArrayElements(jenv, jarg3, (jint *)arg3, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1decoder_1init(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  SpeexMode *arg1 = (SpeexMode *) 0 ;
+  void *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexMode **)&jarg1; 
+  result = (void *)speex_decoder_init((SpeexMode const *)arg1);
+  *(void **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1decoder_1destroy(JNIEnv *jenv, jclass jcls, jlong jarg1) {
+  void *arg1 = (void *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(void **)&jarg1; 
+  speex_decoder_destroy(arg1);
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1decode(JNIEnv *jenv, jclass jcls, jlong jarg1, jlong jarg2, jobject jarg2_, jfloatArray jarg3) {
+  jint jresult = 0 ;
+  void *arg1 = (void *) 0 ;
+  SpeexBits *arg2 = (SpeexBits *) 0 ;
+  float *arg3 = (float *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg2_;
+  arg1 = *(void **)&jarg1; 
+  arg2 = *(SpeexBits **)&jarg2; 
+  {
+    if (!jarg3) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg3) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg3 = (float *) (*jenv)->GetFloatArrayElements(jenv, jarg3, 0); 
+  }
+  result = (int)speex_decode(arg1,arg2,arg3);
+  jresult = (jint)result; 
+  {
+    (*jenv)->ReleaseFloatArrayElements(jenv, jarg3, (jfloat *)arg3, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1decode_1int(JNIEnv *jenv, jclass jcls, jlong jarg1, jlong jarg2, jobject jarg2_, jshortArray jarg3) {
+  jint jresult = 0 ;
+  void *arg1 = (void *) 0 ;
+  SpeexBits *arg2 = (SpeexBits *) 0 ;
+  spx_int16_t *arg3 = (spx_int16_t *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg2_;
+  arg1 = *(void **)&jarg1; 
+  arg2 = *(SpeexBits **)&jarg2; 
+  {
+    if (!jarg3) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg3) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg3 = (spx_int16_t *) (*jenv)->GetShortArrayElements(jenv, jarg3, 0); 
+  }
+  result = (int)speex_decode_int(arg1,arg2,arg3);
+  jresult = (jint)result; 
+  {
+    (*jenv)->ReleaseShortArrayElements(jenv, jarg3, (jshort *)arg3, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1decoder_1ctl(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jintArray jarg3) {
+  jint jresult = 0 ;
+  void *arg1 = (void *) 0 ;
+  int arg2 ;
+  void *arg3 = (void *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(void **)&jarg1; 
+  arg2 = (int)jarg2; 
+  {
+    if (!jarg3) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg3) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg3 = (void *) (*jenv)->GetIntArrayElements(jenv, jarg3, 0); 
+  }
+  result = (int)speex_decoder_ctl(arg1,arg2,arg3);
+  jresult = (jint)result; 
+  {
+    (*jenv)->ReleaseIntArrayElements(jenv, jarg3, (jint *)arg3, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1mode_1query(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jintArray jarg3) {
+  jint jresult = 0 ;
+  SpeexMode *arg1 = (SpeexMode *) 0 ;
+  int arg2 ;
+  void *arg3 = (void *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexMode **)&jarg1; 
+  arg2 = (int)jarg2; 
+  {
+    if (!jarg3) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg3) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg3 = (void *) (*jenv)->GetIntArrayElements(jenv, jarg3, 0); 
+  }
+  result = (int)speex_mode_query((SpeexMode const *)arg1,arg2,arg3);
+  jresult = (jint)result; 
+  {
+    (*jenv)->ReleaseIntArrayElements(jenv, jarg3, (jint *)arg3, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1lib_1ctl(JNIEnv *jenv, jclass jcls, jint jarg1, jintArray jarg2) {
+  jint jresult = 0 ;
+  int arg1 ;
+  void *arg2 = (void *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = (int)jarg1; 
+  {
+    if (!jarg2) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return 0;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg2) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return 0;
+    }
+    arg2 = (void *) (*jenv)->GetIntArrayElements(jenv, jarg2, 0); 
+  }
+  result = (int)speex_lib_ctl(arg1,arg2);
+  jresult = (jint)result; 
+  {
+    (*jenv)->ReleaseIntArrayElements(jenv, jarg2, (jint *)arg2, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1nb_1mode_1get(JNIEnv *jenv, jclass jcls) {
+  jlong jresult = 0 ;
+  SpeexMode *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (SpeexMode *)&speex_nb_mode;
+  *(SpeexMode **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1wb_1mode_1get(JNIEnv *jenv, jclass jcls) {
+  jlong jresult = 0 ;
+  SpeexMode *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (SpeexMode *)&speex_wb_mode;
+  *(SpeexMode **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1uwb_1mode_1get(JNIEnv *jenv, jclass jcls) {
+  jlong jresult = 0 ;
+  SpeexMode *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (SpeexMode *)&speex_uwb_mode;
+  *(SpeexMode **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1mode_1list_1get(JNIEnv *jenv, jclass jcls) {
+  jlong jresult = 0 ;
+  SpeexMode **result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (SpeexMode **)(SpeexMode **)speex_mode_list;
+  *(SpeexMode ***)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1lib_1get_1mode(JNIEnv *jenv, jclass jcls, jint jarg1) {
+  jlong jresult = 0 ;
+  int arg1 ;
+  SpeexMode *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = (int)jarg1; 
+  result = (SpeexMode *)speex_lib_get_mode(arg1);
+  *(SpeexMode **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1chars_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jbyteArray jarg2) {
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  char *arg2 = (char *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  {
+    arg2 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg2, 0); 
+  }
+  {
+    free(arg1->chars);
+    if (arg2) {
+      arg1->chars = (char *) malloc(strlen((const char *)arg2)+1);
+      strcpy((char *)arg1->chars, (const char *)arg2);
+    } else {
+      arg1->chars = 0;
+    }
+  }
+  {
+    (*jenv)->ReleaseByteArrayElements(jenv, jarg2, (jbyte *) arg2, 0); 
+  }
+  
+}
+
+
+SWIGEXPORT jbyteArray JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1chars_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jbyteArray jresult = 0 ;
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  char *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  result = (char *) ((arg1)->chars);
+  if (result) jresult = (*jenv)->NewStringUTF(jenv, (const char *)result);
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1nbBits_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  arg2 = (int)jarg2; 
+  if (arg1) (arg1)->nbBits = arg2;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1nbBits_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  result = (int) ((arg1)->nbBits);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1charPtr_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  arg2 = (int)jarg2; 
+  if (arg1) (arg1)->charPtr = arg2;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1charPtr_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  result = (int) ((arg1)->charPtr);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1bitPtr_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  arg2 = (int)jarg2; 
+  if (arg1) (arg1)->bitPtr = arg2;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1bitPtr_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  result = (int) ((arg1)->bitPtr);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1owner_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  arg2 = (int)jarg2; 
+  if (arg1) (arg1)->owner = arg2;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1owner_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  result = (int) ((arg1)->owner);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1overflow_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  arg2 = (int)jarg2; 
+  if (arg1) (arg1)->overflow = arg2;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1overflow_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  result = (int) ((arg1)->overflow);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1buf_1size_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  arg2 = (int)jarg2; 
+  if (arg1) (arg1)->buf_size = arg2;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1buf_1size_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  result = (int) ((arg1)->buf_size);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1reserved1_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  arg2 = (int)jarg2; 
+  if (arg1) (arg1)->reserved1 = arg2;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1reserved1_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  result = (int) ((arg1)->reserved1);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1reserved2_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  void *arg2 = (void *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  arg2 = *(void **)&jarg2; 
+  if (arg1) (arg1)->reserved2 = arg2;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1reserved2_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jlong jresult = 0 ;
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  void *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  result = (void *) ((arg1)->reserved2);
+  *(void **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_new_1SpeexBits(JNIEnv *jenv, jclass jcls) {
+  jlong jresult = 0 ;
+  struct SpeexBits *result = 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (struct SpeexBits *)calloc(1, sizeof(struct SpeexBits));
+  *(struct SpeexBits **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_delete_1SpeexBits(JNIEnv *jenv, jclass jcls, jlong jarg1) {
+  struct SpeexBits *arg1 = (struct SpeexBits *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(struct SpeexBits **)&jarg1; 
+  free((char *) arg1);
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1init(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  speex_bits_init(arg1);
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1init_1buffer(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jint jarg3) {
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  void *arg2 = (void *) 0 ;
+  int arg3 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  arg2 = *(void **)&jarg2; 
+  arg3 = (int)jarg3; 
+  speex_bits_init_buffer(arg1,arg2,arg3);
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1set_1bit_1buffer(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jint jarg3) {
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  void *arg2 = (void *) 0 ;
+  int arg3 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  arg2 = *(void **)&jarg2; 
+  arg3 = (int)jarg3; 
+  speex_bits_set_bit_buffer(arg1,arg2,arg3);
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1destroy(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  speex_bits_destroy(arg1);
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1reset(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  speex_bits_reset(arg1);
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1rewind(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  speex_bits_rewind(arg1);
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1read_1from(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jbyteArray jarg2, jint jarg3) {
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  char *arg2 = (char *) 0 ;
+  int arg3 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  {
+    arg2 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg2, 0); 
+  }
+  arg3 = (int)jarg3; 
+  speex_bits_read_from(arg1,(char const *)arg2,arg3);
+  {
+    (*jenv)->ReleaseByteArrayElements(jenv, jarg2, (jbyte *) arg2, 0); 
+  }
+  
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1read_1whole_1bytes(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jbyteArray jarg2, jint jarg3) {
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  char *arg2 = (char *) 0 ;
+  int arg3 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  {
+    arg2 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg2, 0); 
+  }
+  arg3 = (int)jarg3; 
+  speex_bits_read_whole_bytes(arg1,(char const *)arg2,arg3);
+  {
+    (*jenv)->ReleaseByteArrayElements(jenv, jarg2, (jbyte *) arg2, 0); 
+  }
+  
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1write(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jbyteArray jarg2, jint jarg3) {
+  jint jresult = 0 ;
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  char *arg2 = (char *) 0 ;
+  int arg3 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  {
+    arg2 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg2, 0); 
+  }
+  arg3 = (int)jarg3; 
+  result = (int)speex_bits_write(arg1,arg2,arg3);
+  jresult = (jint)result; 
+  {
+    (*jenv)->ReleaseByteArrayElements(jenv, jarg2, (jbyte *) arg2, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1write_1whole_1bytes(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jbyteArray jarg2, jint jarg3) {
+  jint jresult = 0 ;
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  char *arg2 = (char *) 0 ;
+  int arg3 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  {
+    arg2 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg2, 0); 
+  }
+  arg3 = (int)jarg3; 
+  result = (int)speex_bits_write_whole_bytes(arg1,arg2,arg3);
+  jresult = (jint)result; 
+  {
+    (*jenv)->ReleaseByteArrayElements(jenv, jarg2, (jbyte *) arg2, 0); 
+  }
+  
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1pack(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jint jarg3) {
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  int arg2 ;
+  int arg3 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  arg2 = (int)jarg2; 
+  arg3 = (int)jarg3; 
+  speex_bits_pack(arg1,arg2,arg3);
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1unpack_1signed(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  jint jresult = 0 ;
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  int arg2 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  arg2 = (int)jarg2; 
+  result = (int)speex_bits_unpack_signed(arg1,arg2);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1unpack_1unsigned(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  jlong jresult = 0 ;
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  int arg2 ;
+  unsigned int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  arg2 = (int)jarg2; 
+  result = (unsigned int)speex_bits_unpack_unsigned(arg1,arg2);
+  jresult = (jlong)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1nbytes(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  result = (int)speex_bits_nbytes(arg1);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1peek_1unsigned(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  jlong jresult = 0 ;
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  int arg2 ;
+  unsigned int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  arg2 = (int)jarg2; 
+  result = (unsigned int)speex_bits_peek_unsigned(arg1,arg2);
+  jresult = (jlong)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1peek(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  result = (int)speex_bits_peek(arg1);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1advance(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  int arg2 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  arg2 = (int)jarg2; 
+  speex_bits_advance(arg1,arg2);
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1remaining(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  jint jresult = 0 ;
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  result = (int)speex_bits_remaining(arg1);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_speex_1bits_1insert_1terminator(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+  SpeexBits *arg1 = (SpeexBits *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(SpeexBits **)&jarg1; 
+  speex_bits_insert_terminator(arg1);
+}
+
 
 SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_JitterBufferPacket_1data_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jbyteArray jarg2) {
   struct _JitterBufferPacket *arg1 = (struct _JitterBufferPacket *) 0 ;

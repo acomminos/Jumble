@@ -688,6 +688,30 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1GET_1LA
 }
 
 
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1SET_1EXPERT_1FRAME_1DURATION_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(4040);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1GET_1EXPERT_1FRAME_1DURATION_1REQUEST_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(4041);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
 SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1AUTO_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   int result;
@@ -827,6 +851,102 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1BANDWID
   (void)jenv;
   (void)jcls;
   result = (int)(1105);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1FRAMESIZE_1ARG_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(5000);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1FRAMESIZE_12_15_1MS_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(5001);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1FRAMESIZE_15_1MS_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(5002);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1FRAMESIZE_110_1MS_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(5003);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1FRAMESIZE_120_1MS_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(5004);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1FRAMESIZE_140_1MS_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(5005);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1FRAMESIZE_160_1MS_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(5006);
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_OPUS_1FRAMESIZE_1VARIABLE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  int result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (int)(5010);
   jresult = (jint)result; 
   return jresult;
 }
@@ -1249,7 +1369,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_opus_1packet_
   opus_int32 arg2 ;
   unsigned char *arg3 = (unsigned char *) 0 ;
   unsigned char **arg4 ;
-  short *arg5 ;
+  opus_int16 *arg5 ;
   int *arg6 = (int *) 0 ;
   int result;
   
@@ -1263,7 +1383,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_opus_1packet_
     arg3 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg3, 0); 
   }
   arg4 = *(unsigned char ***)&jarg4; 
-  arg5 = *(short **)&jarg5; 
+  arg5 = *(opus_int16 **)&jarg5; 
   {
     if (!jarg6) {
       SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
@@ -1424,6 +1544,50 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_opus_1decoder
   }
   
   return jresult;
+}
+
+
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_opus_OpusJNI_opus_1pcm_1soft_1clip(JNIEnv *jenv, jclass jcls, jfloatArray jarg1, jint jarg2, jint jarg3, jfloatArray jarg4) {
+  float *arg1 = (float *) 0 ;
+  int arg2 ;
+  int arg3 ;
+  float *arg4 = (float *) 0 ;
+  
+  (void)jenv;
+  (void)jcls;
+  {
+    if (!jarg1) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return ;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg1) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return ;
+    }
+    arg1 = (float *) (*jenv)->GetFloatArrayElements(jenv, jarg1, 0); 
+  }
+  arg2 = (int)jarg2; 
+  arg3 = (int)jarg3; 
+  {
+    if (!jarg4) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "array null");
+      return ;
+    }
+    if ((*jenv)->GetArrayLength(jenv, jarg4) == 0) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Array must contain at least 1 element");
+      return ;
+    }
+    arg4 = (float *) (*jenv)->GetFloatArrayElements(jenv, jarg4, 0); 
+  }
+  opus_pcm_soft_clip(arg1,arg2,arg3,arg4);
+  {
+    (*jenv)->ReleaseFloatArrayElements(jenv, jarg1, (jfloat *)arg1, 0); 
+  }
+  {
+    (*jenv)->ReleaseFloatArrayElements(jenv, jarg4, (jfloat *)arg4, 0); 
+  }
+  
+  
 }
 
 
