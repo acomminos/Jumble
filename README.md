@@ -12,10 +12,12 @@ There's no open-source (free as in freedom) Mumble protocol implementation on An
 
 Due to the restrictive nature of the 'mumble-android' project by @pcgod, no sources or derivatives will be copied from that project.
 
+The primary goal of the Jumble project is to replicate the functionality of the desktop Mumble client as much as possible. At the moment, development is focused on adding complete support for the Mumble protocol, particularly audio support (adding Speex and CELT alpha).
+
 When?
 -----
 
-Jumble should be usable by mid-July 2013.
+Jumble should be usable soon™. Likely by the end of summer 2013.
 
 How will I be able to use this?
 -----
