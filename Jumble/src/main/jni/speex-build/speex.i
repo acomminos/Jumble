@@ -14,6 +14,12 @@
 /* Handle some speex-specific cases where we have to pass pointer data as java types */
 %apply int *INOUT { void *ptr }
 
+/* Remove underscore */
+%rename(JitterBufferPacket) _JitterBufferPacket;
+%rename(JitterBuffer) JitterBuffer_;
+struct JitterBuffer_ {};
+typedef struct JitterBuffer_ JitterBuffer;
+
 %{
 #include <speex/speex.h>
 #include <speex/speex_types.h>
@@ -22,9 +28,6 @@
 #include <speex/speex_echo.h>
 #include <speex/speex_resampler.h>
 %}
-
-/* Remove underscore */
-%rename(JitterBufferPacket) _JitterBufferPacket;
 
 %include "speex/include/speex/speex.h"
 %include "speex/include/speex/speex_bits.h"

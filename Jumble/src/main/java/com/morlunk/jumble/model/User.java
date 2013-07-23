@@ -40,6 +40,9 @@ public class User implements Parcelable {
 
     private int mChannel;
 
+    // Local state
+    private boolean mLocalMuted;
+
     public static final Parcelable.Creator<User> CREATOR = new Parcelable.Creator<User>() {
 
         @Override
@@ -83,6 +86,7 @@ public class User implements Parcelable {
         out.writeValue(mPrioritySpeaker);
         out.writeValue(mRecording);
         out.writeInt(mChannel);
+        out.writeValue(mLocalMuted);
     }
 
     public void readFromParcel(Parcel in) {
@@ -93,14 +97,15 @@ public class User implements Parcelable {
         mCommentHash = new byte[in.readInt()];
         in.readByteArray(mCommentHash);
         mHash = in.readString();
-        mMuted = (Boolean)in.readValue(Boolean.class.getClassLoader());
-        mDeafened = (Boolean)in.readValue(Boolean.class.getClassLoader());
-        mSuppressed = (Boolean)in.readValue(Boolean.class.getClassLoader());
-        mSelfMuted = (Boolean)in.readValue(Boolean.class.getClassLoader());
-        mSelfDeafened = (Boolean)in.readValue(Boolean.class.getClassLoader());
-        mPrioritySpeaker = (Boolean)in.readValue(Boolean.class.getClassLoader());
-        mRecording = (Boolean)in.readValue(Boolean.class.getClassLoader());
+        mMuted = (Boolean)in.readValue(null);
+        mDeafened = (Boolean)in.readValue(null);
+        mSuppressed = (Boolean)in.readValue(null);
+        mSelfMuted = (Boolean)in.readValue(null);
+        mSelfDeafened = (Boolean)in.readValue(null);
+        mPrioritySpeaker = (Boolean)in.readValue(null);
+        mRecording = (Boolean)in.readValue(null);
         mChannel = in.readInt();
+        mLocalMuted = (Boolean)in.readValue(null);
     }
 
     @Override
@@ -210,5 +215,13 @@ public class User implements Parcelable {
 
     public void setRecording(boolean mRecording) {
         this.mRecording = mRecording;
+    }
+
+    public boolean isLocalMuted() {
+        return mLocalMuted;
+    }
+
+    public void setLocalMuted(boolean mLocalMuted) {
+        mLocalMuted = mLocalMuted;
     }
 }

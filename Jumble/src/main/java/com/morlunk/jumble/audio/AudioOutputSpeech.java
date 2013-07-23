@@ -16,12 +16,15 @@
 
 package com.morlunk.jumble.audio;
 
-import com.morlunk.jumble.audio.celt.CELT;
-import com.morlunk.jumble.audio.celt.SWIGTYPE_p_CELTDecoder;
+import com.morlunk.jumble.audio.celt11.CELT11;
+import com.morlunk.jumble.audio.celt11.CELT11Decoder;
+import com.morlunk.jumble.audio.celt7.CELT7;
+import com.morlunk.jumble.audio.celt7.CELT7Decoder;
+import com.morlunk.jumble.audio.celt7.CELT7Mode;
 import com.morlunk.jumble.audio.opus.Opus;
 import com.morlunk.jumble.audio.opus.SWIGTYPE_p_OpusDecoder;
+import com.morlunk.jumble.audio.speex.JitterBuffer;
 import com.morlunk.jumble.audio.speex.JitterBufferPacket;
-import com.morlunk.jumble.audio.speex.SWIGTYPE_p_JitterBuffer_;
 import com.morlunk.jumble.audio.speex.SWIGTYPE_p_void;
 import com.morlunk.jumble.audio.speex.Speex;
 import com.morlunk.jumble.audio.speex.SpeexBits;
@@ -29,9 +32,7 @@ import com.morlunk.jumble.audio.speex.SpeexConstants;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -41,10 +42,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class AudioOutputSpeech {
     // Native audio pointers
     private SWIGTYPE_p_OpusDecoder mOpusDecoder;
-    private SWIGTYPE_p_CELTDecoder mCELTDecoder;
+    private CELT7Decoder mCELTAlphaDecoder;
+    private CELT7Mode mCELTAlphaMode;
+    private CELT11Decoder mCELTBetaDecoder;
     private SWIGTYPE_p_void mSpeexDecoder;
     private SpeexBits mSpeexBits;
-    private SWIGTYPE_p_JitterBuffer_ mJitterBuffer;
+    private JitterBuffer mJitterBuffer;
 
     private int mSession;
     private JumbleUDPMessageType mCodec;
@@ -76,8 +79,11 @@ public class AudioOutputSpeech {
                 Speex.speex_decoder_ctl(mSpeexDecoder, SpeexConstants.SPEEX_SET_ENH, new int[] { 1 });
                 break;
             case UDPVoiceCELTBeta:
+                mCELTBetaDecoder = CELT11.celt_decoder_create(Audio.SAMPLE_RATE, 1, new int[] { error });
+                break;
             case UDPVoiceCELTAlpha:
-                mCELTDecoder = CELT.celt_decoder_create(Audio.SAMPLE_RATE, 1, new int[] { error });
+                mCELTAlphaMode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, new int[] { error });
+                mCELTAlphaDecoder = CELT7.celt_decoder_create(mCELTAlphaMode, 1, new int[] { error });
                 break;
         }
 
@@ -213,9 +219,13 @@ public class AudioOutputSpeech {
                 if(!mFrames.isEmpty()) {
                     byte[] data = mFrames.poll();
 
-                    if(mCodec == JumbleUDPMessageType.UDPVoiceCELTAlpha || mCodec == JumbleUDPMessageType.UDPVoiceCELTBeta) {
-                        // TODO handle both CELT alpha and CELT beta codecs
-                        CELT.celt_decode_float(mCELTDecoder,
+                    if(mCodec == JumbleUDPMessageType.UDPVoiceCELTAlpha) {
+                        CELT7.celt_decode_float(mCELTAlphaDecoder,
+                                mFrames.isEmpty() ? null : data,
+                                data.length,
+                                out);
+                    } else if(mCodec == JumbleUDPMessageType.UDPVoiceCELTBeta) {
+                        CELT11.celt_decode_float(mCELTBetaDecoder,
                                 mFrames.isEmpty() ? null : data,
                                 data.length,
                                 out,
@@ -247,8 +257,10 @@ public class AudioOutputSpeech {
                     if(mFrames.isEmpty() && mHasTerminator)
                         nextAlive = false;
                 } else {
-                    if(mCodec == JumbleUDPMessageType.UDPVoiceCELTAlpha || mCodec == JumbleUDPMessageType.UDPVoiceCELTBeta)
-                        CELT.celt_decode_float(mCELTDecoder, null, 0, out, Audio.FRAME_SIZE);
+                    if(mCodec == JumbleUDPMessageType.UDPVoiceCELTAlpha)
+                        CELT7.celt_decode_float(mCELTAlphaDecoder, null, 0, out);
+                    else if(mCodec == JumbleUDPMessageType.UDPVoiceCELTBeta)
+                        CELT11.celt_decode_float(mCELTBetaDecoder, null, 0, out, Audio.FRAME_SIZE);
                     else if(mCodec == JumbleUDPMessageType.UDPVoiceOpus)
                         decodedSamples = Opus.opus_decode_float(mOpusDecoder, null, 0, out, Audio.FRAME_SIZE, 0);
                     else {
@@ -288,6 +300,10 @@ public class AudioOutputSpeech {
         return mBuffer;
     }
 
+    public JumbleUDPMessageType getCodec() {
+        return mCodec;
+    }
+
     /**
      * Cleans up all JNI refs linked to this instance.
      * This MUST be called eventually, otherwise we get memory leaks!
@@ -295,8 +311,12 @@ public class AudioOutputSpeech {
     public void destroy() {
         if(mOpusDecoder != null)
             Opus.opus_decoder_destroy(mOpusDecoder);
-        if(mCELTDecoder != null)
-            CELT.celt_decoder_destroy(mCELTDecoder);
+        if(mCELTBetaDecoder != null)
+            CELT11.celt_decoder_destroy(mCELTBetaDecoder);
+        if(mCELTAlphaMode != null)
+            CELT7.celt_mode_destroy(mCELTAlphaMode);
+        if(mCELTAlphaDecoder != null)
+            CELT7.celt_decoder_destroy(mCELTAlphaDecoder);
         if(mSpeexBits != null)
             Speex.speex_bits_destroy(mSpeexBits);
         if(mSpeexDecoder != null)

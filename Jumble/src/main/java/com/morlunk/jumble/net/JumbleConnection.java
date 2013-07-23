@@ -680,7 +680,8 @@ public class JumbleConnection {
                 final Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
                 auth.setUsername(mServer.getUsername());
                 auth.setPassword(mServer.getPassword());
-                auth.addCeltVersions(Constants.CELT_VERSION);
+                auth.addCeltVersions(Constants.CELT_11_VERSION);
+                auth.addCeltVersions(Constants.CELT_7_VERSION);
                 auth.setOpus(mUseOpus);
 
                 sendTCPMessage(version.build(), JumbleTCPMessageType.Version);

@@ -30,6 +30,7 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import com.google.protobuf.Message;
 import com.morlunk.jumble.audio.Audio;
+import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.db.Database;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.ChannelManager;
@@ -87,7 +88,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private Database mDatabase;
     private ChannelManager mChannelManager;
     private UserManager mUserManager;
-    private Audio mAudio;
+    private AudioOutput mAudioOutput;
 
     private RemoteCallbackList<IJumbleObserver> mObservers = new RemoteCallbackList<IJumbleObserver>();
 
@@ -291,12 +292,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         mChannelManager = new ChannelManager(this);
         mUserManager = new UserManager(this);
-        mAudio = new Audio();
+        mAudioOutput = new AudioOutput(this);
 
         // Add message handlers for all managers
         mConnection.addMessageHandler(mChannelManager);
         mConnection.addMessageHandler(mUserManager);
-        mConnection.addMessageHandler(mAudio);
+        mConnection.addMessageHandler(mAudioOutput);
 
         mConnection.connect();
     }
@@ -304,7 +305,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void disconnect() {
         mConnection.removeMessageHandler(mChannelManager);
         mConnection.removeMessageHandler(mUserManager);
-        mConnection.removeMessageHandler(mAudio);
+        mConnection.removeMessageHandler(mAudioOutput);
         mConnection.disconnect();
         mConnection = null;
     }
@@ -317,6 +318,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void onConnectionEstablished() {
         Log.v(Constants.TAG, "Connected");
 
+        mAudioOutput.startPlaying();
         showNotification();
 
         int i = mObservers.beginBroadcast();
@@ -335,6 +337,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void onConnectionDisconnected() {
         Log.v(Constants.TAG, "Disconnected");
 
+        mAudioOutput.stopPlaying();
         hideNotification();
 
         int i = mObservers.beginBroadcast();

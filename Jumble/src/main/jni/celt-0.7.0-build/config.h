@@ -14,16 +14,16 @@
 #define CELT_MAJOR_VERSION 0
 
 /* Version micro */
-#define CELT_MICRO_VERSION 1
+#define CELT_MICRO_VERSION 0
 
 /* Version minor */
 #define CELT_MINOR_VERSION 7
 
 /* Complete version string */
-#define CELT_VERSION "0.7.1"
+#define CELT_VERSION "0.7.0"
 
 /* Compile as fixed-point */
-#define DOUBLE_PRECISION /**/
+/* #undef DOUBLE_PRECISION */
 
 /* Assertions */
 /* #undef ENABLE_ASSERTIONS */
@@ -32,13 +32,10 @@
 /* #undef FIXED_DEBUG */
 
 /* Compile as fixed-point */
-#define FIXED_POINT /**/
+#define FIXED_POINT
 
 /* Compile as floating-point */
-/* #undef FLOATING_POINT */
-
-/* Float approximations */
-#define FLOAT_APPROX /**/
+/* #define FLOATING_POINT */
 
 /* Define to 1 if you have the <alloca.h> header file. */
 #define HAVE_ALLOCA_H 1
@@ -97,17 +94,16 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
+/* Define to the sub-directory in which libtool stores uninstalled 
+libraries.
    */
 #define LT_OBJDIR ".libs/"
 
 /* Compile as fixed-point */
-#define MIXED_PRECISION /**/
+/* #undef MIXED_PRECISION */
 
-/* Use new PLC code */
-#define NEW_PLC /**/
-
-/* Define to the address where bug reports for this package should be sent. */
+/* Define to the address where bug reports for this package should be 
+sent. */
 #define PACKAGE_BUGREPORT ""
 
 /* Define to the full name of this package. */
@@ -118,9 +114,6 @@
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME ""
-
-/* Define to the home page for this package. */
-#define PACKAGE_URL ""
 
 /* Define to the version of this package. */
 #define PACKAGE_VERSION ""
@@ -149,7 +142,8 @@
 /* Use C99 variable-size arrays */
 #define VAR_ARRAYS /**/
 
-/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the 
+most
    significant byte first (like Motorola and SPARC, unlike Intel). */
 #if defined AC_APPLE_UNIVERSAL_BUILD
 # if defined __BIG_ENDIAN__
@@ -165,7 +159,8 @@
 /* #undef const */
 
 /* Define to `__inline__' or `__inline' if that's what the C compiler
-   calls it, or to nothing if 'inline' is not supported under any name.  */
+   calls it, or to nothing if 'inline' is not supported under any name.  
+*/
 #ifndef __cplusplus
 /* #undef inline */
 #endif
@@ -174,12 +169,12 @@
    nothing if this is not supported.  Do not define if restrict is
    supported directly.  */
 #define restrict __restrict
-/* Work around a bug in Sun C++: it does not support _Restrict or
-   __restrict__, even though the corresponding Sun C compiler ends up with
-   "#define restrict _Restrict" or "#define restrict __restrict__" in the
-   previous line.  Perhaps some future version of Sun C++ will work with
-   restrict; if so, hopefully it defines __RESTRICT like Sun C does.  */
+/* Work around a bug in Sun C++: it does not support _Restrict, even
+   though the corresponding Sun C compiler does, which causes
+   "#define restrict _Restrict" in the previous line.  Perhaps some 
+future
+   version of Sun C++ will work with _Restrict; if so, it'll probably
+   define __RESTRICT, just as Sun C does.  */
 #if defined __SUNPRO_CC && !defined __RESTRICT
 # define _Restrict
-# define __restrict__
 #endif

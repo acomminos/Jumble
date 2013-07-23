@@ -45,7 +45,7 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
     private static final String CERTIFICATE_NAME = "jumble-test.p12";
 
     private static final String TEST_COMMENT = "BEEP BOOP I AM JUMBLEBOT";
-    private static final int TEST_DELAY = 3000; // Time between tests, used to verify that the desired result has been achieved (i.e. seeing if comment was set).
+    private static final int TEST_DELAY = 10000; // Time between tests, used to verify that the desired result has been achieved (i.e. seeing if comment was set).
 
     private IJumbleService mBinder;
 
