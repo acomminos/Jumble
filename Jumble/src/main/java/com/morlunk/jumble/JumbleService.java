@@ -319,7 +319,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         Log.v(Constants.TAG, "Connected");
 
         mAudioOutput.startPlaying();
-        showNotification();
 
         int i = mObservers.beginBroadcast();
         while(i > 0) {
@@ -338,7 +337,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         Log.v(Constants.TAG, "Disconnected");
 
         mAudioOutput.stopPlaying();
-        hideNotification();
 
         int i = mObservers.beginBroadcast();
         while(i > 0) {
@@ -399,18 +397,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     public ChannelManager getChannelManager() {
         return mChannelManager;
-    }
-
-    private void showNotification() {
-        NotificationCompat.Builder nb = new NotificationCompat.Builder(this);
-        nb.setContentTitle(mClientName);
-        nb.setSmallIcon(android.R.drawable.ic_menu_call);
-        nb.setContentText(getString(R.string.notification_connected));
-        //startForeground(NOTIFICATION_CONNECTION, nb.build());
-    }
-
-    private void hideNotification() {
-        //stopForeground(true);
     }
 
     /*

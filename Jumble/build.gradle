@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.android.support:support-v4:13.0.+'
+    compile 'com.android.support:support-v4:18.0.+'
     compile group:'com.google.protobuf', name:'protobuf-java', version:'2.5.0'
     compile group:'com.madgag', name:'sc-light-jdk15on', version:'1.47.0.2'
     compile group:'com.madgag', name:'scprov-jdk15on', version:'1.47.0.2'
@@ -21,13 +21,13 @@ dependencies {
 }
 
 android {
-    compileSdkVersion 17
-    buildToolsVersion "17.0.0"
+    compileSdkVersion 18
+    buildToolsVersion "18.0.0"
 
     defaultConfig {
         testPackageName "com.morlunk.jumble.test"
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
         minSdkVersion 7
-        targetSdkVersion 17
+        targetSdkVersion 18
     }
 }
