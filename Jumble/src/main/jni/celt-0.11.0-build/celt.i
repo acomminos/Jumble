@@ -13,6 +13,12 @@
 
 /* Support celt_encoder_ctl use of variable length arguments */
 %varargs(int* value) celt_encoder_ctl;
+
+%{
+#include <celt_types.h>
+#include <celt.h>
+%}
+
 /* Rename some CELT types to differentiate them by version */
 %rename(CELT11Decoder) CELTDecoder;
 struct CELTDecoder {};
@@ -20,11 +26,6 @@ struct CELTDecoder {};
 struct CELTEncoder {};
 %rename(CELT11Mode) CELTMode;
 struct CELTMode {};
-
-%{
-#include <celt_types.h>
-#include <celt.h>
-%}
 
 %include "../celt-0.11.0-src/libcelt/celt_types.h"
 %include "../celt-0.11.0-src/libcelt/celt.h"

@@ -30,6 +30,9 @@ import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by andrew on 16/07/13.
@@ -37,7 +40,7 @@ import java.nio.ByteBuffer;
 public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable {
 
     private JumbleService mService;
-    private SparseArray<AudioOutputSpeech> mAudioOutputs = new SparseArray<AudioOutputSpeech>();
+    private ConcurrentHashMap<Integer, AudioOutputSpeech> mAudioOutputs = new ConcurrentHashMap<Integer, AudioOutputSpeech>();
     private AudioTrack mAudioTrack;
 
     private Thread mThread;
@@ -72,9 +75,44 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable {
     public void run() {
         android.os.Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
         mRunning = true;
-        while(mRunning) {
 
+        final short[] mix = new short[Audio.FRAME_SIZE*12];
+
+        while(mRunning) {
+            mix(mix, mix.length);
+            mAudioTrack.write(mix, 0, mix.length);
+            mAudioTrack.play();
         }
+    }
+
+    private boolean mix(short[] outBuffer, int bufferSize) {
+        List<AudioOutputSpeech> mix = new ArrayList<AudioOutputSpeech>();
+        List<AudioOutputSpeech> del = new ArrayList<AudioOutputSpeech>();
+
+        // TODO add priority speaker support
+
+        for(AudioOutputSpeech speech : mAudioOutputs.values()) {
+            if(speech.needSamples(bufferSize))
+                del.add(speech);
+            else
+                mix.add(speech);
+        }
+
+        if(!mix.isEmpty()) {
+            for(AudioOutputSpeech speech : mix) {
+                float[] buffer = speech.getBuffer();
+                for(int i = 0; i < bufferSize; i++) {
+                    short pcm = (short) (buffer[i]*Short.MAX_VALUE); // Convert float to short
+                    pcm = (short) Math.max(Math.min(pcm, Short.MAX_VALUE), Short.MIN_VALUE); // Clip audio
+                    outBuffer[i] += pcm;
+                }
+            }
+        }
+
+        for(AudioOutputSpeech speech : del)
+            mAudioOutputs.remove(speech);
+
+        return !mix.isEmpty();
     }
 
     @Override
@@ -97,17 +135,15 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable {
             packet.putInt(msgFlags);
             packet.put(pds.dataBlock(pds.left()));
 
-            synchronized (mAudioOutputs) {
-                AudioOutputSpeech aop = mAudioOutputs.get(session);
-                if(aop == null || aop.getCodec() != dataType) {
-                    if(aop.getCodec() != dataType)
-                        aop.destroy();
-                    aop = new AudioOutputSpeech(session, dataType);
-                    mAudioOutputs.put(session, aop);
-                }
-
-                aop.addFrameToBuffer(packet.array(), seq);
+            AudioOutputSpeech aop = mAudioOutputs.get(session);
+            if(aop == null || aop.getCodec() != dataType) {
+                if(aop.getCodec() != dataType)
+                    aop.destroy();
+                aop = new AudioOutputSpeech(session, dataType);
+                mAudioOutputs.put(session, aop);
             }
+
+            aop.addFrameToBuffer(packet.array(), seq);
         }
 
     }

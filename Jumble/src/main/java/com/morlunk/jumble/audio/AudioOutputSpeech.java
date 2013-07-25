@@ -23,8 +23,8 @@ import com.morlunk.jumble.audio.celt7.CELT7Decoder;
 import com.morlunk.jumble.audio.celt7.CELT7Mode;
 import com.morlunk.jumble.audio.opus.Opus;
 import com.morlunk.jumble.audio.opus.SWIGTYPE_p_OpusDecoder;
-import com.morlunk.jumble.audio.speex.JitterBuffer;
 import com.morlunk.jumble.audio.speex.JitterBufferPacket;
+import com.morlunk.jumble.audio.speex.SWIGTYPE_p_JitterBuffer_;
 import com.morlunk.jumble.audio.speex.SWIGTYPE_p_void;
 import com.morlunk.jumble.audio.speex.Speex;
 import com.morlunk.jumble.audio.speex.SpeexBits;
@@ -47,7 +47,7 @@ public class AudioOutputSpeech {
     private CELT11Decoder mCELTBetaDecoder;
     private SWIGTYPE_p_void mSpeexDecoder;
     private SpeexBits mSpeexBits;
-    private JitterBuffer mJitterBuffer;
+    private SWIGTYPE_p_JitterBuffer_ mJitterBuffer;
 
     private int mSession;
     private JumbleUDPMessageType mCodec;

@@ -16,9 +16,6 @@
 
 /* Remove underscore */
 %rename(JitterBufferPacket) _JitterBufferPacket;
-%rename(JitterBuffer) JitterBuffer_;
-struct JitterBuffer_ {};
-typedef struct JitterBuffer_ JitterBuffer;
 
 %{
 #include <speex/speex.h>

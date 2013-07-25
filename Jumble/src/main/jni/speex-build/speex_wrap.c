@@ -199,28 +199,6 @@ static void SWIGUNUSED SWIG_JavaThrowException(JNIEnv *jenv, SWIG_JavaExceptionC
 extern "C" {
 #endif
 
-SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_new_1JitterBuffer(JNIEnv *jenv, jclass jcls) {
-  jlong jresult = 0 ;
-  struct JitterBuffer_ *result = 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  result = (struct JitterBuffer_ *)calloc(1, sizeof(struct JitterBuffer_));
-  *(struct JitterBuffer_ **)&jresult = result; 
-  return jresult;
-}
-
-
-SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_delete_1JitterBuffer(JNIEnv *jenv, jclass jcls, jlong jarg1) {
-  struct JitterBuffer_ *arg1 = (struct JitterBuffer_ *) 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  arg1 = *(struct JitterBuffer_ **)&jarg1; 
-  free((char *) arg1);
-}
-
-
 SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SPEEX_1SET_1ENH_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   int result;
@@ -2662,35 +2640,32 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1bu
 }
 
 
-SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1reset(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1reset(JNIEnv *jenv, jclass jcls, jlong jarg1) {
   JitterBuffer *arg1 = (JitterBuffer *) 0 ;
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(JitterBuffer **)&jarg1; 
   jitter_buffer_reset(arg1);
 }
 
 
-SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1destroy(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1destroy(JNIEnv *jenv, jclass jcls, jlong jarg1) {
   JitterBuffer *arg1 = (JitterBuffer *) 0 ;
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(JitterBuffer **)&jarg1; 
   jitter_buffer_destroy(arg1);
 }
 
 
-SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1put(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jobject jarg2_) {
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1put(JNIEnv *jenv, jclass jcls, jlong jarg1, jlong jarg2, jobject jarg2_) {
   JitterBuffer *arg1 = (JitterBuffer *) 0 ;
   JitterBufferPacket *arg2 = (JitterBufferPacket *) 0 ;
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   (void)jarg2_;
   arg1 = *(JitterBuffer **)&jarg1; 
   arg2 = *(JitterBufferPacket **)&jarg2; 
@@ -2698,7 +2673,7 @@ SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buf
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jobject jarg2_, jint jarg3, jintArray jarg4) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jlong jarg2, jobject jarg2_, jint jarg3, jintArray jarg4) {
   jint jresult = 0 ;
   JitterBuffer *arg1 = (JitterBuffer *) 0 ;
   JitterBufferPacket *arg2 = (JitterBufferPacket *) 0 ;
@@ -2708,7 +2683,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buf
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   (void)jarg2_;
   arg1 = *(JitterBuffer **)&jarg1; 
   arg2 = *(JitterBufferPacket **)&jarg2; 
@@ -2734,7 +2708,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buf
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1get_1another(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jobject jarg2_) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1get_1another(JNIEnv *jenv, jclass jcls, jlong jarg1, jlong jarg2, jobject jarg2_) {
   jint jresult = 0 ;
   JitterBuffer *arg1 = (JitterBuffer *) 0 ;
   JitterBufferPacket *arg2 = (JitterBufferPacket *) 0 ;
@@ -2742,7 +2716,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buf
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   (void)jarg2_;
   arg1 = *(JitterBuffer **)&jarg1; 
   arg2 = *(JitterBufferPacket **)&jarg2; 
@@ -2752,14 +2725,13 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buf
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1get_1pointer_1timestamp(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1get_1pointer_1timestamp(JNIEnv *jenv, jclass jcls, jlong jarg1) {
   jint jresult = 0 ;
   JitterBuffer *arg1 = (JitterBuffer *) 0 ;
   int result;
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(JitterBuffer **)&jarg1; 
   result = (int)jitter_buffer_get_pointer_timestamp(arg1);
   jresult = (jint)result; 
@@ -2767,31 +2739,29 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buf
 }
 
 
-SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1tick(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1tick(JNIEnv *jenv, jclass jcls, jlong jarg1) {
   JitterBuffer *arg1 = (JitterBuffer *) 0 ;
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(JitterBuffer **)&jarg1; 
   jitter_buffer_tick(arg1);
 }
 
 
-SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1remaining_1span(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1remaining_1span(JNIEnv *jenv, jclass jcls, jlong jarg1, jlong jarg2) {
   JitterBuffer *arg1 = (JitterBuffer *) 0 ;
   spx_uint32_t arg2 ;
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(JitterBuffer **)&jarg1; 
   arg2 = (spx_uint32_t)jarg2; 
   jitter_buffer_remaining_span(arg1,arg2);
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1ctl(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jintArray jarg3) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1ctl(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jintArray jarg3) {
   jint jresult = 0 ;
   JitterBuffer *arg1 = (JitterBuffer *) 0 ;
   int arg2 ;
@@ -2800,7 +2770,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buf
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(JitterBuffer **)&jarg1; 
   arg2 = (int)jarg2; 
   {
@@ -2824,7 +2793,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buf
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1update_1delay(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jobject jarg2_, jintArray jarg3) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buffer_1update_1delay(JNIEnv *jenv, jclass jcls, jlong jarg1, jlong jarg2, jobject jarg2_, jintArray jarg3) {
   jint jresult = 0 ;
   JitterBuffer *arg1 = (JitterBuffer *) 0 ;
   JitterBufferPacket *arg2 = (JitterBufferPacket *) 0 ;
@@ -2833,7 +2802,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_jitter_1buf
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   (void)jarg2_;
   arg1 = *(JitterBuffer **)&jarg1; 
   arg2 = *(JitterBufferPacket **)&jarg2; 

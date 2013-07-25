@@ -14,8 +14,6 @@ public class SpeexJNI {
       System.loadLibrary("speex");
   }
 
-  public final static native long new_JitterBuffer();
-  public final static native void delete_JitterBuffer(long jarg1);
   public final static native int SPEEX_SET_ENH_get();
   public final static native int SPEEX_GET_ENH_get();
   public final static native int SPEEX_GET_FRAME_SIZE_get();
@@ -187,16 +185,16 @@ public class SpeexJNI {
   public final static native int JITTER_BUFFER_SET_LATE_COST_get();
   public final static native int JITTER_BUFFER_GET_LATE_COST_get();
   public final static native long jitter_buffer_init(int jarg1);
-  public final static native void jitter_buffer_reset(long jarg1, JitterBuffer jarg1_);
-  public final static native void jitter_buffer_destroy(long jarg1, JitterBuffer jarg1_);
-  public final static native void jitter_buffer_put(long jarg1, JitterBuffer jarg1_, long jarg2, JitterBufferPacket jarg2_);
-  public final static native int jitter_buffer_get(long jarg1, JitterBuffer jarg1_, long jarg2, JitterBufferPacket jarg2_, int jarg3, int[] jarg4);
-  public final static native int jitter_buffer_get_another(long jarg1, JitterBuffer jarg1_, long jarg2, JitterBufferPacket jarg2_);
-  public final static native int jitter_buffer_get_pointer_timestamp(long jarg1, JitterBuffer jarg1_);
-  public final static native void jitter_buffer_tick(long jarg1, JitterBuffer jarg1_);
-  public final static native void jitter_buffer_remaining_span(long jarg1, JitterBuffer jarg1_, long jarg2);
-  public final static native int jitter_buffer_ctl(long jarg1, JitterBuffer jarg1_, int jarg2, int[] jarg3);
-  public final static native int jitter_buffer_update_delay(long jarg1, JitterBuffer jarg1_, long jarg2, JitterBufferPacket jarg2_, int[] jarg3);
+  public final static native void jitter_buffer_reset(long jarg1);
+  public final static native void jitter_buffer_destroy(long jarg1);
+  public final static native void jitter_buffer_put(long jarg1, long jarg2, JitterBufferPacket jarg2_);
+  public final static native int jitter_buffer_get(long jarg1, long jarg2, JitterBufferPacket jarg2_, int jarg3, int[] jarg4);
+  public final static native int jitter_buffer_get_another(long jarg1, long jarg2, JitterBufferPacket jarg2_);
+  public final static native int jitter_buffer_get_pointer_timestamp(long jarg1);
+  public final static native void jitter_buffer_tick(long jarg1);
+  public final static native void jitter_buffer_remaining_span(long jarg1, long jarg2);
+  public final static native int jitter_buffer_ctl(long jarg1, int jarg2, int[] jarg3);
+  public final static native int jitter_buffer_update_delay(long jarg1, long jarg2, JitterBufferPacket jarg2_, int[] jarg3);
   public final static native int SPEEX_ECHO_GET_FRAME_SIZE_get();
   public final static native int SPEEX_ECHO_SET_SAMPLING_RATE_get();
   public final static native int SPEEX_ECHO_GET_SAMPLING_RATE_get();
