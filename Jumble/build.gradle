@@ -31,3 +31,21 @@ android {
         targetSdkVersion 18
     }
 }
+
+/*
+ * JNI Hack for gradle - works alright, copies native libs over into build folder no problem
+ * https://gist.github.com/khernyo/4226923
+ */
+
+task copyNativeLibs(type: Copy) {
+    from(new File(project(':Jumble').getProjectDir(), 'src/main/libs')) { include '**/*.so' }
+    into new File(buildDir, 'native-libs')
+}
+
+tasks.withType(Compile) { compileTask -> compileTask.dependsOn copyNativeLibs }
+
+clean.dependsOn 'cleanCopyNativeLibs'
+
+tasks.withType(com.android.build.gradle.tasks.PackageApplication) { pkgTask ->
+    pkgTask.jniDir new File(buildDir, 'native-libs')
+}

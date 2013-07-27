@@ -14,25 +14,27 @@
  * limitations under the License.
  */
 
-package com.morlunk.jumble.model;
+package com.morlunk.jumble.net;
 
 import android.util.Log;
 import android.util.SparseArray;
 
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.JumbleService;
-import com.morlunk.jumble.net.JumbleMessageHandler;
+import com.morlunk.jumble.R;
+import com.morlunk.jumble.model.Channel;
+import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.protobuf.Mumble;
 
 /**
  * Created by andrew on 18/07/13.
  */
-public class UserManager extends JumbleMessageHandler.Stub {
+public class UserHandler extends JumbleMessageHandler.Stub {
 
     private JumbleService mService;
     private SparseArray<User> mUsers = new SparseArray<User>();
 
-    public UserManager(JumbleService service) {
+    public UserHandler(JumbleService service) {
         mService = service;
     }
 
@@ -48,6 +50,8 @@ public class UserManager extends JumbleMessageHandler.Stub {
     public void messageUserState(Mumble.UserState msg) {
         User user = mUsers.get(msg.getSession());
         boolean newUser = false;
+
+        User self = mUsers.get(mService.getSession());
 
         if(user == null) {
             if(msg.hasName()) {
@@ -72,23 +76,45 @@ public class UserManager extends JumbleMessageHandler.Stub {
              */
         }
 
+        if(newUser)
+            mService.logInfo(mService.getString(R.string.chat_notify_connected, user.getName()));
+
         if(msg.hasSelfDeaf() || msg.hasSelfMute()) {
             if(msg.hasSelfMute())
                 user.setSelfMuted(msg.getSelfMute());
             if(msg.hasSelfDeaf())
                 user.setSelfDeafened(msg.getSelfDeaf());
 
-            /*
-             * TODO: logging
-             */
+            if(self != null && user.getSession() != self.getSession() && (user.getChannelId() == self.getChannelId())) {
+                if(user.isSelfMuted() && user.isSelfDeafened())
+                    mService.logInfo(mService.getString(R.string.chat_notify_now_muted_deafened, user.getName()));
+                else if(user.isSelfMuted())
+                    mService.logInfo(mService.getString(R.string.chat_notify_now_muted, user.getName()));
+                else
+                    mService.logInfo(mService.getString(R.string.chat_notify_now_unmuted, user.getName()));
+            }
         }
 
         if(msg.hasRecording()) {
             user.setRecording(msg.getRecording());
 
-            /*
-             * TODO: logging
-             */
+            if(self != null) {
+                if(user.getSession() == self.getSession()) {
+                    if(user.isRecording())
+                        mService.logInfo(mService.getString(R.string.chat_notify_self_recording_started));
+                    else
+                        mService.logInfo(mService.getString(R.string.chat_notify_self_recording_stopped));
+                } else {
+                    Channel selfChannel = mService.getChannelHandler().getChannel(user.getChannelId());
+                    // If in a linked channel OR the same channel as the current user, notify the user about recording
+                    if(selfChannel != null && (selfChannel.getLinks().contains(user.getChannelId()) || self.getChannelId() == user.getChannelId())) {
+                        if(user.isRecording())
+                            mService.logInfo(mService.getString(R.string.chat_notify_user_recording_started, user.getName()));
+                        else
+                            mService.logInfo(mService.getString(R.string.chat_notify_user_recording_stopped, user.getName()));
+                    }
+                }
+            }
         }
 
         if(msg.hasDeaf() || msg.hasMute() || msg.hasSuppress() || msg.hasPrioritySpeaker()) {
@@ -98,22 +124,21 @@ public class UserManager extends JumbleMessageHandler.Stub {
                 user.setDeafened(msg.getDeaf());
             if(msg.hasPrioritySpeaker())
                 user.setPrioritySpeaker(msg.getPrioritySpeaker());
-
             /*
              * TODO: logging
-             * Base this off of Messages.cpp:351
+             * Base this off of Messages.cpp:353
              */
         }
 
         if(msg.hasChannelId()) {
-            Channel channel = mService.getChannelManager().getChannel(msg.getChannelId());
+            Channel channel = mService.getChannelHandler().getChannel(msg.getChannelId());
             if(channel == null) {
                 Log.e(Constants.TAG, "Invalid channel for user!");
-                channel = mService.getChannelManager().getChannel(0);
+                channel = mService.getChannelHandler().getChannel(0);
             }
-            Channel old = mService.getChannelManager().getChannel(user.getChannelId());
+            Channel old = mService.getChannelHandler().getChannel(user.getChannelId());
 
-            if(!channel.equals(old)) {
+            if(channel.getId() != old.getId()) {
                 // TODO move user
                 //old.removeUser(user.getUserId());
                 //channel.addUser(user.getUserId());
@@ -148,7 +173,7 @@ public class UserManager extends JumbleMessageHandler.Stub {
          */
 
         if(msg.getSession() != mService.getSession()) {
-            Channel channel = mService.getChannelManager().getChannel(msg.getSession());
+            Channel channel = mService.getChannelHandler().getChannel(msg.getSession());
             channel.removeUser(msg.getSession());
         }
     }

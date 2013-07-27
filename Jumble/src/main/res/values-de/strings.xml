@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_notify_moved">%1$s wurde von %3$s aus %2$s verschoben.</string>
+    <string name="chat_notify_muted_deafened">Stumm und taub.</string>
+    <string name="chat_notify_muted">Stumm.</string>
+    <string name="chat_notify_unmuted">Nicht stumm.</string>
+    <string name="chat_notify_unmuted_undeafened">Nicht stumm und nicht taub.</string>
+    <string name="chat_notify_now_muted_deafened">%s ist nun stumm und taub.</string>
+    <string name="chat_notify_now_muted">%s ist nun stumm.</string>
+    <string name="chat_notify_now_unmuted">%s ist nicht mehr stumm.</string>
+    <string name="chat_notify_now_unmuted_undeafened">%s ist nicht mehr stumm und nicht mehr taub.</string>
+    <string name="chat_notify_connected">%s ist verbunden.</string>
+    <string name="chat_notify_disconnected">%s hat den Server verlassen.</string>
+</resources>

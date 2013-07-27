@@ -1,3 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="notification_connected">Connected to server.</string>
+    <string name="chat_notify_moved">%1$s moved in from %2$s by %3$s.</string>
+    <string name="chat_notify_muted_deafened">Muted and deafened.</string>
+    <string name="chat_notify_muted">Muted.</string>
+    <string name="chat_notify_unmuted">Unmuted.</string>
+    <string name="chat_notify_unmuted_undeafened">Unmuted and undeafened.</string>
+    <string name="chat_notify_now_muted_deafened">%s is now muted and deafened.</string>
+    <string name="chat_notify_now_muted">%s is now muted.</string>
+    <string name="chat_notify_now_unmuted">%s is now unmuted.</string>
+    <string name="chat_notify_now_unmuted_undeafened">%s is now unmuted and undeafened.</string>
+    <string name="chat_notify_connected">%s connected.</string>
+    <string name="chat_notify_disconnected">%s disconnected.</string>
+    <string name="chat_notify_self_recording_started">Recording started</string>
+    <string name="chat_notify_self_recording_stopped">Recording stopped</string>
+    <string name="chat_notify_user_recording_started">%s started recording.</string>
+    <string name="chat_notify_user_recording_stopped">%s stopped recording.</string>
 </resources>

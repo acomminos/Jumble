@@ -9,59 +9,59 @@
 package com.morlunk.jumble.audio.celt7;
 
 public class CELT7 implements CELT7Constants {
-  public static CELT7Mode celt_mode_create(int Fs, int frame_size, int[] error) {
+  public static SWIGTYPE_p_CELTMode celt_mode_create(int Fs, int frame_size, int[] error) {
     long cPtr = CELT7JNI.celt_mode_create(Fs, frame_size, error);
-    return (cPtr == 0) ? null : new CELT7Mode(cPtr, false);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_CELTMode(cPtr, false);
   }
 
-  public static void celt_mode_destroy(CELT7Mode mode) {
-    CELT7JNI.celt_mode_destroy(CELT7Mode.getCPtr(mode), mode);
+  public static void celt_mode_destroy(SWIGTYPE_p_CELTMode mode) {
+    CELT7JNI.celt_mode_destroy(SWIGTYPE_p_CELTMode.getCPtr(mode));
   }
 
-  public static int celt_mode_info(CELT7Mode mode, int request, int[] value) {
-    return CELT7JNI.celt_mode_info(CELT7Mode.getCPtr(mode), mode, request, value);
+  public static int celt_mode_info(SWIGTYPE_p_CELTMode mode, int request, int[] value) {
+    return CELT7JNI.celt_mode_info(SWIGTYPE_p_CELTMode.getCPtr(mode), request, value);
   }
 
-  public static CELT7Encoder celt_encoder_create(CELT7Mode mode, int channels, int[] error) {
-    long cPtr = CELT7JNI.celt_encoder_create(CELT7Mode.getCPtr(mode), mode, channels, error);
-    return (cPtr == 0) ? null : new CELT7Encoder(cPtr, false);
+  public static SWIGTYPE_p_CELTEncoder celt_encoder_create(SWIGTYPE_p_CELTMode mode, int channels, int[] error) {
+    long cPtr = CELT7JNI.celt_encoder_create(SWIGTYPE_p_CELTMode.getCPtr(mode), channels, error);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_CELTEncoder(cPtr, false);
   }
 
-  public static void celt_encoder_destroy(CELT7Encoder st) {
-    CELT7JNI.celt_encoder_destroy(CELT7Encoder.getCPtr(st), st);
+  public static void celt_encoder_destroy(SWIGTYPE_p_CELTEncoder st) {
+    CELT7JNI.celt_encoder_destroy(SWIGTYPE_p_CELTEncoder.getCPtr(st));
   }
 
-  public static int celt_encode_float(CELT7Encoder st, float[] pcm, float[] optional_synthesis, byte[] compressed, int nbCompressedBytes) {
-    return CELT7JNI.celt_encode_float(CELT7Encoder.getCPtr(st), st, pcm, optional_synthesis, compressed, nbCompressedBytes);
+  public static int celt_encode_float(SWIGTYPE_p_CELTEncoder st, float[] pcm, float[] optional_synthesis, byte[] compressed, int nbCompressedBytes) {
+    return CELT7JNI.celt_encode_float(SWIGTYPE_p_CELTEncoder.getCPtr(st), pcm, optional_synthesis, compressed, nbCompressedBytes);
   }
 
-  public static int celt_encode(CELT7Encoder st, short[] pcm, short[] optional_synthesis, byte[] compressed, int nbCompressedBytes) {
-    return CELT7JNI.celt_encode(CELT7Encoder.getCPtr(st), st, pcm, optional_synthesis, compressed, nbCompressedBytes);
+  public static int celt_encode(SWIGTYPE_p_CELTEncoder st, short[] pcm, short[] optional_synthesis, byte[] compressed, int nbCompressedBytes) {
+    return CELT7JNI.celt_encode(SWIGTYPE_p_CELTEncoder.getCPtr(st), pcm, optional_synthesis, compressed, nbCompressedBytes);
   }
 
-  public static int celt_encoder_ctl(CELT7Encoder st, int request, int[] value) {
-    return CELT7JNI.celt_encoder_ctl(CELT7Encoder.getCPtr(st), st, request, value);
+  public static int celt_encoder_ctl(SWIGTYPE_p_CELTEncoder st, int request, int[] value) {
+    return CELT7JNI.celt_encoder_ctl(SWIGTYPE_p_CELTEncoder.getCPtr(st), request, value);
   }
 
-  public static CELT7Decoder celt_decoder_create(CELT7Mode mode, int channels, int[] error) {
-    long cPtr = CELT7JNI.celt_decoder_create(CELT7Mode.getCPtr(mode), mode, channels, error);
-    return (cPtr == 0) ? null : new CELT7Decoder(cPtr, false);
+  public static SWIGTYPE_p_CELTDecoder celt_decoder_create(SWIGTYPE_p_CELTMode mode, int channels, int[] error) {
+    long cPtr = CELT7JNI.celt_decoder_create(SWIGTYPE_p_CELTMode.getCPtr(mode), channels, error);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_CELTDecoder(cPtr, false);
   }
 
-  public static void celt_decoder_destroy(CELT7Decoder st) {
-    CELT7JNI.celt_decoder_destroy(CELT7Decoder.getCPtr(st), st);
+  public static void celt_decoder_destroy(SWIGTYPE_p_CELTDecoder st) {
+    CELT7JNI.celt_decoder_destroy(SWIGTYPE_p_CELTDecoder.getCPtr(st));
   }
 
-  public static int celt_decode_float(CELT7Decoder st, byte[] data, int len, float[] pcm) {
-    return CELT7JNI.celt_decode_float(CELT7Decoder.getCPtr(st), st, data, len, pcm);
+  public static int celt_decode_float(SWIGTYPE_p_CELTDecoder st, byte[] data, int len, float[] pcm) {
+    return CELT7JNI.celt_decode_float(SWIGTYPE_p_CELTDecoder.getCPtr(st), data, len, pcm);
   }
 
-  public static int celt_decode(CELT7Decoder st, byte[] data, int len, short[] pcm) {
-    return CELT7JNI.celt_decode(CELT7Decoder.getCPtr(st), st, data, len, pcm);
+  public static int celt_decode(SWIGTYPE_p_CELTDecoder st, byte[] data, int len, short[] pcm) {
+    return CELT7JNI.celt_decode(SWIGTYPE_p_CELTDecoder.getCPtr(st), data, len, pcm);
   }
 
-  public static int celt_decoder_ctl(CELT7Decoder st, int request) {
-    return CELT7JNI.celt_decoder_ctl(CELT7Decoder.getCPtr(st), st, request);
+  public static int celt_decoder_ctl(SWIGTYPE_p_CELTDecoder st, int request) {
+    return CELT7JNI.celt_decoder_ctl(SWIGTYPE_p_CELTDecoder.getCPtr(st), request);
   }
 
   public static byte[] celt_strerror(int error) {

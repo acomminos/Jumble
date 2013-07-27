@@ -16,38 +16,28 @@
 
 package com.morlunk.jumble;
 
-import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import com.google.protobuf.Message;
-import com.morlunk.jumble.audio.Audio;
+
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.db.Database;
 import com.morlunk.jumble.model.Channel;
-import com.morlunk.jumble.model.ChannelManager;
+import com.morlunk.jumble.net.ChannelHandler;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
-import com.morlunk.jumble.model.UserManager;
+import com.morlunk.jumble.net.UserHandler;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleConnectionException;
-import com.morlunk.jumble.net.JumbleMessageHandler;
 import com.morlunk.jumble.net.JumbleTCPMessageType;
-import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.protobuf.Mumble;
 
-import java.io.IOException;
 import java.security.Security;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class JumbleService extends Service implements JumbleConnection.JumbleConnectionListener {
 
@@ -86,8 +76,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     private JumbleConnection mConnection;
     private Database mDatabase;
-    private ChannelManager mChannelManager;
-    private UserManager mUserManager;
+    private ChannelHandler mChannelHandler;
+    private UserHandler mUserHandler;
     private AudioOutput mAudioOutput;
 
     private RemoteCallbackList<IJumbleObserver> mObservers = new RemoteCallbackList<IJumbleObserver>();
@@ -116,17 +106,17 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public User getUserWithId(int id) throws RemoteException {
-            return mUserManager.getUser(id);
+            return mUserHandler.getUser(id);
         }
 
         @Override
         public Channel getChannelWithId(int id) throws RemoteException {
-            return mChannelManager.getChannel(id);
+            return mChannelHandler.getChannel(id);
         }
 
         @Override
         public List getChannelList() throws RemoteException {
-            return mChannelManager.getChannels();
+            return mChannelHandler.getChannels();
         }
 
         @Override
@@ -211,7 +201,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void setSelfMuteDeafState(boolean mute, boolean deaf) throws RemoteException {
-            User currentUser = mUserManager.getUser(mConnection.getSession());
+            User currentUser = mUserHandler.getUser(mConnection.getSession());
             currentUser.setSelfMuted(mute);
             currentUser.setSelfDeafened(deaf);
 
@@ -290,21 +280,21 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             return;
         }
 
-        mChannelManager = new ChannelManager(this);
-        mUserManager = new UserManager(this);
+        mChannelHandler = new ChannelHandler(this);
+        mUserHandler = new UserHandler(this);
         mAudioOutput = new AudioOutput(this);
 
         // Add message handlers for all managers
-        mConnection.addMessageHandler(mChannelManager);
-        mConnection.addMessageHandler(mUserManager);
+        mConnection.addMessageHandler(mChannelHandler);
+        mConnection.addMessageHandler(mUserHandler);
         mConnection.addMessageHandler(mAudioOutput);
 
         mConnection.connect();
     }
 
     public void disconnect() {
-        mConnection.removeMessageHandler(mChannelManager);
-        mConnection.removeMessageHandler(mUserManager);
+        mConnection.removeMessageHandler(mChannelHandler);
+        mConnection.removeMessageHandler(mUserHandler);
         mConnection.removeMessageHandler(mAudioOutput);
         mConnection.disconnect();
         mConnection = null;
@@ -349,8 +339,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
         mObservers.finishBroadcast();
 
-        mChannelManager = null;
-        mUserManager = null;
+        mChannelHandler = null;
+        mUserHandler = null;
     }
 
     @Override
@@ -370,6 +360,35 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     @Override
     public void onConnectionWarning(String warning) {
+        logWarning(warning);
+    }
+
+    /**
+     * Returns the user ID of this user session.
+     * @return Identifier for the local user.
+     */
+    public int getSession() {
+        return mConnection.getSession();
+    }
+
+    public UserHandler getUserHandler() {
+        return mUserHandler;
+    }
+
+    public ChannelHandler getChannelHandler() {
+        return mChannelHandler;
+    }
+
+    /*
+     * --- HERE BE CALLBACKS ---
+     * This code will be called by components of the service like ChannelHandler.
+     */
+
+    /**
+     * Logs a warning message to the client.
+     * @param warning An HTML warning string to be messaged to the client.
+     */
+    public void logWarning(String warning) {
         Log.e(Constants.TAG, "Connection warning: "+warning);
         int i = mObservers.beginBroadcast();
         while(i > 0) {
@@ -384,23 +403,19 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     }
 
     /**
-     * Returns the user ID of this user session.
-     * @return Identifier for the local user.
+     * Logs an info message to the client.
+     * @param info An HTML info string to be messaged to the client.
      */
-    public int getSession() {
-        return mConnection.getSession();
+    public void logInfo(String info) {
+        int i = mObservers.beginBroadcast();
+        while(i > 0) {
+            i--;
+            try {
+                mObservers.getBroadcastItem(i).onLogInfo(info);
+            } catch (RemoteException e2) {
+                e2.printStackTrace();
+            }
+        }
+        mObservers.finishBroadcast();
     }
-
-    public UserManager getUserManager() {
-        return mUserManager;
-    }
-
-    public ChannelManager getChannelManager() {
-        return mChannelManager;
-    }
-
-    /*
-     * --- HERE BE CALLBACKS ---
-     * This code will be called by components of the service like ChannelManager.
-     */
 }

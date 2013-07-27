@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package com.morlunk.jumble.model;
+package com.morlunk.jumble.net;
 
 import android.util.SparseArray;
 
 import com.morlunk.jumble.JumbleService;
+import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.net.JumbleMessageHandler;
 import com.morlunk.jumble.protobuf.Mumble;
 
@@ -32,7 +33,7 @@ import java.util.List;
 /**
  * Created by andrew on 18/07/13.
  */
-public class ChannelManager extends JumbleMessageHandler.Stub {
+public class ChannelHandler extends JumbleMessageHandler.Stub {
 
     /**
      * Channel comparator that first sorts by position, then alphabetical order.
@@ -52,7 +53,7 @@ public class ChannelManager extends JumbleMessageHandler.Stub {
     private JumbleService mService;
     private HashMap<Integer, Channel> mChannels = new HashMap<Integer, Channel>();
 
-    public ChannelManager(JumbleService service) {
+    public ChannelHandler(JumbleService service) {
         mService = service;
     }
 
@@ -96,10 +97,21 @@ public class ChannelManager extends JumbleMessageHandler.Stub {
         if(msg.hasPosition())
             channel.setPosition(msg.getPosition());
 
-        /**
-         * TODO CHANNEL LINKING REPRESENTATION
-         * See: Messages.cpp:570-600
-         */
+        if(msg.getLinksCount() > 0) {
+            channel.clearLinks();
+            for(int link : msg.getLinksList())
+                channel.addLink(link);
+        }
+
+        if(msg.getLinksRemoveCount() > 0) {
+            for(int link : msg.getLinksRemoveList())
+                channel.removeLink(link);
+        }
+
+        if(msg.getLinksAddCount() > 0) {
+            for(int link : msg.getLinksAddList())
+                channel.addLink(link);
+        }
     }
 
     @Override

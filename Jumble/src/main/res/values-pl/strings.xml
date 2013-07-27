@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_notify_moved">%1$s został przeniesiony z kanału %2$s przez %3$s.</string>
+    <string name="chat_notify_muted_deafened">Ogłuszono oraz wyciszono mikrofon.</string>
+    <string name="chat_notify_muted">Wyciszono mikrofon.</string>
+    <string name="chat_notify_unmuted">Wyłączono wyciszenie mikrofonu.</string>
+    <string name="chat_notify_unmuted_undeafened">Wyłączono ogłuszenie oraz wyciszenie mikrofonu.</string>
+    <string name="chat_notify_now_muted_deafened">%s jest teraz ogłuszony oraz wyciszony.</string>
+    <string name="chat_notify_now_muted">%s jest teraz wyciszony.</string>
+    <string name="chat_notify_now_unmuted">%s nie jest już wyciszony.</string>
+    <string name="chat_notify_now_unmuted_undeafened">%s nie jest już ogłuszony.</string>
+    <string name="chat_notify_connected">%s połączony.</string>
+    <string name="chat_notify_disconnected">%s rozłączony.</string>
+</resources>

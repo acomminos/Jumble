@@ -113,6 +113,10 @@ public class User implements Parcelable {
         return 0;
     }
 
+    public int getSession() {
+        return mSession;
+    }
+
     public int getChannelId() {
         return mChannel;
     }
@@ -222,6 +226,6 @@ public class User implements Parcelable {
     }
 
     public void setLocalMuted(boolean mLocalMuted) {
-        mLocalMuted = mLocalMuted;
+        this.mLocalMuted = mLocalMuted;
     }
 }

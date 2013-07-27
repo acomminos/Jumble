@@ -17,10 +17,7 @@
 package com.morlunk.jumble.audio;
 
 import com.morlunk.jumble.audio.celt11.CELT11;
-import com.morlunk.jumble.audio.celt11.CELT11Decoder;
 import com.morlunk.jumble.audio.celt7.CELT7;
-import com.morlunk.jumble.audio.celt7.CELT7Decoder;
-import com.morlunk.jumble.audio.celt7.CELT7Mode;
 import com.morlunk.jumble.audio.opus.Opus;
 import com.morlunk.jumble.audio.opus.SWIGTYPE_p_OpusDecoder;
 import com.morlunk.jumble.audio.speex.JitterBufferPacket;
@@ -42,9 +39,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class AudioOutputSpeech {
     // Native audio pointers
     private SWIGTYPE_p_OpusDecoder mOpusDecoder;
-    private CELT7Decoder mCELTAlphaDecoder;
-    private CELT7Mode mCELTAlphaMode;
-    private CELT11Decoder mCELTBetaDecoder;
+    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTDecoder mCELTAlphaDecoder;
+    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTMode mCELTAlphaMode;
+    private com.morlunk.jumble.audio.celt11.SWIGTYPE_p_CELTDecoder mCELTBetaDecoder;
     private SWIGTYPE_p_void mSpeexDecoder;
     private SpeexBits mSpeexBits;
     private SWIGTYPE_p_JitterBuffer_ mJitterBuffer;
@@ -67,11 +64,11 @@ public class AudioOutputSpeech {
         // TODO: consider implementing resampling if some Android devices not support 48kHz?
         mSession = session;
         mCodec = codec;
-        int error = 0;
+        int[] error = new int[1];
         switch (codec) {
             case UDPVoiceOpus:
                 mAudioBufferSize *= 12;
-                mOpusDecoder = Opus.opus_decoder_create(Audio.SAMPLE_RATE, 1, new int[] { error });
+                mOpusDecoder = Opus.opus_decoder_create(Audio.SAMPLE_RATE, 1, error);
                 break;
             case UDPVoiceSpeex:
                 Speex.speex_bits_init(mSpeexBits);
@@ -79,17 +76,16 @@ public class AudioOutputSpeech {
                 Speex.speex_decoder_ctl(mSpeexDecoder, SpeexConstants.SPEEX_SET_ENH, new int[] { 1 });
                 break;
             case UDPVoiceCELTBeta:
-                mCELTBetaDecoder = CELT11.celt_decoder_create(Audio.SAMPLE_RATE, 1, new int[] { error });
+                mCELTBetaDecoder = CELT11.celt_decoder_create(Audio.SAMPLE_RATE, 1, error);
                 break;
             case UDPVoiceCELTAlpha:
-                mCELTAlphaMode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, new int[] { error });
-                mCELTAlphaDecoder = CELT7.celt_decoder_create(mCELTAlphaMode, 1, new int[] { error });
+                mCELTAlphaMode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, error);
+                mCELTAlphaDecoder = CELT7.celt_decoder_create(mCELTAlphaMode, 1, error);
                 break;
         }
 
         mJitterBuffer = Speex.jitter_buffer_init(Audio.FRAME_SIZE);
-        int margin = 10 * Audio.FRAME_SIZE;
-        Speex.jitter_buffer_ctl(mJitterBuffer, SpeexConstants.JITTER_BUFFER_SET_MARGIN, new int[] { margin });
+        Speex.jitter_buffer_ctl(mJitterBuffer, SpeexConstants.JITTER_BUFFER_SET_MARGIN, new int[] { 10 * Audio.FRAME_SIZE });
     }
 
     public void addFrameToBuffer(byte[] data, int seq) {
@@ -154,13 +150,13 @@ public class AudioOutputSpeech {
             if(!mLastAlive)
                 Arrays.fill(out, 0);
             else {
-                int avail = 0;
+                int[] avail = new int[1];
                 int ts = Speex.jitter_buffer_get_pointer_timestamp(mJitterBuffer);
-                Speex.jitter_buffer_ctl(mJitterBuffer, SpeexConstants.JITTER_BUFFER_GET_AVAILABLE_COUNT, new int[] { avail });
+                Speex.jitter_buffer_ctl(mJitterBuffer, SpeexConstants.JITTER_BUFFER_GET_AVAILABLE_COUNT, avail);
 
                 if(ts != 0) {
                     int want = (int) mAverageAvailable;
-                    if (avail < want) {
+                    if (avail[0] < want) {
                         mMissCount++;
                         if(mMissCount < 20) {
                             Arrays.fill(out, 0);
@@ -176,11 +172,11 @@ public class AudioOutputSpeech {
                     jbp.setData(data);
                     jbp.setLen(4096);
 
-                    int startofs = 0;
+                    int[] startofs = new int[1];
                     int result = 0;
 
                     synchronized (mJitterBuffer) {
-                        result = Speex.jitter_buffer_get(mJitterBuffer, jbp, Audio.FRAME_SIZE, new int[] { startofs });
+                        result = Speex.jitter_buffer_get(mJitterBuffer, jbp, Audio.FRAME_SIZE, startofs);
                     }
 
                     if(result == SpeexConstants.JITTER_BUFFER_OK) {

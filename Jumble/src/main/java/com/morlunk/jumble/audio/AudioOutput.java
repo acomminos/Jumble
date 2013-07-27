@@ -19,9 +19,7 @@ package com.morlunk.jumble.audio;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
-import android.os.*;
 import android.os.Process;
-import android.util.SparseArray;
 
 import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.User;
@@ -127,7 +125,7 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable {
 
         PacketDataStream pds = new PacketDataStream(voiceData, voiceData.length);
         int session = pds.next();
-        User user = mService.getUserManager().getUser(session);
+        User user = mService.getUserHandler().getUser(session);
         if(user != null && !user.isLocalMuted()) {
             // TODO check for whispers here
             int seq = pds.next();

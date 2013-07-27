@@ -37,7 +37,7 @@ import java.util.List;
  */
 public class ServiceTest extends ServiceTestCase<JumbleService> {
 
-    private static final String HOST = "pi.morlunk.com";
+    private static final String HOST = "morlunk.com";
     private static final int PORT = Constants.DEFAULT_PORT;
     private static final String USERNAME = "Jumble-Unit-Tests";
     private static final String PASSWORD = "";

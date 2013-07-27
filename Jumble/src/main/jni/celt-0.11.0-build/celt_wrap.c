@@ -195,72 +195,6 @@ static void SWIGUNUSED SWIG_JavaThrowException(JNIEnv *jenv, SWIG_JavaExceptionC
 extern "C" {
 #endif
 
-SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_new_1CELT11Decoder(JNIEnv *jenv, jclass jcls) {
-  jlong jresult = 0 ;
-  struct CELTDecoder *result = 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  result = (struct CELTDecoder *)calloc(1, sizeof(struct CELTDecoder));
-  *(struct CELTDecoder **)&jresult = result; 
-  return jresult;
-}
-
-
-SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_delete_1CELT11Decoder(JNIEnv *jenv, jclass jcls, jlong jarg1) {
-  struct CELTDecoder *arg1 = (struct CELTDecoder *) 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  arg1 = *(struct CELTDecoder **)&jarg1; 
-  free((char *) arg1);
-}
-
-
-SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_new_1CELT11Encoder(JNIEnv *jenv, jclass jcls) {
-  jlong jresult = 0 ;
-  struct CELTEncoder *result = 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  result = (struct CELTEncoder *)calloc(1, sizeof(struct CELTEncoder));
-  *(struct CELTEncoder **)&jresult = result; 
-  return jresult;
-}
-
-
-SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_delete_1CELT11Encoder(JNIEnv *jenv, jclass jcls, jlong jarg1) {
-  struct CELTEncoder *arg1 = (struct CELTEncoder *) 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  arg1 = *(struct CELTEncoder **)&jarg1; 
-  free((char *) arg1);
-}
-
-
-SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_new_1CELT11Mode(JNIEnv *jenv, jclass jcls) {
-  jlong jresult = 0 ;
-  struct CELTMode *result = 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  result = (struct CELTMode *)calloc(1, sizeof(struct CELTMode));
-  *(struct CELTMode **)&jresult = result; 
-  return jresult;
-}
-
-
-SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_delete_1CELT11Mode(JNIEnv *jenv, jclass jcls, jlong jarg1) {
-  struct CELTMode *arg1 = (struct CELTMode *) 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  arg1 = *(struct CELTMode **)&jarg1; 
-  free((char *) arg1);
-}
-
-
 SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_CELT_1OK_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   int result;
@@ -569,18 +503,17 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1mo
 }
 
 
-SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1mode_1destroy(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1mode_1destroy(JNIEnv *jenv, jclass jcls, jlong jarg1) {
   CELTMode *arg1 = (CELTMode *) 0 ;
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTMode **)&jarg1; 
   celt_mode_destroy(arg1);
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1mode_1info(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jintArray jarg3) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1mode_1info(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jintArray jarg3) {
   jint jresult = 0 ;
   CELTMode *arg1 = (CELTMode *) 0 ;
   int arg2 ;
@@ -589,7 +522,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1mod
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTMode **)&jarg1; 
   arg2 = (int)jarg2; 
   {
@@ -627,7 +559,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1enc
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encoder_1get_1size_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encoder_1get_1size_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2) {
   jint jresult = 0 ;
   CELTMode *arg1 = (CELTMode *) 0 ;
   int arg2 ;
@@ -635,7 +567,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1enc
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTMode **)&jarg1; 
   arg2 = (int)jarg2; 
   result = (int)celt_encoder_get_size_custom((struct CELTMode const *)arg1,arg2);
@@ -676,7 +607,7 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1en
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encoder_1create_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jintArray jarg3) {
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encoder_1create_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jintArray jarg3) {
   jlong jresult = 0 ;
   CELTMode *arg1 = (CELTMode *) 0 ;
   int arg2 ;
@@ -685,7 +616,6 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1en
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTMode **)&jarg1; 
   arg2 = (int)jarg2; 
   {
@@ -709,7 +639,7 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1en
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encoder_1init(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jint jarg3, jintArray jarg4) {
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encoder_1init(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jint jarg3, jintArray jarg4) {
   jlong jresult = 0 ;
   CELTEncoder *arg1 = (CELTEncoder *) 0 ;
   int arg2 ;
@@ -719,7 +649,6 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1en
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTEncoder **)&jarg1; 
   arg2 = (int)jarg2; 
   arg3 = (int)jarg3; 
@@ -744,7 +673,7 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1en
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encoder_1init_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jobject jarg2_, jint jarg3, jintArray jarg4) {
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encoder_1init_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jlong jarg2, jint jarg3, jintArray jarg4) {
   jlong jresult = 0 ;
   CELTEncoder *arg1 = (CELTEncoder *) 0 ;
   CELTMode *arg2 = (CELTMode *) 0 ;
@@ -754,8 +683,6 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1en
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
-  (void)jarg2_;
   arg1 = *(CELTEncoder **)&jarg1; 
   arg2 = *(CELTMode **)&jarg2; 
   arg3 = (int)jarg3; 
@@ -780,18 +707,17 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1en
 }
 
 
-SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encoder_1destroy(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encoder_1destroy(JNIEnv *jenv, jclass jcls, jlong jarg1) {
   CELTEncoder *arg1 = (CELTEncoder *) 0 ;
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTEncoder **)&jarg1; 
   celt_encoder_destroy(arg1);
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encode_1float(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jfloatArray jarg2, jint jarg3, jbyteArray jarg4, jint jarg5) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encode_1float(JNIEnv *jenv, jclass jcls, jlong jarg1, jfloatArray jarg2, jint jarg3, jbyteArray jarg4, jint jarg5) {
   jint jresult = 0 ;
   CELTEncoder *arg1 = (CELTEncoder *) 0 ;
   float *arg2 = (float *) 0 ;
@@ -802,7 +728,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1enc
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTEncoder **)&jarg1; 
   {
     if (!jarg2) {
@@ -834,7 +759,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1enc
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encode(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jshortArray jarg2, jint jarg3, jbyteArray jarg4, jint jarg5) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encode(JNIEnv *jenv, jclass jcls, jlong jarg1, jshortArray jarg2, jint jarg3, jbyteArray jarg4, jint jarg5) {
   jint jresult = 0 ;
   CELTEncoder *arg1 = (CELTEncoder *) 0 ;
   celt_int16 *arg2 = (celt_int16 *) 0 ;
@@ -845,7 +770,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1enc
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTEncoder **)&jarg1; 
   {
     if (!jarg2) {
@@ -877,7 +801,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1enc
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encoder_1ctl(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jintArray jarg3) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1encoder_1ctl(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jintArray jarg3) {
   jint jresult = 0 ;
   CELTEncoder *arg1 = (CELTEncoder *) 0 ;
   int arg2 ;
@@ -886,7 +810,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1enc
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTEncoder **)&jarg1; 
   arg2 = (int)jarg2; 
   {
@@ -924,7 +847,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1dec
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decoder_1get_1size_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decoder_1get_1size_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2) {
   jint jresult = 0 ;
   CELTMode *arg1 = (CELTMode *) 0 ;
   int arg2 ;
@@ -932,7 +855,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1dec
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTMode **)&jarg1; 
   arg2 = (int)jarg2; 
   result = (int)celt_decoder_get_size_custom((struct CELTMode const *)arg1,arg2);
@@ -973,7 +895,7 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1de
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decoder_1create_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jintArray jarg3) {
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decoder_1create_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jintArray jarg3) {
   jlong jresult = 0 ;
   CELTMode *arg1 = (CELTMode *) 0 ;
   int arg2 ;
@@ -982,7 +904,6 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1de
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTMode **)&jarg1; 
   arg2 = (int)jarg2; 
   {
@@ -1006,7 +927,7 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1de
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decoder_1init(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2, jint jarg3, jintArray jarg4) {
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decoder_1init(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jint jarg3, jintArray jarg4) {
   jlong jresult = 0 ;
   CELTDecoder *arg1 = (CELTDecoder *) 0 ;
   int arg2 ;
@@ -1016,7 +937,6 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1de
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTDecoder **)&jarg1; 
   arg2 = (int)jarg2; 
   arg3 = (int)jarg3; 
@@ -1041,7 +961,7 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1de
 }
 
 
-SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decoder_1init_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jobject jarg2_, jint jarg3, jintArray jarg4) {
+SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decoder_1init_1custom(JNIEnv *jenv, jclass jcls, jlong jarg1, jlong jarg2, jint jarg3, jintArray jarg4) {
   jlong jresult = 0 ;
   CELTDecoder *arg1 = (CELTDecoder *) 0 ;
   CELTMode *arg2 = (CELTMode *) 0 ;
@@ -1051,8 +971,6 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1de
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
-  (void)jarg2_;
   arg1 = *(CELTDecoder **)&jarg1; 
   arg2 = *(CELTMode **)&jarg2; 
   arg3 = (int)jarg3; 
@@ -1077,18 +995,17 @@ SWIGEXPORT jlong JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1de
 }
 
 
-SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decoder_1destroy(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
+SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decoder_1destroy(JNIEnv *jenv, jclass jcls, jlong jarg1) {
   CELTDecoder *arg1 = (CELTDecoder *) 0 ;
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTDecoder **)&jarg1; 
   celt_decoder_destroy(arg1);
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decode_1float(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jbyteArray jarg2, jint jarg3, jfloatArray jarg4, jint jarg5) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decode_1float(JNIEnv *jenv, jclass jcls, jlong jarg1, jbyteArray jarg2, jint jarg3, jfloatArray jarg4, jint jarg5) {
   jint jresult = 0 ;
   CELTDecoder *arg1 = (CELTDecoder *) 0 ;
   unsigned char *arg2 = (unsigned char *) 0 ;
@@ -1099,7 +1016,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1dec
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTDecoder **)&jarg1; 
   {
     arg2 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg2, 0); 
@@ -1131,7 +1047,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1dec
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decode(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jbyteArray jarg2, jint jarg3, jshortArray jarg4, jint jarg5) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decode(JNIEnv *jenv, jclass jcls, jlong jarg1, jbyteArray jarg2, jint jarg3, jshortArray jarg4, jint jarg5) {
   jint jresult = 0 ;
   CELTDecoder *arg1 = (CELTDecoder *) 0 ;
   unsigned char *arg2 = (unsigned char *) 0 ;
@@ -1142,7 +1058,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1dec
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTDecoder **)&jarg1; 
   {
     arg2 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg2, 0); 
@@ -1174,7 +1089,7 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1dec
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decoder_1ctl(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2) {
+SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1decoder_1ctl(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2) {
   jint jresult = 0 ;
   CELTDecoder *arg1 = (CELTDecoder *) 0 ;
   int arg2 ;
@@ -1183,7 +1098,6 @@ SWIGEXPORT jint JNICALL Java_com_morlunk_jumble_audio_celt11_CELT11JNI_celt_1dec
   
   (void)jenv;
   (void)jcls;
-  (void)jarg1_;
   arg1 = *(CELTDecoder **)&jarg1; 
   arg2 = (int)jarg2; 
   result = (int)celt_decoder_ctl(arg1,arg2,arg3);

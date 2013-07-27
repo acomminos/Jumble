@@ -32,6 +32,7 @@ public final class Channel implements Parcelable {
     private byte[] mDescriptionHash;
     private List<Integer> mSubchannels = new ArrayList<Integer>();
     private List<Integer> mUsers = new ArrayList<Integer>();
+    private List<Integer> mLinks = new ArrayList<Integer>();
 
     public static final Parcelable.Creator<Channel> CREATOR = new Parcelable.Creator<Channel>() {
 
@@ -76,6 +77,7 @@ public final class Channel implements Parcelable {
         out.writeByteArray(mDescriptionHash);
         out.writeList(mSubchannels);
         out.writeList(mUsers);
+        out.writeList(mLinks);
     }
 
     public void readFromParcel(Parcel in) {
@@ -89,6 +91,7 @@ public final class Channel implements Parcelable {
         in.readByteArray(mDescriptionHash);
         mSubchannels = in.readArrayList(null);
         mUsers = in.readArrayList(null);
+        mLinks = in.readArrayList(null);
     }
 
     @Override
@@ -158,5 +161,21 @@ public final class Channel implements Parcelable {
 
     public void setDescriptionHash(byte[] mDescriptionHash) {
         this.mDescriptionHash = mDescriptionHash;
+    }
+
+    public List<Integer> getLinks() {
+        return mLinks;
+    }
+
+    public void addLink(int channelId) {
+        mLinks.add(channelId);
+    }
+
+    public void removeLink(int channelId) {
+        mLinks.remove(channelId);
+    }
+
+    public void clearLinks() {
+        mLinks.clear();
     }
 }
