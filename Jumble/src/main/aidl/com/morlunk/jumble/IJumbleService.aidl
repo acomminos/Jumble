@@ -30,6 +30,7 @@ interface IJumbleService {
     Server getConnectedServer();
     User getUserWithId(int id);
     Channel getChannelWithId(int id);
+    List getUserList();
     List getChannelList();
 
     // Actions

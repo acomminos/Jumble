@@ -16,15 +16,21 @@
 
 package com.morlunk.jumble.net;
 
+import android.os.RemoteException;
 import android.util.Log;
 import android.util.SparseArray;
 
 import com.morlunk.jumble.Constants;
+import com.morlunk.jumble.IJumbleObserver;
 import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.R;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.protobuf.Mumble;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * Created by andrew on 18/07/13.
@@ -32,7 +38,7 @@ import com.morlunk.jumble.protobuf.Mumble;
 public class UserHandler extends JumbleMessageHandler.Stub {
 
     private JumbleService mService;
-    private SparseArray<User> mUsers = new SparseArray<User>();
+    private HashMap<Integer, User> mUsers = new HashMap<Integer, User>();
 
     public UserHandler(JumbleService service) {
         mService = service;
@@ -40,6 +46,10 @@ public class UserHandler extends JumbleMessageHandler.Stub {
 
     public User getUser(int id) {
         return mUsers.get(id);
+    }
+
+    public List<User> getUsers() {
+        return new ArrayList<User>(mUsers.values());
     }
 
     public void clear() {
@@ -161,6 +171,19 @@ public class UserHandler extends JumbleMessageHandler.Stub {
 
         if(msg.hasComment())
             user.setComment(msg.getComment());
+
+        final User finalUser = user;
+        final boolean finalNewUser = newUser;
+
+        mService.notifyObservers(new JumbleService.ObserverRunnable() {
+            @Override
+            public void run(IJumbleObserver observer) throws RemoteException {
+                if(finalNewUser)
+                    observer.onUserConnected(finalUser);
+                else
+                    observer.onUserStateUpdated(finalUser);
+            }
+        });
     }
 
     @Override
@@ -175,6 +198,15 @@ public class UserHandler extends JumbleMessageHandler.Stub {
         if(msg.getSession() != mService.getSession()) {
             Channel channel = mService.getChannelHandler().getChannel(msg.getSession());
             channel.removeUser(msg.getSession());
+
+            final User user = mService.getUserHandler().getUser(msg.getSession());
+
+            mService.notifyObservers(new JumbleService.ObserverRunnable() {
+                @Override
+                public void run(IJumbleObserver observer) throws RemoteException {
+                    observer.onUserRemoved(user);
+                }
+            });
         }
     }
 }

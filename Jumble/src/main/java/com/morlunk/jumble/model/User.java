@@ -42,6 +42,7 @@ public class User implements Parcelable {
 
     // Local state
     private boolean mLocalMuted;
+    private boolean mLocalIgnored;
 
     public static final Parcelable.Creator<User> CREATOR = new Parcelable.Creator<User>() {
 
@@ -227,5 +228,13 @@ public class User implements Parcelable {
 
     public void setLocalMuted(boolean mLocalMuted) {
         this.mLocalMuted = mLocalMuted;
+    }
+
+    public boolean isLocalIgnored() {
+        return mLocalIgnored;
+    }
+
+    public void setLocalIgnored(boolean localIgnored) {
+        mLocalIgnored = localIgnored;
     }
 }

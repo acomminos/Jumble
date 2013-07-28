@@ -30,6 +30,7 @@ import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.net.ChannelHandler;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
+import com.morlunk.jumble.net.TextMessageHandler;
 import com.morlunk.jumble.net.UserHandler;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleConnectionException;
@@ -60,8 +61,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
 
-    public static final int NOTIFICATION_CONNECTION = 0;
-
     // Service settings
     public Server mServer;
     public boolean mShowChatNotifications;
@@ -78,9 +77,17 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private Database mDatabase;
     private ChannelHandler mChannelHandler;
     private UserHandler mUserHandler;
+    private TextMessageHandler mTextMessageHandler;
     private AudioOutput mAudioOutput;
 
     private RemoteCallbackList<IJumbleObserver> mObservers = new RemoteCallbackList<IJumbleObserver>();
+
+    /**
+     * Interface to communicate with observers through the service.
+     */
+    public interface ObserverRunnable {
+        public void run(IJumbleObserver observer) throws RemoteException;
+    }
 
     private IJumbleService.Stub mBinder = new IJumbleService.Stub() {
 
@@ -112,6 +119,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public Channel getChannelWithId(int id) throws RemoteException {
             return mChannelHandler.getChannel(id);
+        }
+
+        @Override
+        public List getUserList() throws RemoteException {
+            return mUserHandler.getUsers();
         }
 
         @Override
@@ -265,28 +277,28 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void connect() {
         try {
             mConnection = new JumbleConnection(this, this, mServer, mClientName, mCertificate, mCertificatePassword, mForceTcp, mUseOpus);
-        } catch (JumbleConnectionException e) {
+        } catch (final JumbleConnectionException e) {
             e.printStackTrace();
 
-            int i = mObservers.beginBroadcast();
-            while(i > 0) {
-                i--;
-                try {
-                    mObservers.getBroadcastItem(i).onConnectionError(e.getMessage(), e.isAutoReconnectAllowed());
-                } catch (RemoteException e2) {}
-            }
-            mObservers.finishBroadcast();
+            notifyObservers(new ObserverRunnable() {
+                @Override
+                public void run(IJumbleObserver observer) throws RemoteException {
+                    observer.onConnectionError(e.getMessage(), e.isAutoReconnectAllowed());
+                }
+            });
 
             return;
         }
 
         mChannelHandler = new ChannelHandler(this);
         mUserHandler = new UserHandler(this);
+        mTextMessageHandler = new TextMessageHandler(this);
         mAudioOutput = new AudioOutput(this);
 
         // Add message handlers for all managers
         mConnection.addMessageHandler(mChannelHandler);
         mConnection.addMessageHandler(mUserHandler);
+        mConnection.addMessageHandler(mTextMessageHandler);
         mConnection.addMessageHandler(mAudioOutput);
 
         mConnection.connect();
@@ -295,6 +307,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void disconnect() {
         mConnection.removeMessageHandler(mChannelHandler);
         mConnection.removeMessageHandler(mUserHandler);
+        mConnection.removeMessageHandler(mTextMessageHandler);
         mConnection.removeMessageHandler(mAudioOutput);
         mConnection.disconnect();
         mConnection = null;
@@ -308,18 +321,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void onConnectionEstablished() {
         Log.v(Constants.TAG, "Connected");
 
-        mAudioOutput.startPlaying();
-
-        int i = mObservers.beginBroadcast();
-        while(i > 0) {
-            i--;
-            try {
-                mObservers.getBroadcastItem(i).onConnected();
-            } catch (RemoteException e) {
-                e.printStackTrace();
+        notifyObservers(new ObserverRunnable() {
+            @Override
+            public void run(IJumbleObserver observer) throws RemoteException {
+                observer.onConnected();
             }
-        }
-        mObservers.finishBroadcast();
+        });
     }
 
     @Override
@@ -328,34 +335,26 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         mAudioOutput.stopPlaying();
 
-        int i = mObservers.beginBroadcast();
-        while(i > 0) {
-            i--;
-            try {
-                mObservers.getBroadcastItem(i).onDisconnected();
-            } catch (RemoteException e) {
-                e.printStackTrace();
+        notifyObservers(new ObserverRunnable() {
+            @Override
+            public void run(IJumbleObserver observer) throws RemoteException {
+                observer.onDisconnected();
             }
-        }
-        mObservers.finishBroadcast();
+        });
 
         mChannelHandler = null;
         mUserHandler = null;
     }
 
     @Override
-    public void onConnectionError(JumbleConnectionException e) {
+    public void onConnectionError(final JumbleConnectionException e) {
         Log.e(Constants.TAG, "Connection error: "+e.getMessage());
-        int i = mObservers.beginBroadcast();
-        while(i > 0) {
-            i--;
-            try {
-                mObservers.getBroadcastItem(i).onConnectionError(e.getMessage(), e.isAutoReconnectAllowed());
-            } catch (RemoteException e2) {
-                e2.printStackTrace();
+        notifyObservers(new ObserverRunnable() {
+            @Override
+            public void run(IJumbleObserver observer) throws RemoteException {
+                observer.onConnectionError(e.getMessage(), e.isAutoReconnectAllowed());
             }
-        }
-        mObservers.finishBroadcast();
+        });
     }
 
     @Override
@@ -388,32 +387,55 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * Logs a warning message to the client.
      * @param warning An HTML warning string to be messaged to the client.
      */
-    public void logWarning(String warning) {
+    public void logWarning(final String warning) {
         Log.e(Constants.TAG, "Connection warning: "+warning);
-        int i = mObservers.beginBroadcast();
-        while(i > 0) {
-            i--;
-            try {
-                mObservers.getBroadcastItem(i).onLogWarning(warning);
-            } catch (RemoteException e2) {
-                e2.printStackTrace();
+        notifyObservers(new ObserverRunnable() {
+            @Override
+            public void run(IJumbleObserver observer) throws RemoteException {
+                observer.onLogWarning(warning);
             }
-        }
-        mObservers.finishBroadcast();
+        });
     }
 
     /**
      * Logs an info message to the client.
      * @param info An HTML info string to be messaged to the client.
      */
-    public void logInfo(String info) {
+    public void logInfo(final String info) {
+        notifyObservers(new ObserverRunnable() {
+            @Override
+            public void run(IJumbleObserver observer) throws RemoteException {
+                observer.onLogInfo(info);
+            }
+        });
+    }
+
+    /**
+     * Logs a text message to the client.
+     * @param message An HTML message to send to the client.
+     */
+    public void logMessage(final String message) {
+        notifyObservers(new ObserverRunnable() {
+            @Override
+            public void run(IJumbleObserver observer) throws RemoteException {
+                observer.onMessageReceived(message);
+            }
+        });
+    }
+
+    /**
+     * Iterates through all registered IJumbleObservers and performs the action implemented in the passed ObserverRunnable.
+     * @param runnable A runnable to execute on each observer.
+     */
+    public void notifyObservers(ObserverRunnable runnable) {
         int i = mObservers.beginBroadcast();
         while(i > 0) {
             i--;
             try {
-                mObservers.getBroadcastItem(i).onLogInfo(info);
-            } catch (RemoteException e2) {
-                e2.printStackTrace();
+                runnable.run(mObservers.getBroadcastItem(i));
+            } catch (RemoteException e) {
+                e.printStackTrace();
+                // TODO handle this error
             }
         }
         mObservers.finishBroadcast();

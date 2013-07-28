@@ -35,10 +35,8 @@ interface IJumbleObserver {
     void onUserStateUpdated(out User user);
     void onUserRemoved(out User user);
 
-    // Messaging
-    void onMessageReceived(String message, in User actor);
-
-    // Logging
+    // Logging & Messaging
     void onLogInfo(String message);
     void onLogWarning(String message);
+    void onMessageReceived(String message);
 }

@@ -20,7 +20,9 @@ import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Process;
+import android.util.Log;
 
+import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleMessageHandler;
@@ -29,6 +31,7 @@ import com.morlunk.jumble.net.PacketDataStream;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -71,6 +74,7 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable {
 
     @Override
     public void run() {
+        Log.v(Constants.TAG, "Started audio output");
         android.os.Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
         mRunning = true;
 
@@ -129,14 +133,16 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable {
         if(user != null && !user.isLocalMuted()) {
             // TODO check for whispers here
             int seq = pds.next();
-            ByteBuffer packet = ByteBuffer.allocateDirect(pds.left() + 1);
+            ByteBuffer packet = ByteBuffer.allocate(pds.left() + 1);
             packet.putInt(msgFlags);
             packet.put(pds.dataBlock(pds.left()));
 
             AudioOutputSpeech aop = mAudioOutputs.get(session);
-            if(aop == null || aop.getCodec() != dataType) {
-                if(aop.getCodec() != dataType)
-                    aop.destroy();
+            if(aop != null && aop.getCodec() != dataType) {
+                aop.destroy();
+                aop = null;
+            }
+            if(aop == null) {
                 aop = new AudioOutputSpeech(session, dataType);
                 mAudioOutputs.put(session, aop);
             }

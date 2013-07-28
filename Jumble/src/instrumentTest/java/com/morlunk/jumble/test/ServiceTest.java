@@ -19,7 +19,6 @@ package com.morlunk.jumble.test;
 import android.content.Intent;
 import android.os.RemoteException;
 import android.test.ServiceTestCase;
-import android.util.Log;
 
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.IJumbleObserver;
@@ -31,6 +30,7 @@ import com.morlunk.jumble.model.User;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Created by andrew on 18/07/13.
@@ -44,8 +44,13 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
     private static final boolean USE_CERTIFICATE = true;
     private static final String CERTIFICATE_NAME = "jumble-test.p12";
 
-    private static final String TEST_COMMENT = "BEEP BOOP I AM JUMBLEBOT";
-    private static final int TEST_DELAY = 10000; // Time between tests, used to verify that the desired result has been achieved (i.e. seeing if comment was set).
+    private static final String TEST_COMMENT = "I AM BENDER, PLEASE INSERT GURVIS<br><br>SESSION UUID %s";
+    private static final String TEST_CHANNEL_NAME = "Jumble Test Channel %s";
+    private static final String TEST_CHANNEL_MESSAGE = "Hello channel '%s'";
+    private static final String TEST_USER_MESSAGE = "Hello user '%s'";
+    private static final String TEST_KICK_MESSAGE = "Kicking '%s'";
+    private static final int TEST_NETWORK_DELAY = 5000; // Time to make sure the connection does not terminate before packets are delivered
+    private static final int TEST_OBSERVATION_DELAY = 5000; // Time between tests, used to verify that the desired result has been achieved (i.e. seeing if comment was set).
 
     private IJumbleService mBinder;
 
@@ -126,7 +131,7 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
             }
 
             @Override
-            public void onMessageReceived(String message, User actor) throws RemoteException {
+            public void onMessageReceived(String message) throws RemoteException {
 
             }
 
@@ -154,35 +159,63 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
 
     @Override
     protected void tearDown() throws Exception {
+        mBinder.disconnect();
         try {
-            Thread.sleep(TEST_DELAY);
+            Thread.sleep(TEST_NETWORK_DELAY);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        mBinder.disconnect();
         super.tearDown();
     }
 
     /**
      * Tests rapid movement between channels.
      */
-    public void testChannelHopping() throws RemoteException {
+    public void _testChannelHopping() throws RemoteException {
         List<Channel> channelList = mBinder.getChannelList();
         for(Channel channel : channelList) {
             mBinder.joinChannel(channel.getId());
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        }
+        try {
+            Thread.sleep(TEST_OBSERVATION_DELAY);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
-    public void testMuteAndDeafen() throws RemoteException {
+    public void testSendMessages() throws RemoteException {
+        List<Channel> channelList = mBinder.getChannelList();
+        List<User> userList = mBinder.getUserList();
+        for(Channel channel : channelList)
+            mBinder.sendChannelTextMessage(channel.getId(), String.format(TEST_CHANNEL_MESSAGE, channel.getName()), false);
+        for(User user : userList)
+            mBinder.sendUserTextMessage(user.getSession(), String.format(TEST_USER_MESSAGE, user.getName()));
+    }
+    public void _testMuteAndDeafen() throws RemoteException {
         mBinder.setSelfMuteDeafState(true, true);
+        try {
+            Thread.sleep(TEST_OBSERVATION_DELAY);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
-    public void testSetComment() throws RemoteException {
-        mBinder.setUserComment(mBinder.getSession(), TEST_COMMENT);
+    public void _testSetComment() throws RemoteException {
+        mBinder.setUserComment(mBinder.getSession(), String.format(TEST_COMMENT, UUID.randomUUID().toString()));
+        try {
+            Thread.sleep(TEST_OBSERVATION_DELAY);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void _testKickUsers() throws RemoteException {
+        List<User> userList = mBinder.getUserList();
+        for(User user : userList)
+            mBinder.kickBanUser(user.getSession(), String.format(TEST_KICK_MESSAGE, user.getName()), false);
+    }
+
+    public void testCreateChannel() throws RemoteException {
+        mBinder.createChannel(0, String.format(TEST_CHANNEL_NAME, UUID.randomUUID().toString()), "", 0, false);
     }
 }
