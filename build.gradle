@@ -1,1 +1,51 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:0.5.+'
+    }
+}
+apply plugin: 'android-library'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'com.android.support:support-v4:18.0.+'
+    compile group:'com.google.protobuf', name:'protobuf-java', version:'2.5.0'
+    compile group:'com.madgag', name:'sc-light-jdk15on', version:'1.47.0.2'
+    compile group:'com.madgag', name:'scprov-jdk15on', version:'1.47.0.2'
+    compile group:'com.madgag', name:'scpkix-jdk15on', version:'1.47.0.2'
+}
+
+android {
+    compileSdkVersion 18
+    buildToolsVersion "18.0.0"
+
+    defaultConfig {
+        testPackageName "com.morlunk.jumble.test"
+        testInstrumentationRunner "android.test.InstrumentationTestRunner"
+        minSdkVersion 7
+        targetSdkVersion 18
+    }
+}
+
+/*
+ * JNI Hack for gradle - works alright, copies native libs over into build folder no problem
+ * https://gist.github.com/khernyo/4226923
+ */
+
+task copyNativeLibs(type: Copy) {
+    from(new File('src/main/libs')) { include '**/*.so' }
+    into new File(buildDir, 'native-libs')
+}
+
+tasks.withType(Compile) { compileTask -> compileTask.dependsOn copyNativeLibs }
+
+clean.dependsOn 'cleanCopyNativeLibs'
+
+tasks.withType(com.android.build.gradle.tasks.PackageApplication) { pkgTask ->
+    pkgTask.jniDir new File(buildDir, 'native-libs')
+}
