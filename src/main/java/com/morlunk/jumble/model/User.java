@@ -21,6 +21,13 @@ import android.os.Parcelable;
 
 public class User implements Parcelable {
 
+    public static enum TalkState {
+        TALKING,
+        SHOUTING,
+        PASSIVE,
+        WHISPERING
+    }
+
     private int mSession;
     private int mId;
     private String mName;
@@ -39,6 +46,8 @@ public class User implements Parcelable {
     private boolean mRecording;
 
     private int mChannel;
+
+    private TalkState mTalkState = TalkState.PASSIVE;
 
     // Local state
     private boolean mLocalMuted;
@@ -88,6 +97,7 @@ public class User implements Parcelable {
         out.writeValue(mRecording);
         out.writeInt(mChannel);
         out.writeValue(mLocalMuted);
+        out.writeString(mTalkState.toString());
     }
 
     public void readFromParcel(Parcel in) {
@@ -107,6 +117,7 @@ public class User implements Parcelable {
         mRecording = (Boolean)in.readValue(null);
         mChannel = in.readInt();
         mLocalMuted = (Boolean)in.readValue(null);
+        mTalkState = TalkState.valueOf(in.readString());
     }
 
     @Override
@@ -236,5 +247,13 @@ public class User implements Parcelable {
 
     public void setLocalIgnored(boolean localIgnored) {
         mLocalIgnored = localIgnored;
+    }
+
+    public TalkState getTalkState() {
+        return mTalkState;
+    }
+
+    public void setTalkState(TalkState mTalkState) {
+        this.mTalkState = mTalkState;
     }
 }

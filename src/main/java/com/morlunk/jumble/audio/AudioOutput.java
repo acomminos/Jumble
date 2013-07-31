@@ -20,9 +20,11 @@ import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Process;
+import android.os.RemoteException;
 import android.util.Log;
 
 import com.morlunk.jumble.Constants;
+import com.morlunk.jumble.IJumbleObserver;
 import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleMessageHandler;
@@ -31,14 +33,13 @@ import com.morlunk.jumble.net.PacketDataStream;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by andrew on 16/07/13.
  */
-public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable {
+public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, AudioOutputSpeech.TalkStateListener {
 
     private JumbleService mService;
     private ConcurrentHashMap<Integer, AudioOutputSpeech> mAudioOutputs = new ConcurrentHashMap<Integer, AudioOutputSpeech>();
@@ -143,12 +144,23 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable {
                 aop = null;
             }
             if(aop == null) {
-                aop = new AudioOutputSpeech(session, dataType);
+                aop = new AudioOutputSpeech(session, dataType, this);
                 mAudioOutputs.put(session, aop);
             }
 
             aop.addFrameToBuffer(packet.array(), seq);
         }
 
+    }
+
+    @Override
+    public void onTalkStateUpdated(int session, User.TalkState state) {
+        final User user = mService.getUserHandler().getUser(session);
+        mService.notifyObservers(new JumbleService.ObserverRunnable() {
+            @Override
+            public void run(IJumbleObserver observer) throws RemoteException {
+                observer.onUserTalkStateUpdated(user);
+            }
+        });;
     }
 }

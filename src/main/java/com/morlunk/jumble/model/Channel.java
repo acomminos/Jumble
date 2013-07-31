@@ -104,7 +104,11 @@ public final class Channel implements Parcelable {
     }
 
     public void removeUser(int userId) {
-        mUsers.remove(userId);
+        mUsers.remove((Object)userId);
+    }
+
+    public List<Integer> getUsers() {
+        return mUsers;
     }
 
     public int getId() {

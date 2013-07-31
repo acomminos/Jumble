@@ -16,16 +16,14 @@
 
 package com.morlunk.jumble.net;
 
-import android.util.SparseArray;
+import android.os.RemoteException;
 
+import com.morlunk.jumble.IJumbleObserver;
 import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.Channel;
-import com.morlunk.jumble.net.JumbleMessageHandler;
 import com.morlunk.jumble.protobuf.Mumble;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -73,6 +71,8 @@ public class ChannelHandler extends JumbleMessageHandler.Stub {
         Channel channel = mChannels.get(msg.getChannelId());
         Channel parent = mChannels.get(msg.getParent());
 
+        final boolean newChannel = channel == null;
+
         if(channel == null) {
             //if(msg.hasParent() && parent != null && msg.hasName()) {
                 channel = new Channel(msg.getChannelId(), msg.getParent(), msg.getName(), msg.getTemporary());
@@ -112,12 +112,30 @@ public class ChannelHandler extends JumbleMessageHandler.Stub {
             for(int link : msg.getLinksAddList())
                 channel.addLink(link);
         }
+
+        final Channel finalChannel = channel;
+        mService.notifyObservers(new JumbleService.ObserverRunnable() {
+            @Override
+            public void run(IJumbleObserver observer) throws RemoteException {
+                if(newChannel)
+                    observer.onChannelAdded(finalChannel);
+                else
+                    observer.onChannelStateUpdated(finalChannel);
+            }
+        });
     }
 
     @Override
     public void messageChannelRemove(Mumble.ChannelRemove msg) {
-        Channel channel = mChannels.get(msg.getChannelId());
-        if(channel != null && channel.getId() != 0)
+        final Channel channel = mChannels.get(msg.getChannelId());
+        if(channel != null && channel.getId() != 0) {
             mChannels.remove(channel.getId());
+            mService.notifyObservers(new JumbleService.ObserverRunnable() {
+                @Override
+                public void run(IJumbleObserver observer) throws RemoteException {
+                    observer.onChannelRemoved(channel);
+                }
+            });
+        }
     }
 }

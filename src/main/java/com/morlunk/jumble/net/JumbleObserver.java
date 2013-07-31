@@ -68,6 +68,11 @@ public class JumbleObserver extends IJumbleObserver.Stub {
     }
 
     @Override
+    public void onUserTalkStateUpdated(User user) throws RemoteException {
+        
+    }
+
+    @Override
     public void onUserJoinedChannel(User user, Channel newChannel, Channel oldChannel) throws RemoteException {
 
     }

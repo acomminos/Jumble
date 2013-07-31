@@ -27,6 +27,7 @@ import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
+import com.morlunk.jumble.net.JumbleObserver;
 
 import java.io.InputStream;
 import java.util.List;
@@ -63,7 +64,7 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
         super.setUp();
 
         Intent intent = new Intent(JumbleService.ACTION_CONNECT);
-        Server server = new Server("Test Server", HOST, PORT, USERNAME, PASSWORD);
+        Server server = new Server(-1, "Test Server", HOST, PORT, USERNAME, PASSWORD);
         intent.putExtra(JumbleService.EXTRAS_SERVER, server);
         intent.putExtra(JumbleService.EXTRAS_FORCE_TCP, true); // Forcing TCP makes it easier to test.
 
@@ -80,7 +81,7 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
 
         final Object lock = new Object();
 
-        IJumbleObserver.Stub observer = new IJumbleObserver.Stub() {
+        IJumbleObserver observer = new JumbleObserver() {
             @Override
             public void onConnected() throws RemoteException {
                 synchronized (lock) {
@@ -98,51 +99,6 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
             @Override
             public void onConnectionError(String message, boolean reconnecting) throws RemoteException {
                 fail(message);
-            }
-
-            @Override
-            public void onChannelAdded(Channel channel) throws RemoteException {
-
-            }
-
-            @Override
-            public void onChannelStateUpdated(Channel channel) throws RemoteException {
-
-            }
-
-            @Override
-            public void onChannelRemoved(Channel channel) throws RemoteException {
-
-            }
-
-            @Override
-            public void onUserConnected(User user) throws RemoteException {
-
-            }
-
-            @Override
-            public void onUserStateUpdated(User user) throws RemoteException {
-
-            }
-
-            @Override
-            public void onUserRemoved(User user) throws RemoteException {
-
-            }
-
-            @Override
-            public void onMessageReceived(String message) throws RemoteException {
-
-            }
-
-            @Override
-            public void onLogInfo(String message) throws RemoteException {
-
-            }
-
-            @Override
-            public void onLogWarning(String message) throws RemoteException {
-
             }
         };
 
@@ -171,7 +127,7 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
     /**
      * Tests rapid movement between channels.
      */
-    public void _testChannelHopping() throws RemoteException {
+    public void testChannelHopping() throws RemoteException {
         List<Channel> channelList = mBinder.getChannelList();
         for(Channel channel : channelList) {
             mBinder.joinChannel(channel.getId());
@@ -183,7 +139,7 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
         }
     }
 
-    public void _testSendMessages() throws RemoteException {
+    public void testSendMessages() throws RemoteException {
         List<Channel> channelList = mBinder.getChannelList();
         List<User> userList = mBinder.getUserList();
         for(Channel channel : channelList)
@@ -222,7 +178,7 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
     /**
      * Gives the tester time to just observe the client from another client. Useful for testing something, I'm sure.
      */
-    public void testSandbox() throws InterruptedException{
+    public void _testSandbox() throws InterruptedException{
         Thread.sleep(500000);
     }
 }

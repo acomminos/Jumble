@@ -26,6 +26,7 @@ import com.morlunk.jumble.audio.speex.SWIGTYPE_p_void;
 import com.morlunk.jumble.audio.speex.Speex;
 import com.morlunk.jumble.audio.speex.SpeexBits;
 import com.morlunk.jumble.audio.speex.SpeexConstants;
+import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
 
@@ -37,6 +38,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * Created by andrew on 16/07/13.
  */
 public class AudioOutputSpeech {
+    interface TalkStateListener {
+        public void onTalkStateUpdated(int session, User.TalkState state);
+    }
+
     // Native audio pointers
     private SWIGTYPE_p_OpusDecoder mOpusDecoder;
     private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTDecoder mCELTAlphaDecoder;
@@ -59,11 +64,15 @@ public class AudioOutputSpeech {
     private boolean mHasTerminator = false;
     private boolean mLastAlive = true;
     private int mBufferOffset, mBufferFilled, mLastConsume = 0;
+    private int ucFlags;
 
-    public AudioOutputSpeech(int session, JumbleUDPMessageType codec) {
+    private TalkStateListener mTalkStateListener;
+
+    public AudioOutputSpeech(int session, JumbleUDPMessageType codec, TalkStateListener listener) {
         // TODO: consider implementing resampling if some Android devices not support 48kHz?
         mSession = session;
         mCodec = codec;
+        mTalkStateListener = listener;
         int[] error = new int[1];
         switch (codec) {
             case UDPVoiceOpus:
@@ -183,7 +192,7 @@ public class AudioOutputSpeech {
                         PacketDataStream pds = new PacketDataStream(jbp.getData(), (int)jbp.getLen());
 
                         mMissCount = 0;
-                        byte flags = (byte)pds.next();
+                        ucFlags = pds.next();
 
                         mHasTerminator = false;
                         if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
@@ -275,7 +284,25 @@ public class AudioOutputSpeech {
             mBufferFilled += mAudioBufferSize;
         }
 
-        // TODO set talkstate
+        if(!nextAlive)
+            ucFlags = 0xFF;
+
+        User.TalkState talkState;
+        switch (ucFlags) {
+            case 0:
+                talkState = User.TalkState.TALKING;
+                break;
+            case 1:
+                talkState = User.TalkState.SHOUTING;
+                break;
+            case 0xFF:
+                talkState = User.TalkState.PASSIVE;
+                break;
+            default:
+                talkState = User.TalkState.WHISPERING;
+                break;
+        }
+        mTalkStateListener.onTalkStateUpdated(mSession, talkState);
 
         boolean tmp = mLastAlive;
         mLastAlive = nextAlive;
