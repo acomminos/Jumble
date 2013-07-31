@@ -27,14 +27,14 @@ import android.util.Log;
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.db.Database;
 import com.morlunk.jumble.model.Channel;
-import com.morlunk.jumble.net.ChannelHandler;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
-import com.morlunk.jumble.net.TextMessageHandler;
-import com.morlunk.jumble.net.UserHandler;
+import com.morlunk.jumble.net.ChannelHandler;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleConnectionException;
 import com.morlunk.jumble.net.JumbleTCPMessageType;
+import com.morlunk.jumble.net.TextMessageHandler;
+import com.morlunk.jumble.net.UserHandler;
 import com.morlunk.jumble.protobuf.Mumble;
 
 import java.security.Security;
@@ -54,7 +54,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_CERTIFICATE = "certificate";
     public static final String EXTRAS_CERTIFICATE_PASSWORD = "certificate_password";
     public static final String EXTRAS_DETECTION_THRESHOLD = "detection_threshold";
-    public static final String EXTRAS_PUSH_TO_TALK = "use_ptt";
+    public static final String EXTRAS_TRANSMIT_MODE = "transmit_mode";
     public static final String EXTRAS_USE_OPUS = "use_opus";
     public static final String EXTRAS_FORCE_TCP = "force_tcp";
     public static final String EXTRAS_CLIENT_NAME = "client_name";
@@ -68,7 +68,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public byte[] mCertificate;
     public String mCertificatePassword;
     public int mDetectionThreshold;
-    public boolean mUsePushToTalk;
+    public int mTransmitMode;
     public boolean mUseOpus;
     public boolean mForceTcp;
     public String mClientName;
@@ -107,17 +107,22 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
+        public User getSessionUser() throws RemoteException {
+            return mUserHandler.getUser(getSession());
+        }
+
+        @Override
         public Server getConnectedServer() throws RemoteException {
             return mServer;
         }
 
         @Override
-        public User getUserWithId(int id) throws RemoteException {
+        public User getUser(int id) throws RemoteException {
             return mUserHandler.getUser(id);
         }
 
         @Override
-        public Channel getChannelWithId(int id) throws RemoteException {
+        public Channel getChannel(int id) throws RemoteException {
             return mChannelHandler.getChannel(id);
         }
 
@@ -129,6 +134,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public List getChannelList() throws RemoteException {
             return mChannelHandler.getChannels();
+        }
+
+        @Override
+        public int getTransmitMode() throws RemoteException {
+            return mTransmitMode;
+        }
+
+        @Override
+        public void setTalkingState(boolean talking) throws RemoteException {
+
         }
 
         @Override
@@ -249,7 +264,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mCertificate = extras.getByteArray(EXTRAS_CERTIFICATE);
             mCertificatePassword = extras.getString(EXTRAS_CERTIFICATE_PASSWORD);
             mDetectionThreshold = extras.getInt(EXTRAS_DETECTION_THRESHOLD, 1400);
-            mUsePushToTalk = extras.getBoolean(EXTRAS_PUSH_TO_TALK, false);
+            mTransmitMode = extras.getInt(EXTRAS_TRANSMIT_MODE, Constants.TRANSMIT_VOICE_ACTIVITY);
             mUseOpus = extras.getBoolean(EXTRAS_USE_OPUS, true);
             mForceTcp = extras.getBoolean(EXTRAS_FORCE_TCP, false);
             mClientName = extras.containsKey(EXTRAS_CLIENT_NAME) ? extras.getString(EXTRAS_CLIENT_NAME) : "Jumble";
@@ -402,6 +417,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * @param info An HTML info string to be messaged to the client.
      */
     public void logInfo(final String info) {
+        Log.v(Constants.TAG, info);
         notifyObservers(new ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {

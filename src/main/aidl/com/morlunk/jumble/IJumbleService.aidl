@@ -25,15 +25,20 @@ interface IJumbleService {
     void disconnect();
     boolean isConnected();
 
-    // Data
+    // Session and users
     int getSession();
+    User getSessionUser();
     Server getConnectedServer();
-    User getUserWithId(int id);
-    Channel getChannelWithId(int id);
+    User getUser(int id);
+    Channel getChannel(int id);
     List getUserList();
     List getChannelList();
 
-    // Actions
+    // Audio actions
+    int getTransmitMode();
+    void setTalkingState(boolean talking);
+
+    // Server actions
     void joinChannel(int channel);
     void createChannel(int parent, String name, String description, int position, boolean temporary);
     //void setTexture(byte[] texture);
@@ -51,6 +56,7 @@ interface IJumbleService {
     void setSelfMuteDeafState(boolean mute, boolean deaf);
     //void announceRecordingState(boolean recording);
 
+    // Observation
     void registerObserver(in IJumbleObserver observer);
     void unregisterObserver(in IJumbleObserver observer);
 }

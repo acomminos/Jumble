@@ -183,7 +183,7 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
         }
     }
 
-    public void testSendMessages() throws RemoteException {
+    public void _testSendMessages() throws RemoteException {
         List<Channel> channelList = mBinder.getChannelList();
         List<User> userList = mBinder.getUserList();
         for(Channel channel : channelList)
@@ -215,7 +215,14 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
             mBinder.kickBanUser(user.getSession(), String.format(TEST_KICK_MESSAGE, user.getName()), false);
     }
 
-    public void testCreateChannel() throws RemoteException {
+    public void _testCreateChannel() throws RemoteException {
         mBinder.createChannel(0, String.format(TEST_CHANNEL_NAME, UUID.randomUUID().toString()), "", 0, false);
+    }
+
+    /**
+     * Gives the tester time to just observe the client from another client. Useful for testing something, I'm sure.
+     */
+    public void testSandbox() throws InterruptedException{
+        Thread.sleep(500000);
     }
 }
