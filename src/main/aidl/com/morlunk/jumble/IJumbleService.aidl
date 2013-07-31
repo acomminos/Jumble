@@ -28,6 +28,7 @@ interface IJumbleService {
     // Session and users
     int getSession();
     User getSessionUser();
+    Channel getSessionChannel();
     Server getConnectedServer();
     User getUser(int id);
     Channel getChannel(int id);
@@ -36,6 +37,7 @@ interface IJumbleService {
 
     // Audio actions
     int getTransmitMode();
+    boolean isTalking();
     void setTalkingState(boolean talking);
 
     // Server actions

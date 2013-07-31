@@ -112,6 +112,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
+        public Channel getSessionChannel() throws RemoteException {
+            User user = getSessionUser();
+            return getChannel(user.getChannelId());
+        }
+
+        @Override
         public Server getConnectedServer() throws RemoteException {
             return mServer;
         }
@@ -139,6 +145,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public int getTransmitMode() throws RemoteException {
             return mTransmitMode;
+        }
+
+        @Override
+        public boolean isTalking() throws RemoteException {
+            return false;
         }
 
         @Override
@@ -403,7 +414,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * @param warning An HTML warning string to be messaged to the client.
      */
     public void logWarning(final String warning) {
-        Log.e(Constants.TAG, "Connection warning: "+warning);
+        Log.w(Constants.TAG, warning);
         notifyObservers(new ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
