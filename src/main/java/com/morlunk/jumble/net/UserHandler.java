@@ -18,7 +18,6 @@ package com.morlunk.jumble.net;
 
 import android.os.RemoteException;
 import android.util.Log;
-import android.util.SparseArray;
 
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.IJumbleObserver;
@@ -72,6 +71,8 @@ public class UserHandler extends JumbleMessageHandler.Stub {
             else
                 return;
         }
+
+        final User finalUser = user;
 
         if(msg.hasUserId())
             user.setUserId(msg.getUserId());
@@ -141,17 +142,23 @@ public class UserHandler extends JumbleMessageHandler.Stub {
         }
 
         if(msg.hasChannelId()) {
-            Channel channel = mService.getChannelHandler().getChannel(msg.getChannelId());
+            final Channel channel = mService.getChannelHandler().getChannel(msg.getChannelId());
             if(channel == null) {
                 Log.e(Constants.TAG, "Invalid channel for user!");
-                channel = mService.getChannelHandler().getChannel(0);
+                return; // TODO handle better
             }
-            Channel old = mService.getChannelHandler().getChannel(user.getChannelId());
+            final Channel old = mService.getChannelHandler().getChannel(user.getChannelId());
 
             if(channel.getId() != old.getId()) {
                 // TODO move user
                 //old.removeUser(user.getUserId());
                 //channel.addUser(user.getUserId());
+                mService.notifyObservers(new JumbleService.ObserverRunnable() {
+                    @Override
+                    public void run(IJumbleObserver observer) throws RemoteException {
+                        observer.onUserJoinedChannel(finalUser, channel, old);
+                    }
+                });
             }
             /*
              * TODO: logging
@@ -172,7 +179,6 @@ public class UserHandler extends JumbleMessageHandler.Stub {
         if(msg.hasComment())
             user.setComment(msg.getComment());
 
-        final User finalUser = user;
         final boolean finalNewUser = newUser;
 
         mService.notifyObservers(new JumbleService.ObserverRunnable() {

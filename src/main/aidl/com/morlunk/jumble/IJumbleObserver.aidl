@@ -33,6 +33,7 @@ interface IJumbleObserver {
     // User
     void onUserConnected(out User user);
     void onUserStateUpdated(out User user);
+    void onUserJoinedChannel(out User user, out Channel newChannel, out Channel oldChannel);
     void onUserRemoved(out User user);
 
     // Logging & Messaging
