@@ -26,7 +26,7 @@ public final class Channel implements Parcelable {
     private int mId;
     private int mPosition;
     private boolean mTemporary;
-    private int mParent;
+    private int mParent = -1;
     private String mName;
     private String mDescription;
     private byte[] mDescriptionHash;
@@ -50,14 +50,8 @@ public final class Channel implements Parcelable {
     public Channel() {
     }
 
-    public Channel(int id, int parent, String name) {
+    public Channel(int id, boolean temporary) {
         mId = id;
-        mParent = parent;
-        mName = name;
-    }
-
-    public Channel(int id, int parent, String name, boolean temporary) {
-        this(id, parent, name);
         mTemporary = temporary;
     }
 

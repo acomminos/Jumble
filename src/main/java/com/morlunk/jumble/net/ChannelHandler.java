@@ -74,15 +74,11 @@ public class ChannelHandler extends JumbleMessageHandler.Stub {
         final boolean newChannel = channel == null;
 
         if(channel == null) {
-            //if(msg.hasParent() && parent != null && msg.hasName()) {
-                channel = new Channel(msg.getChannelId(), msg.getParent(), msg.getName(), msg.getTemporary());
-                mChannels.put(msg.getChannelId(), channel);
-            //}
-            //else
-            //    return;
+            channel = new Channel(msg.getChannelId(), msg.getTemporary());
+            mChannels.put(msg.getChannelId(), channel);
         }
 
-        if(parent != null)
+        if(msg.hasParent())
             channel.setParent(parent.getId());
 
         if(msg.hasName())
