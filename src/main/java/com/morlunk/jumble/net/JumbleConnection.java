@@ -19,6 +19,7 @@ package com.morlunk.jumble.net;
 import android.content.Context;
 import android.os.Build;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import com.google.protobuf.ByteString;
@@ -60,7 +61,9 @@ public class JumbleConnection {
     // Threading
     private ExecutorService mExecutorService;
     private ScheduledExecutorService mPingExecutorService;
+    private NetworkSendThread mNetworkThread;
     private Handler mMainHandler;
+    private Handler mNetworkHandler;
 
     // Networking and protocols
     private InetAddress mHost;
@@ -95,12 +98,9 @@ public class JumbleConnection {
         public void messageServerSync(Mumble.ServerSync msg) {
             // Protocol says we're supposed to send a dummy UDPTunnel packet here to let the server know we don't like UDP.
             if(mForceTCP) {
-                try {
-                    byte[] buffer = new byte[3];
-                    mTCP.sendMessage(buffer, JumbleTCPMessageType.UDPTunnel);
-                } catch (IOException e) {
-                    Log.e(Constants.TAG, "Couldn't send dummy UDPTunnel packet.");
-                }
+                Mumble.UDPTunnel.Builder utb = Mumble.UDPTunnel.newBuilder();
+                utb.setPacket(ByteString.copyFrom(new byte[3]));
+                sendTCPMessage(utb.build(), JumbleTCPMessageType.UDPTunnel);
             }
 
             // Start TCP/UDP ping thread. FIXME is this the right place?
@@ -279,10 +279,12 @@ public class JumbleConnection {
         mUsingUDP = !mForceTCP;
         mStartTimestamp = System.nanoTime();
 
-        mExecutorService = Executors.newFixedThreadPool(mForceTCP ? 1 : 2); // One TCP thread, one UDP thread (if not forcing TCP).
+        mExecutorService = Executors.newFixedThreadPool(mForceTCP ? 2 : 3); // One TCP thread, one UDP thread (if not forcing TCP), one network send thread.
         mPingExecutorService = Executors.newSingleThreadScheduledExecutor();
 
         mTCP = new JumbleTCP();
+        mNetworkThread = new NetworkSendThread();
+        mExecutorService.submit(mNetworkThread);
         mExecutorService.submit(mTCP);
         // We'll start UDP thread after TCP is established. FIXME?
     }
@@ -409,20 +411,30 @@ public class JumbleConnection {
         }
     }
 
-    public void sendTCPMessage(Message message, JumbleTCPMessageType messageType) {
-        try {
-            mTCP.sendMessage(message, messageType);
-        } catch (IOException e) {
-            e.printStackTrace(); // TODO handle me
-        }
+    public void sendTCPMessage(final Message message, final JumbleTCPMessageType messageType) {
+        mNetworkHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    mTCP.sendMessage(message, messageType);
+                } catch (IOException e) {
+                    e.printStackTrace(); // TODO handle me
+                }
+            }
+        });
     }
 
-    public void sendUDPMessage(byte[] data, JumbleUDPMessageType messageType, boolean force) {
-        try {
-            mUDP.sendMessage(data, data.length, messageType, force);
-        } catch (IOException e) {
-            e.printStackTrace(); // TODO handle me
-        }
+    public void sendUDPMessage(final byte[] data, final JumbleUDPMessageType messageType, final boolean force) {
+        mNetworkHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    mUDP.sendMessage(data, data.length, messageType, force);
+                } catch (IOException e) {
+                    e.printStackTrace(); // TODO handle me
+                }
+            }
+        });
     }
 
     private final void handleTCPMessage(byte[] data, int length, JumbleTCPMessageType messageType) {
@@ -706,12 +718,17 @@ public class JumbleConnection {
             while(mConnected) {
                 try {
                     final short messageType = mDataInput.readShort();
-                    int messageLength = mDataInput.readInt();
+                    final int messageLength = mDataInput.readInt();
                     final byte[] data = new byte[messageLength];
                     mDataInput.readFully(data);
 
-                    JumbleTCPMessageType tcpMessageType = JumbleTCPMessageType.values()[messageType];
-                    handleTCPMessage(data, messageLength, tcpMessageType);
+                    final JumbleTCPMessageType tcpMessageType = JumbleTCPMessageType.values()[messageType];
+                    mMainHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            handleTCPMessage(data, messageLength, tcpMessageType);
+                        }
+                    });
                 } catch (IOException e) {
                     if(mConnected) // Only handle unexpected exceptions here. This could be the result of a clean disconnect like a Reject or UserRemove.
                         handleFatalException(new JumbleConnectionException("Lost connection to server", e, true));
@@ -732,7 +749,7 @@ public class JumbleConnection {
         }
 
         /**
-         * Attempts to send a protobuf message over TCP.
+         * Attempts to send a protobuf message over TCP. Executes on the TCP thread.
          * @param message The message to send.
          * @param messageType The type of the message to send.
          * @throws IOException if we can't write the message to the server.
@@ -744,7 +761,7 @@ public class JumbleConnection {
             message.writeTo(mDataOutput);
         }
         /**
-         * Attempts to send a protobuf message over TCP.
+         * Attempts to send a protobuf message over TCP. Executes on the TCP thread.
          * @param message The data to send.
          * @param messageType The type of the message to send.
          * @throws IOException if we can't write the message to the server.
@@ -824,6 +841,19 @@ public class JumbleConnection {
                 packet.setPort(mServer.getPort());
                 mUDPSocket.send(packet);
             }
+        }
+    }
+
+    /**
+     * Thread to send network messages on.
+     */
+    private class NetworkSendThread implements Runnable {
+
+        @Override
+        public void run() {
+            Looper.prepare();
+            mNetworkHandler = new Handler();
+            Looper.loop();
         }
     }
 }

@@ -170,7 +170,7 @@ public final class Channel implements Parcelable {
     }
 
     public void removeLink(int channelId) {
-        mLinks.remove(channelId);
+        mLinks.remove((Object)channelId);
     }
 
     public void clearLinks() {
