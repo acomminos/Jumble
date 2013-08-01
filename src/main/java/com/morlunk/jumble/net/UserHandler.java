@@ -142,6 +142,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
         }
 
         if(msg.hasChannelId()) {
+            user.setChannelId(msg.getChannelId());
             final Channel channel = mService.getChannelHandler().getChannel(msg.getChannelId());
             if(channel == null) {
                 Log.e(Constants.TAG, "Invalid channel for user!");
