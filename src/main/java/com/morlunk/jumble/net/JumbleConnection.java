@@ -269,12 +269,6 @@ public class JumbleConnection {
         mClientName = clientName;
         mForceTCP = forceTcp;
         mUseOpus = useOpus;
-
-        try {
-            mHost = InetAddress.getByName(mServer.getHost());
-        } catch (UnknownHostException e) {
-            throw new JumbleConnectionException("Could not resolve host", e, true);
-        }
         mMainHandler = new Handler(context.getMainLooper());
         mHandlers.add(mConnectionMessageHandler);
         setupSocketFactory(certificate, certificatePassword);
@@ -655,6 +649,12 @@ public class JumbleConnection {
 
         public void run() {
             try {
+                try {
+                    mHost = InetAddress.getByName(mServer.getHost());
+                } catch (UnknownHostException e) {
+                    handleFatalException(new JumbleConnectionException("Could not resolve host", e, true));
+                }
+
                 mTCPSocket = (SSLSocket)mSocketFactory.createSocket();
                 mTCPSocket.setKeepAlive(true);
                 mTCPSocket.setEnabledProtocols(new String[] {"TLSv1"});
