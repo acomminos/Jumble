@@ -150,8 +150,8 @@ public class UserHandler extends JumbleMessageHandler.Stub {
             final Channel old = mService.getChannelHandler().getChannel(user.getChannelId());
 
             if(channel.getId() != old.getId()) {
-                old.removeUser(user.getUserId());
-                channel.addUser(user.getUserId());
+                old.removeUser(user.getSession());
+                channel.addUser(user.getSession());
                 mService.notifyObservers(new JumbleService.ObserverRunnable() {
                     @Override
                     public void run(IJumbleObserver observer) throws RemoteException {
