@@ -241,12 +241,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void setSelfMuteDeafState(boolean mute, boolean deaf) throws RemoteException {
-            User currentUser = mUserHandler.getUser(mConnection.getSession());
-            currentUser.setSelfMuted(mute);
-            currentUser.setSelfDeafened(deaf);
-
             Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSession(mConnection.getSession());
             usb.setSelfMute(mute);
             usb.setSelfDeaf(deaf);
             mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
