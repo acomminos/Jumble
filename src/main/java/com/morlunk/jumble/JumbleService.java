@@ -98,7 +98,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public boolean isConnected() throws RemoteException {
-            return mConnection.isConnected();
+            if(mConnection != null)
+                return mConnection.isConnected();
+            return false;
         }
 
         @Override

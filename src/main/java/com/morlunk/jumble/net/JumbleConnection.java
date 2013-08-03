@@ -330,14 +330,19 @@ public class JumbleConnection {
      */
     public void disconnect() {
         mConnected = false;
-        try {
-            mTCP.disconnect();
-            if(mUDP != null) mUDP.disconnect();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        mTCP = null;
-        mUDP = null;
+        mNetworkHandler.postAtFrontOfQueue(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    mTCP.disconnect();
+                    if(mUDP != null) mUDP.disconnect();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                mTCP = null;
+                mUDP = null;
+            }
+        });
         mExecutorService.shutdown();
         mPingExecutorService.shutdown();
     }
@@ -351,6 +356,14 @@ public class JumbleConnection {
         mPingExecutorService.shutdownNow();
         mTCP = null;
         mUDP = null;
+        if(mListener != null) {
+            mMainHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mListener.onConnectionDisconnected();
+                }
+            });
+        }
     }
 
     /**
@@ -366,7 +379,7 @@ public class JumbleConnection {
                 }
             });
         }
-        disconnect();
+        forceDisconnect();
     }
 
     /**

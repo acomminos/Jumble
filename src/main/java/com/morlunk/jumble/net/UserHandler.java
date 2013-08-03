@@ -66,6 +66,9 @@ public class UserHandler extends JumbleMessageHandler.Stub {
             if(msg.hasName()) {
                 user = new User(msg.getSession(), msg.getName());
                 mUsers.put(msg.getSession(), user);
+                // Assume in root channel. TODO FIX ME PLEASE OH GOD WHY DOES THIS WORK
+                Channel root = mService.getChannelHandler().getChannel(0);
+                root.addUser(user.getSession());
                 newUser = true;
             }
             else
@@ -151,9 +154,11 @@ public class UserHandler extends JumbleMessageHandler.Stub {
 
             user.setChannelId(msg.getChannelId());
 
-            if(channel.getId() != old.getId()) {
+            if(old != null)
                 old.removeUser(user.getSession());
-                channel.addUser(user.getSession());
+
+            channel.addUser(user.getSession());
+            if(!newUser) {
                 mService.notifyObservers(new JumbleService.ObserverRunnable() {
                     @Override
                     public void run(IJumbleObserver observer) throws RemoteException {
@@ -203,10 +208,9 @@ public class UserHandler extends JumbleMessageHandler.Stub {
          */
 
         if(msg.getSession() != mService.getSession()) {
-            Channel channel = mService.getChannelHandler().getChannel(msg.getSession());
-            channel.removeUser(msg.getSession());
-
             final User user = mService.getUserHandler().getUser(msg.getSession());
+            Channel channel = mService.getChannelHandler().getChannel(user.getChannelId());
+            channel.removeUser(user.getSession());
 
             mService.notifyObservers(new JumbleService.ObserverRunnable() {
                 @Override
