@@ -28,6 +28,8 @@ import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.protobuf.Mumble;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
@@ -35,6 +37,18 @@ import java.util.List;
  * Created by andrew on 18/07/13.
  */
 public class UserHandler extends JumbleMessageHandler.Stub {
+
+    /**
+     * Comparator to sort users alphabetically.
+     */
+    private Comparator<Integer> mUserComparator = new Comparator<Integer>() {
+        @Override
+        public int compare(Integer lhs, Integer rhs) {
+            User ulhs = mUsers.get(lhs);
+            User urhs = mUsers.get(rhs);
+            return ulhs.getName().compareTo(urhs.getName());
+        }
+    };
 
     private JumbleService mService;
     private HashMap<Integer, User> mUsers = new HashMap<Integer, User>();
@@ -55,6 +69,14 @@ public class UserHandler extends JumbleMessageHandler.Stub {
         mUsers.clear();
     }
 
+    /**
+     * Sorts the users in the provided channel alphabetically.
+     * @param channel The channel containing the users to sort.
+     */
+    private void sortUsers(Channel channel) {
+        Collections.sort(channel.getUsers(), mUserComparator);
+    }
+
     @Override
     public void messageUserState(Mumble.UserState msg) {
         User user = mUsers.get(msg.getSession());
@@ -69,6 +91,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
                 // Assume in root channel. TODO FIX ME PLEASE OH GOD WHY DOES THIS WORK
                 Channel root = mService.getChannelHandler().getChannel(0);
                 root.addUser(user.getSession());
+                sortUsers(root);
                 newUser = true;
             }
             else
@@ -158,6 +181,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
                 old.removeUser(user.getSession());
 
             channel.addUser(user.getSession());
+            sortUsers(channel);
             if(!newUser) {
                 mService.notifyObservers(new JumbleService.ObserverRunnable() {
                     @Override
@@ -200,7 +224,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
 
     @Override
     public void messageUserRemove(Mumble.UserRemove msg) {
-        String reason = msg.getReason();
+        final String reason = msg.getReason();
 
         /*
          * TODO: logging
@@ -215,7 +239,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
             mService.notifyObservers(new JumbleService.ObserverRunnable() {
                 @Override
                 public void run(IJumbleObserver observer) throws RemoteException {
-                    observer.onUserRemoved(user);
+                    observer.onUserRemoved(user, reason);
                 }
             });
         }

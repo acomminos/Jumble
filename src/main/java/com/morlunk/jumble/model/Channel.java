@@ -20,11 +20,13 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public final class Channel implements Parcelable {
     private int mId;
     private int mPosition;
+    private int mLevel;
     private boolean mTemporary;
     private int mParent = -1;
     private String mName;
@@ -63,6 +65,7 @@ public final class Channel implements Parcelable {
     public void writeToParcel(Parcel out, int flags) {
         out.writeInt(mId);
         out.writeInt(mPosition);
+        out.writeInt(mLevel);
         out.writeValue(mTemporary);
         out.writeInt(mParent);
         out.writeString(mName);
@@ -77,6 +80,7 @@ public final class Channel implements Parcelable {
     public void readFromParcel(Parcel in) {
         mId = in.readInt();
         mPosition = in.readInt();
+        mLevel = in.readInt();
         mTemporary = (Boolean)in.readValue(null);
         mParent = in.readInt();
         mName = in.readString();
@@ -94,7 +98,7 @@ public final class Channel implements Parcelable {
     }
 
     public void addUser(int userId) {
-        mUsers.add(userId); // TODO sorting
+        mUsers.add(userId);
     }
 
     public void removeUser(int userId) {
@@ -159,6 +163,18 @@ public final class Channel implements Parcelable {
 
     public void setDescriptionHash(byte[] mDescriptionHash) {
         this.mDescriptionHash = mDescriptionHash;
+    }
+
+    public List<Integer> getSubchannels() {
+        return mSubchannels;
+    }
+
+    public void addSubchannel(int channelId) {
+        mSubchannels.add(channelId);
+    }
+
+    public void removeSubchannel(int channelId) {
+        mSubchannels.remove((Object)channelId);
     }
 
     public List<Integer> getLinks() {

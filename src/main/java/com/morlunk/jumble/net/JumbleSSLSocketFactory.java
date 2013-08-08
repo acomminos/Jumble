@@ -17,7 +17,9 @@
 package com.morlunk.jumble.net;
 
 import java.io.IOException;
+import java.net.Proxy;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -87,5 +89,4 @@ public class JumbleSSLSocketFactory extends SSLSocketFactory {
     public Socket createSocket() throws IOException {
         return mSslContext.getSocketFactory().createSocket();
     }
-
 }

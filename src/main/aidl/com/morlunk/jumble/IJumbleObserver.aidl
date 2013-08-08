@@ -35,7 +35,7 @@ interface IJumbleObserver {
     void onUserStateUpdated(out User user);
     void onUserTalkStateUpdated(out User user);
     void onUserJoinedChannel(out User user, out Channel newChannel, out Channel oldChannel);
-    void onUserRemoved(out User user);
+    void onUserRemoved(out User user, String reason);
 
     // Logging & Messaging
     void onLogInfo(String message);

@@ -57,6 +57,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_TRANSMIT_MODE = "transmit_mode";
     public static final String EXTRAS_USE_OPUS = "use_opus";
     public static final String EXTRAS_FORCE_TCP = "force_tcp";
+    public static final String EXTRAS_USE_TOR = "use_tor";
     public static final String EXTRAS_CLIENT_NAME = "client_name";
 
     public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
@@ -71,6 +72,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public int mTransmitMode;
     public boolean mUseOpus;
     public boolean mForceTcp;
+    public boolean mUseTor;
     public String mClientName;
 
     private JumbleConnection mConnection;
@@ -274,7 +276,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mDetectionThreshold = extras.getInt(EXTRAS_DETECTION_THRESHOLD, 1400);
             mTransmitMode = extras.getInt(EXTRAS_TRANSMIT_MODE, Constants.TRANSMIT_VOICE_ACTIVITY);
             mUseOpus = extras.getBoolean(EXTRAS_USE_OPUS, true);
-            mForceTcp = extras.getBoolean(EXTRAS_FORCE_TCP, false);
+            mUseTor = extras.getBoolean(EXTRAS_USE_TOR, false);
+            mForceTcp = extras.getBoolean(EXTRAS_FORCE_TCP, false) || mUseTor; // Tor requires TCP connections to work- if it's on, force TCP.
             mClientName = extras.containsKey(EXTRAS_CLIENT_NAME) ? extras.getString(EXTRAS_CLIENT_NAME) : "Jumble";
             connect();
         }
@@ -299,7 +302,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     public void connect() {
         try {
-            mConnection = new JumbleConnection(this, this, mServer, mClientName, mCertificate, mCertificatePassword, mForceTcp, mUseOpus);
+            mConnection = new JumbleConnection(this, this, mServer, mClientName, mCertificate, mCertificatePassword, mForceTcp, mUseOpus, mUseTor);
         } catch (final JumbleConnectionException e) {
             e.printStackTrace();
 

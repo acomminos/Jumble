@@ -24,32 +24,32 @@ import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.protobuf.Mumble;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * Created by andrew on 18/07/13.
  */
 public class ChannelHandler extends JumbleMessageHandler.Stub {
 
-    /**
-     * Channel comparator that first sorts by position, then alphabetical order.
-     */
-    class ChannelSortComparator implements Comparator<Integer> {
-
+    private Comparator<Integer> mChannelComparator = new Comparator<Integer>() {
         @Override
         public int compare(Integer lhs, Integer rhs) {
-            Channel clhs = mChannels.get(lhs);
-            Channel crhs = mChannels.get(rhs);
-            if(clhs.getPosition() > clhs.getPosition()) return 1;
-            else if(clhs.getPosition() < clhs.getPosition()) return -1;
+            Channel clhs = getChannel(lhs);
+            Channel crhs = getChannel(rhs);
+            if(clhs.getPosition() != crhs.getPosition())
+                return ((Integer)clhs.getPosition()).compareTo(crhs.getPosition());
             return clhs.getName().compareTo(crhs.getName());
         }
-    }
+    };
 
     private JumbleService mService;
-    private HashMap<Integer, Channel> mChannels = new HashMap<Integer, Channel>();
+    private Map<Integer, Channel> mChannels = new HashMap<Integer, Channel>();
 
     public ChannelHandler(JumbleService service) {
         mService = service;
@@ -78,20 +78,26 @@ public class ChannelHandler extends JumbleMessageHandler.Stub {
             mChannels.put(msg.getChannelId(), channel);
         }
 
-        if(msg.hasParent())
-            channel.setParent(parent.getId());
-
         if(msg.hasName())
             channel.setName(msg.getName());
+
+        if(msg.hasPosition())
+            channel.setPosition(msg.getPosition());
+
+        if(msg.hasParent()) {
+            Channel oldParent = mChannels.get(channel.getParent());
+            channel.setParent(parent.getId());
+            parent.addSubchannel(channel.getId());
+            Collections.sort(parent.getSubchannels(), mChannelComparator); // Re-sort after subchannel addition
+            if(oldParent != null)
+                oldParent.removeSubchannel(channel.getId());
+        }
 
         if(msg.hasDescriptionHash())
             channel.setDescriptionHash(msg.getDescriptionHash().toByteArray());
 
         if(msg.hasDescription())
             channel.setDescription(msg.getDescription());
-
-        if(msg.hasPosition())
-            channel.setPosition(msg.getPosition());
 
         if(msg.getLinksCount() > 0) {
             channel.clearLinks();

@@ -28,6 +28,7 @@ import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.protobuf.Mumble;
+
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
 
@@ -43,6 +44,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import socks.Socks5Proxy;
+import socks.SocksSocket;
+
 public class JumbleConnection {
     public interface JumbleConnectionListener {
         public void onConnectionEstablished();
@@ -50,6 +54,10 @@ public class JumbleConnection {
         public void onConnectionError(JumbleConnectionException e);
         public void onConnectionWarning(String warning);
     }
+
+    // Tor connection details
+    public static final String TOR_HOST = "localhost";
+    public static final int TOR_PORT = 9050;
 
     private Context mContext;
     private JumbleConnectionListener mListener;
@@ -69,8 +77,9 @@ public class JumbleConnection {
     private InetAddress mHost;
     private JumbleTCP mTCP;
     private JumbleUDP mUDP;
-    private boolean mForceTCP = false;
+    private boolean mForceTCP;
     private boolean mUseOpus = true;
+    private boolean mUseTor;
     private boolean mUsingUDP = true;
     private boolean mConnected;
     private CryptState mCryptState = new CryptState();
@@ -261,7 +270,8 @@ public class JumbleConnection {
                             byte[] certificate,
                             String certificatePassword,
                             boolean forceTcp,
-                            boolean useOpus) throws JumbleConnectionException {
+                            boolean useOpus,
+                            boolean useTor) throws JumbleConnectionException {
 
         mContext = context;
         mListener = listener;
@@ -269,6 +279,7 @@ public class JumbleConnection {
         mClientName = clientName;
         mForceTCP = forceTcp;
         mUseOpus = useOpus;
+        mUseTor = useTor;
         mMainHandler = new Handler(context.getMainLooper());
         mHandlers.add(mConnectionMessageHandler);
         setupSocketFactory(certificate, certificatePassword);
@@ -371,6 +382,7 @@ public class JumbleConnection {
      * @param e The exception that caused termination.
      */
     private void handleFatalException(final JumbleConnectionException e) {
+        e.printStackTrace();
         if(mListener != null) {
             mMainHandler.post(new Runnable() {
                 @Override
@@ -396,6 +408,7 @@ public class JumbleConnection {
                 ByteArrayInputStream inputStream = new ByteArrayInputStream(certificate);
                 keyStore.load(inputStream, certificatePassword != null ? certificatePassword.toCharArray() : new char[0]);
             }
+
             mSocketFactory = new JumbleSSLSocketFactory(keyStore, certificatePassword);
         } catch (KeyManagementException e) {
             throw new JumbleConnectionException("Could not recover keys from certificate", e, false);
@@ -407,14 +420,14 @@ public class JumbleConnection {
             throw new JumbleConnectionException("Could not read certificate file", e, false);
         } catch (CertificateException e) {
             e.printStackTrace();
-        }catch (NoSuchProviderException e) {
+        } catch (NoSuchAlgorithmException e) {
                 /*
                  * This will actually NEVER occur.
                  * We use Spongy Castle to provide the algorithm and provider implementations.
                  * There's no platform dependency.
                  */
             throw new RuntimeException("We use Spongy Castle- what? ", e);
-        } catch (NoSuchAlgorithmException e) {
+        } catch (NoSuchProviderException e) {
                 /*
                  * This will actually NEVER occur.
                  * We use Spongy Castle to provide the algorithm and provider implementations.
@@ -481,7 +494,8 @@ public class JumbleConnection {
      * @param data Raw protobuf TCP data.
      * @param messageType Type of the message.
      * @return The parsed protobuf message.
-     * @throws InvalidProtocolBufferException Called if the messageType does not match the data.
+     * @throws InvalidProtocolBufferException Called if the messageType doe
+                }s not match the data.
      */
     public static final Message getProtobufMessage(byte[] data, JumbleTCPMessageType messageType) throws InvalidProtocolBufferException {
         switch (messageType) {
@@ -680,13 +694,15 @@ public class JumbleConnection {
                     handleFatalException(new JumbleConnectionException("Could not resolve host", e, true));
                 }
 
-                mTCPSocket = (SSLSocket)mSocketFactory.createSocket();
-                mTCPSocket.setKeepAlive(true);
-                mTCPSocket.setEnabledProtocols(new String[] {"TLSv1"});
-                mTCPSocket.setUseClientMode(true);
-
                 HttpParams httpParams = new BasicHttpParams();
-                mSocketFactory.connectSocket(mTCPSocket, mServer.getHost(), mServer.getPort(), null, 0, httpParams);
+
+                if(mUseTor) {
+                    Socks5Proxy proxy = new Socks5Proxy(TOR_HOST, TOR_PORT);
+                    proxy.resolveAddrLocally(false); // Tor requirement for SOCKS5 is to let it resolve the host.
+                    SocksSocket proxySocket = new SocksSocket(proxy, mServer.getHost(), mServer.getPort());
+                    mTCPSocket = (SSLSocket) mSocketFactory.connectSocket(proxySocket, mServer.getHost(), mServer.getPort(), null, 0, httpParams);
+                } else
+                    mTCPSocket = (SSLSocket) mSocketFactory.connectSocket(null, mServer.getHost(), mServer.getPort(), null, 0, httpParams);
 
                 mTCPSocket.startHandshake();
 

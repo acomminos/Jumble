@@ -78,7 +78,7 @@ public class JumbleObserver extends IJumbleObserver.Stub {
     }
 
     @Override
-    public void onUserRemoved(User user) throws RemoteException {
+    public void onUserRemoved(User user, String reason) throws RemoteException {
 
     }
 
