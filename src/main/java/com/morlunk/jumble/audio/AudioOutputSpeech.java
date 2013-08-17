@@ -16,6 +16,9 @@
 
 package com.morlunk.jumble.audio;
 
+import android.util.Log;
+
+import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.audio.celt11.CELT11;
 import com.morlunk.jumble.audio.celt7.CELT7;
 import com.morlunk.jumble.audio.opus.Opus;
@@ -93,6 +96,7 @@ public class AudioOutputSpeech {
                 break;
         }
 
+        mBuffer = new float[mAudioBufferSize];
         mJitterBuffer = Speex.jitter_buffer_init(Audio.FRAME_SIZE);
         Speex.jitter_buffer_ctl(mJitterBuffer, SpeexConstants.JITTER_BUFFER_SET_MARGIN, new int[] { 10 * Audio.FRAME_SIZE });
     }
@@ -154,7 +158,6 @@ public class AudioOutputSpeech {
         while(mBufferFilled < num) {
             int decodedSamples = Audio.FRAME_SIZE;
             resizeBuffer(mBufferFilled + mAudioBufferSize);
-            System.arraycopy(mBuffer, mBufferFilled, out, 0, mAudioBufferSize);
 
             if(!mLastAlive)
                 Arrays.fill(out, 0);
@@ -212,7 +215,7 @@ public class AudioOutputSpeech {
                         }
                     } else {
                         synchronized (mJitterBuffer) {
-                            Speex.jitter_buffer_update_delay(mJitterBuffer, jbp, null);
+                            Speex.jitter_buffer_update_delay(mJitterBuffer, jbp, new int[] { 0 });
                         }
 
                         mMissCount++;
@@ -281,6 +284,7 @@ public class AudioOutputSpeech {
                     }
             }
 
+            System.arraycopy(out, 0, mBuffer, mBufferFilled, mAudioBufferSize);
             mBufferFilled += mAudioBufferSize;
         }
 
@@ -306,6 +310,7 @@ public class AudioOutputSpeech {
 
         boolean tmp = mLastAlive;
         mLastAlive = nextAlive;
+
         return tmp;
     }
 

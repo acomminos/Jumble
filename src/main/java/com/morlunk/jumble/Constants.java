@@ -31,9 +31,9 @@ public class Constants {
 
     static {
         // Load CELT bitstream versions from JNI. TODO clean me with renamed types for version
-        int error = 0;
-        com.morlunk.jumble.audio.celt11.SWIGTYPE_p_CELTMode celt11Mode = CELT11.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, new int[] { error });
-        com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTMode celt7Mode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, new int[] { error });
+        int[] error = new int[1];
+        com.morlunk.jumble.audio.celt11.SWIGTYPE_p_CELTMode celt11Mode = CELT11.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, error);
+        com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTMode celt7Mode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, error);
 
         int[] celt11Version = new int[1];
         int[] celt7Version = new int[1];

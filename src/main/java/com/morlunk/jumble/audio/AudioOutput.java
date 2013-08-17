@@ -19,6 +19,8 @@ package com.morlunk.jumble.audio;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
@@ -46,6 +48,7 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
     private AudioTrack mAudioTrack;
 
     private Thread mThread;
+    private Object mInactiveLock = new Object(); // Lock that the audio thread waits on when there's no audio to play. Wake when we get a frame.
     private boolean mRunning = false;
 
     public AudioOutput(JumbleService service) {
@@ -75,17 +78,32 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
 
     @Override
     public void run() {
-        Log.v(Constants.TAG, "Started audio output");
+        Log.v(Constants.TAG, "Started audio output thread.");
         android.os.Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
         mRunning = true;
+        mAudioTrack.play();
 
         final short[] mix = new short[Audio.FRAME_SIZE*12];
 
         while(mRunning) {
-            mix(mix, mix.length);
-            mAudioTrack.write(mix, 0, mix.length);
-            mAudioTrack.play();
+            boolean play = mix(mix, mix.length);
+            if(play) {
+                mAudioTrack.write(mix, 0, mix.length);
+            } else {
+                Log.v(Constants.TAG, "Pausing audio output thread.");
+                synchronized (mInactiveLock) {
+                    try {
+                        mInactiveLock.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                Log.v(Constants.TAG, "Resuming audio output thread.");
+            }
         }
+
+        mAudioTrack.flush();
+        mAudioTrack.stop();
     }
 
     private boolean mix(short[] outBuffer, int bufferSize) {
@@ -95,7 +113,7 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
         // TODO add priority speaker support
 
         for(AudioOutputSpeech speech : mAudioOutputs.values()) {
-            if(speech.needSamples(bufferSize))
+            if(!speech.needSamples(bufferSize))
                 del.add(speech);
             else
                 mix.add(speech);
@@ -134,7 +152,7 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
         if(user != null && !user.isLocalMuted()) {
             // TODO check for whispers here
             int seq = pds.next();
-            ByteBuffer packet = ByteBuffer.allocate(pds.left() + 1);
+            ByteBuffer packet = ByteBuffer.allocate(pds.left() + 4);
             packet.putInt(msgFlags);
             packet.put(pds.dataBlock(pds.left()));
 
@@ -149,6 +167,9 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
             }
 
             aop.addFrameToBuffer(packet.array(), seq);
+            synchronized (mInactiveLock) {
+                mInactiveLock.notify();
+            }
         }
 
     }
@@ -156,11 +177,20 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
     @Override
     public void onTalkStateUpdated(int session, User.TalkState state) {
         final User user = mService.getUserHandler().getUser(session);
-        mService.notifyObservers(new JumbleService.ObserverRunnable() {
-            @Override
-            public void run(IJumbleObserver observer) throws RemoteException {
-                observer.onUserTalkStateUpdated(user);
-            }
-        });;
+        if(user.getTalkState() != state) {
+            user.setTalkState(state);
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mService.notifyObservers(new JumbleService.ObserverRunnable() {
+                        @Override
+                        public void run(IJumbleObserver observer) throws RemoteException {
+                            observer.onUserTalkStateUpdated(user);
+                        }
+                    });;
+                }
+            });
+        }
     }
 }

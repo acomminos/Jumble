@@ -43,10 +43,13 @@ interface IJumbleService {
     // Server actions
     void joinChannel(int channel);
     void createChannel(int parent, String name, String description, int position, boolean temporary);
+    void sendAccessTokens(in List tokens);
     //void setTexture(byte[] texture);
     void requestBanList();
     void requestUserList();
     //void requestACL(int channel);
+    void requestComment(int session);
+    void requestChannelDescription(int channel);
     void registerUser(int session);
     void kickBanUser(int session, String reason, boolean ban);
     void sendUserTextMessage(int session, String message);

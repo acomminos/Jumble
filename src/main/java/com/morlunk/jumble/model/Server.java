@@ -21,7 +21,7 @@ import android.os.Parcelable;
 
 public class Server implements Parcelable {
 
-    private int mId;
+    private long mId;
     private String mName;
     private String mHost;
     private int mPort;
@@ -41,7 +41,7 @@ public class Server implements Parcelable {
         }
     };
 
-    public Server(int id, String name, String host, int port, String username, String password) {
+    public Server(long id, String name, String host, int port, String username, String password) {
         mId = id;
         mName = name;
         mHost = host;
@@ -57,7 +57,7 @@ public class Server implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel parcel, int i) {
-        parcel.writeInt(mId);
+        parcel.writeLong(mId);
         parcel.writeString(mName);
         parcel.writeString(mHost);
         parcel.writeInt(mPort);
@@ -66,7 +66,7 @@ public class Server implements Parcelable {
     }
 
     public void readFromParcel(Parcel in) {
-        mId = in.readInt();
+        mId = in.readLong();
         mName = in.readString();
         mHost = in.readString();
         mPort = in.readInt();
@@ -79,11 +79,11 @@ public class Server implements Parcelable {
         return 0;
     }
 
-    public int getId() {
+    public long getId() {
         return mId;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         mId = id;
     }
 

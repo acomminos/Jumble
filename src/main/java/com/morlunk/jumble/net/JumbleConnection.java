@@ -29,21 +29,24 @@ import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.protobuf.Mumble;
 
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpParams;
-
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import ch.boye.httpclientandroidlib.params.BasicHttpParams;
+import ch.boye.httpclientandroidlib.params.HttpParams;
 import socks.Socks5Proxy;
 import socks.SocksSocket;
 
@@ -54,6 +57,14 @@ public class JumbleConnection {
         public void onConnectionError(JumbleConnectionException e);
         public void onConnectionWarning(String warning);
     }
+
+    /**
+     * Message types that aren't shown in logcat.
+     * For annoying types like UDPTunnel.
+     */
+    public static final List<JumbleTCPMessageType> UNLOGGED_MESSAGES = Arrays.asList(new JumbleTCPMessageType[] {
+            JumbleTCPMessageType.UDPTunnel
+    });
 
     // Tor connection details
     public static final String TOR_HOST = "localhost";
@@ -464,7 +475,8 @@ public class JumbleConnection {
     }
 
     private final void handleTCPMessage(byte[] data, int length, JumbleTCPMessageType messageType) {
-        Log.v(Constants.TAG, "IN: "+messageType);
+        if(!UNLOGGED_MESSAGES.contains(messageType))
+            Log.v(Constants.TAG, "IN: "+messageType);
 
         if(messageType == JumbleTCPMessageType.UDPTunnel) {
             handleUDPMessage(data);
@@ -694,15 +706,10 @@ public class JumbleConnection {
                     handleFatalException(new JumbleConnectionException("Could not resolve host", e, true));
                 }
 
-                HttpParams httpParams = new BasicHttpParams();
-
-                if(mUseTor) {
-                    Socks5Proxy proxy = new Socks5Proxy(TOR_HOST, TOR_PORT);
-                    proxy.resolveAddrLocally(false); // Tor requirement for SOCKS5 is to let it resolve the host.
-                    SocksSocket proxySocket = new SocksSocket(proxy, mServer.getHost(), mServer.getPort());
-                    mTCPSocket = (SSLSocket) mSocketFactory.connectSocket(proxySocket, mServer.getHost(), mServer.getPort(), null, 0, httpParams);
-                } else
-                    mTCPSocket = (SSLSocket) mSocketFactory.connectSocket(null, mServer.getHost(), mServer.getPort(), null, 0, httpParams);
+                if(mUseTor)
+                    mTCPSocket = mSocketFactory.createTorSocket(mServer.getHost(), mServer.getPort(), TOR_HOST, TOR_PORT);
+                else
+                    mTCPSocket = mSocketFactory.createSocket(mServer.getHost(), mServer.getPort());
 
                 mTCPSocket.startHandshake();
 

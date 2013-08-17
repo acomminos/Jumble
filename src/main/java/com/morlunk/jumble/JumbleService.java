@@ -181,6 +181,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
+        public void sendAccessTokens(List tokens) throws RemoteException {
+            Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
+            ab.addAllTokens(tokens);
+            mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
+        }
+
+        @Override
         public void requestBanList() throws RemoteException {
 
         }
@@ -188,6 +195,20 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public void requestUserList() throws RemoteException {
 
+        }
+
+        @Override
+        public void requestComment(int session) throws RemoteException {
+            Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
+            rbb.addSessionComment(session);
+            mConnection.sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
+        }
+
+        @Override
+        public void requestChannelDescription(int channel) throws RemoteException {
+            Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
+            rbb.addChannelDescription(channel);
+            mConnection.sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
         }
 
         @Override
@@ -346,6 +367,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onConnectionEstablished() {
         Log.v(Constants.TAG, "Connected");
+
+        mAudioOutput.startPlaying();
 
         notifyObservers(new ObserverRunnable() {
             @Override

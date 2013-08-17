@@ -17,9 +17,8 @@
 package com.morlunk.jumble.net;
 
 import java.io.IOException;
-import java.net.Proxy;
+import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -27,66 +26,41 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.SSLSocket;
 
-import org.apache.http.conn.ssl.SSLSocketFactory;
+import ch.boye.httpclientandroidlib.conn.ssl.SSLSocketFactory;
+import ch.boye.httpclientandroidlib.params.BasicHttpParams;
+import ch.boye.httpclientandroidlib.params.HttpParams;
+import socks.Socks5Proxy;
+import socks.SocksSocket;
 
-public class JumbleSSLSocketFactory extends SSLSocketFactory {
-
-    /**
-     * A trust manager which will accept all remote certificates, regardless of validity.
-     * FIXME: this is poor cryptographic practice and allows for a potential MitM attack -AC
-     */
-    private static final TrustManager sPermissiveTrustManager = new X509TrustManager() {
-        @Override
-        public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-
-        }
-
-        @Override
-        public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-
-        }
-
-        @Override
-        public X509Certificate[] getAcceptedIssuers() {
-            return new X509Certificate[0];
-        }
-    };
-
-    private SSLContext mSslContext = SSLContext.getInstance(TLS);
+public class JumbleSSLSocketFactory {
+    private SSLSocketFactory mSocketFactory;
 
     public JumbleSSLSocketFactory(KeyStore keystore, String keystorePassword) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException,
             UnrecoverableKeyException, NoSuchProviderException {
-        super(keystore, keystorePassword, null); // No need for trust store at the moment. FIXME security
-
-        setHostnameVerifier(ALLOW_ALL_HOSTNAME_VERIFIER); // FIXME security
-
-        KeyManager[] keyManagers = null;
-
-        if(keystore != null) {
-            KeyManagerFactory factory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            factory.init(keystore, keystorePassword != null ? keystorePassword.toCharArray() : null);
-            keyManagers = factory.getKeyManagers();
-        }
-
-        mSslContext.init(keyManagers, new TrustManager[] { sPermissiveTrustManager }, new SecureRandom());
+        mSocketFactory = new SSLSocketFactory(SSLSocketFactory.TLS,
+                keystore,
+                keystorePassword,
+                null,
+                new SecureRandom(),
+                SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER); // No need for trust store at the moment. FIXME security
     }
 
-    @Override
-    public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
-        return mSslContext.getSocketFactory().createSocket(socket, host, port, autoClose);
+    /**
+     * Creates a new SSLSocket that runs through a SOCKS5 proxy to reach its destination.
+     */
+    public SSLSocket createTorSocket(String host, int port, String proxyHost, int proxyPort) throws IOException {
+        Socks5Proxy proxy = new Socks5Proxy(proxyHost, proxyPort);
+        proxy.resolveAddrLocally(false); // Let SOCKS5 proxy resolve host. Useful for Tor.
+        SocksSocket socksSocket = new SocksSocket(proxy, host, port);
+        return (SSLSocket) mSocketFactory.createLayeredSocket(socksSocket, proxyHost, proxyPort, new BasicHttpParams());
     }
 
-    @Override
-    public Socket createSocket() throws IOException {
-        return mSslContext.getSocketFactory().createSocket();
+    public SSLSocket createSocket(String host, int port) throws IOException {
+        HttpParams params = new BasicHttpParams();
+        Socket socket = mSocketFactory.createSocket(params);
+        return (SSLSocket) mSocketFactory.connectSocket(socket, new InetSocketAddress(host, port), null, params);
     }
 }
