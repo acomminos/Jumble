@@ -44,6 +44,7 @@ interface IJumbleService {
     void joinChannel(int channel);
     void createChannel(int parent, String name, String description, int position, boolean temporary);
     void sendAccessTokens(in List tokens);
+    List getAccessTokens();
     //void setTexture(byte[] texture);
     void requestBanList();
     void requestUserList();

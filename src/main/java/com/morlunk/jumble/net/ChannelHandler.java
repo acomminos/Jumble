@@ -29,8 +29,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 /**
  * Created by andrew on 18/07/13.
@@ -63,6 +61,19 @@ public class ChannelHandler extends JumbleMessageHandler.Stub {
         return new ArrayList<Channel>(mChannels.values());
     }
 
+    /**
+     * Called after users are added or removed from a channel, this method will iterate up in the hierarchy to update parent channels' user counts. Intended to be pretty efficient.
+     * @param channel The channel whose user count has been changed.
+     * @param change The number of users who have been added or removed- positive if added, negative if removed.
+     */
+    protected void changeSubchannelUsers(Channel channel, int change) {
+        channel.setSubchannelUserCount(channel.getSubchannelUserCount() + change);
+        int parent = channel.getParent();
+        Channel parentChannel = mChannels.get(parent);
+        if(parentChannel != null)
+            changeSubchannelUsers(parentChannel, change);
+    }
+
     @Override
     public void messageChannelState(Mumble.ChannelState msg) {
         if(!msg.hasChannelId())
@@ -88,9 +99,12 @@ public class ChannelHandler extends JumbleMessageHandler.Stub {
             Channel oldParent = mChannels.get(channel.getParent());
             channel.setParent(parent.getId());
             parent.addSubchannel(channel.getId());
+            changeSubchannelUsers(parent, channel.getSubchannelUserCount());
             Collections.sort(parent.getSubchannels(), mChannelComparator); // Re-sort after subchannel addition
-            if(oldParent != null)
+            if(oldParent != null) {
                 oldParent.removeSubchannel(channel.getId());
+                changeSubchannelUsers(oldParent, -channel.getSubchannelUserCount());
+            }
         }
 
         if(msg.hasDescriptionHash())
@@ -132,6 +146,11 @@ public class ChannelHandler extends JumbleMessageHandler.Stub {
         final Channel channel = mChannels.get(msg.getChannelId());
         if(channel != null && channel.getId() != 0) {
             mChannels.remove(channel.getId());
+            Channel parent = mChannels.get(channel.getParent());
+            if(parent != null) {
+                parent.removeSubchannel(msg.getChannelId());
+                changeSubchannelUsers(parent, -channel.getUsers().size());
+            }
             mService.notifyObservers(new JumbleService.ObserverRunnable() {
                 @Override
                 public void run(IJumbleObserver observer) throws RemoteException {

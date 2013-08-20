@@ -16,11 +16,17 @@
 
 package com.morlunk.jumble.db;
 
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import com.morlunk.jumble.Constants;
+import com.morlunk.jumble.model.Server;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Jumble's database is desinged to hold server-specific state information, such as comment blobs.
@@ -46,17 +52,8 @@ public class Database extends SQLiteOpenHelper {
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `blobs_hash` ON `blobs`(`hash`)");
         db.execSQL("CREATE INDEX IF NOT EXISTS `blobs_seen` ON `blobs`(`seen`)");
 
-        db.execSQL("CREATE TABLE IF NOT EXISTS `tokens` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `digest` BLOB, `token` TEXT)");
-        db.execSQL("CREATE INDEX IF NOT EXISTS `tokens_host_port` ON `tokens`(`digest`)");
-
-        db.execSQL("CREATE TABLE IF NOT EXISTS `shortcut` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `digest` BLOB, `shortcut` BLOB, `target` BLOB, `suppress` INTEGER)");
-        db.execSQL("CREATE INDEX IF NOT EXISTS `shortcut_host_port` ON `shortcut`(`digest`)");
-
-        db.execSQL("CREATE TABLE IF NOT EXISTS `udp` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `digest` BLOB)");
-        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `udp_host_port` ON `udp`(`digest`)");
-
-        db.execSQL("CREATE TABLE IF NOT EXISTS `cert` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `hostname` TEXT, `port` INTEGER, `digest` TEXT)");
-        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `cert_host_port` ON `cert`(`hostname`,`port`)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `tokens` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `server` INTEGER, `token` TEXT)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS `tokens_host_port` ON `tokens`(`server`)");
 
         db.execSQL("CREATE TABLE IF NOT EXISTS `friends` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT, `hash` TEXT)");
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `friends_name` ON `friends`(`name`)");
@@ -85,5 +82,28 @@ public class Database extends SQLiteOpenHelper {
         // Clean out old blobs
         db.execSQL("DELETE FROM `comments` WHERE `seen` < datetime('now', '-1 years')");
         db.execSQL("DELETE FROM `blobs` WHERE `seen` < datetime('now', '-1 months')");
+    }
+
+    public void setTokens(long server, List<String> tokens) {
+        getWritableDatabase().delete("tokens", "server=?", new String[] { Long.toString(server) });
+
+        ContentValues values = new ContentValues();
+        values.put("server", server);
+        for(String token : tokens) {
+            values.put("token", token);
+            getWritableDatabase().insert("tokens", null, values);
+        }
+    }
+
+    public List<String> getTokens(long server) {
+        Cursor cursor = getReadableDatabase().query("tokens", new String[] { "token" }, "server=?", new String[] { Long.toString(server) }, null, null, null);
+        cursor.moveToFirst();
+        List<String> tokens = new ArrayList<String>();
+        while(!cursor.isAfterLast()) {
+            tokens.add(cursor.getString(0));
+            cursor.moveToNext();
+        }
+        cursor.close();
+        return tokens;
     }
 }

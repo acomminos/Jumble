@@ -45,7 +45,7 @@ public class User implements Parcelable {
     private boolean mPrioritySpeaker;
     private boolean mRecording;
 
-    private int mChannel;
+    private int mChannel = -1;
 
     private TalkState mTalkState = TalkState.PASSIVE;
 

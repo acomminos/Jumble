@@ -30,7 +30,6 @@ import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.protobuf.Mumble;
 
 import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 
 import java.io.*;
 import java.net.*;
@@ -44,11 +43,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import ch.boye.httpclientandroidlib.params.BasicHttpParams;
-import ch.boye.httpclientandroidlib.params.HttpParams;
-import socks.Socks5Proxy;
-import socks.SocksSocket;
 
 public class JumbleConnection {
     public interface JumbleConnectionListener {

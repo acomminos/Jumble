@@ -83,6 +83,7 @@ public class AudioOutputSpeech {
                 mOpusDecoder = Opus.opus_decoder_create(Audio.SAMPLE_RATE, 1, error);
                 break;
             case UDPVoiceSpeex:
+                mSpeexBits = new SpeexBits();
                 Speex.speex_bits_init(mSpeexBits);
                 mSpeexDecoder = Speex.speex_decoder_init(Speex.getSpeex_uwb_mode());
                 Speex.speex_decoder_ctl(mSpeexDecoder, SpeexConstants.SPEEX_SET_ENH, new int[] { 1 });

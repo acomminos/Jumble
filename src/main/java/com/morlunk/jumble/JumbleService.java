@@ -185,6 +185,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
             ab.addAllTokens(tokens);
             mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
+            mDatabase.setTokens(mServer.getId(), tokens);
+        }
+
+        @Override
+        public List getAccessTokens() throws RemoteException {
+            return mDatabase.getTokens(mServer.getId());
         }
 
         @Override
@@ -314,6 +320,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onDestroy() {
         mObservers.kill();
+        mDatabase.close();
         super.onDestroy();
     }
 
@@ -369,6 +376,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         Log.v(Constants.TAG, "Connected");
 
         mAudioOutput.startPlaying();
+
+        if(mServer.getId() != -1) {
+            // Send access tokens
+            Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
+            ab.addAllTokens(mDatabase.getTokens(mServer.getId()));
+            mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
+        }
 
         notifyObservers(new ObserverRunnable() {
             @Override
