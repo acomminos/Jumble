@@ -159,4 +159,24 @@ public class ChannelHandler extends JumbleMessageHandler.Stub {
             });
         }
     }
+
+    @Override
+    public void messagePermissionQuery(Mumble.PermissionQuery msg) {
+        if(msg.getFlush())
+            for(Channel channel : mChannels.values())
+                channel.setPermissions(0);
+
+        final Channel channel = mChannels.get(msg.getChannelId());
+        if(channel != null) {
+            channel.setPermissions(msg.getPermissions());
+            if(msg.getChannelId() == 0) // If we're provided permissions for the root channel, we'll apply these as our server permissions.
+                mService.setPermissions(msg.getPermissions());
+            mService.notifyObservers(new JumbleService.ObserverRunnable() {
+                @Override
+                public void run(IJumbleObserver observer) throws RemoteException {
+                    observer.onChannelPermissionsUpdated(channel);
+                }
+            });
+        }
+    }
 }

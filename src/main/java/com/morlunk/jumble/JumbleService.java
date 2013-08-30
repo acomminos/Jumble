@@ -36,8 +36,13 @@ import com.morlunk.jumble.net.JumbleTCPMessageType;
 import com.morlunk.jumble.net.TextMessageHandler;
 import com.morlunk.jumble.net.UserHandler;
 import com.morlunk.jumble.protobuf.Mumble;
+import com.morlunk.jumble.util.MessageFormatter;
 
 import java.security.Security;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class JumbleService extends Service implements JumbleConnection.JumbleConnectionListener {
@@ -81,6 +86,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private UserHandler mUserHandler;
     private TextMessageHandler mTextMessageHandler;
     private AudioOutput mAudioOutput;
+
+    // Logging
+    private List<String> mLogHistory = new ArrayList<String>();
+    private SimpleDateFormat mChatDateFormat = new SimpleDateFormat("[h:mm a] ");
+
+    private int mPermissions;
 
     private RemoteCallbackList<IJumbleObserver> mObservers = new RemoteCallbackList<IJumbleObserver>();
 
@@ -147,6 +158,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
+        public List getLogHistory() throws RemoteException {
+            return mLogHistory;
+        }
+
+        @Override
+        public int getPermissions() throws RemoteException {
+            return mPermissions;
+        }
+
+        @Override
         public int getTransmitMode() throws RemoteException {
             return mTransmitMode;
         }
@@ -204,6 +225,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
+        public void requestPermissions(int channel) throws RemoteException {
+            Mumble.PermissionQuery.Builder pqb = Mumble.PermissionQuery.newBuilder();
+            pqb.setChannelId(channel);
+            mConnection.sendTCPMessage(pqb.build(), JumbleTCPMessageType.PermissionQuery);
+        }
+
+        @Override
         public void requestComment(int session) throws RemoteException {
             Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
             rbb.addSessionComment(session);
@@ -240,6 +268,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             tmb.addSession(session);
             tmb.setMessage(message);
             mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
+
+            // Log message to chat
+            User target = getUser(session);
+            String formattedMessage = getString(R.string.chat_message_to, MessageFormatter.highlightString(target.getName()), message);
+            logMessage(formattedMessage);
         }
 
         @Override
@@ -251,6 +284,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 tmb.addChannelId(channel);
             tmb.setMessage(message);
             mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
+
+            // Log message to chat
+            Channel target = getChannel(channel);
+            String formattedMessage = getString(R.string.chat_message_to, MessageFormatter.highlightString(target.getName()), message);
+            logMessage(formattedMessage);
         }
 
         @Override
@@ -266,6 +304,15 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             Mumble.ChannelRemove.Builder crb = Mumble.ChannelRemove.newBuilder();
             crb.setChannelId(channel);
             mConnection.sendTCPMessage(crb.build(), JumbleTCPMessageType.ChannelRemove);
+        }
+
+        @Override
+        public void setMuteDeafState(int session, boolean mute, boolean deaf) throws RemoteException {
+            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+            usb.setSession(session);
+            usb.setMute(mute);
+            usb.setDeaf(deaf);
+            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
         }
 
         @Override
@@ -308,7 +355,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mClientName = extras.containsKey(EXTRAS_CLIENT_NAME) ? extras.getString(EXTRAS_CLIENT_NAME) : "Jumble";
             connect();
         }
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     @Override
@@ -328,6 +375,10 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         return mBinder;
     }
 
+    public IJumbleService getBinder() {
+        return mBinder;
+    }
+
     public void connect() {
         try {
             mConnection = new JumbleConnection(this, this, mServer, mClientName, mCertificate, mCertificatePassword, mForceTcp, mUseOpus, mUseTor);
@@ -343,6 +394,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
             return;
         }
+
+        mLogHistory.clear();
+        mPermissions = 0;
 
         mChannelHandler = new ChannelHandler(this);
         mUserHandler = new UserHandler(this);
@@ -407,6 +461,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         mChannelHandler = null;
         mUserHandler = null;
+
+        stopSelf();
     }
 
     @Override
@@ -441,6 +497,10 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         return mChannelHandler;
     }
 
+    public void setPermissions(int permissions) {
+        mPermissions = permissions;
+    }
+
     /*
      * --- HERE BE CALLBACKS ---
      * This code will be called by components of the service like ChannelHandler.
@@ -448,10 +508,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     /**
      * Logs a warning message to the client.
-     * @param warning An HTML warning string to be messaged to the client.
+     * @param warning An HTML warning string to be messagxz ed to the client.
      */
     public void logWarning(final String warning) {
         Log.w(Constants.TAG, warning);
+        mLogHistory.add(warning);
         notifyObservers(new ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
@@ -465,11 +526,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * @param info An HTML info string to be messaged to the client.
      */
     public void logInfo(final String info) {
-        Log.v(Constants.TAG, info);
+        if(!mConnection.isSynchronized())
+            return; // Don't log messages while synchronizing.
+
+        final String formatInfo = mChatDateFormat.format(new Date())+info;
+        Log.v(Constants.TAG, formatInfo);
+        mLogHistory.add(formatInfo);
         notifyObservers(new ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
-                observer.onLogInfo(info);
+                observer.onLogInfo(formatInfo);
             }
         });
     }
@@ -479,10 +545,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * @param message An HTML message to send to the client.
      */
     public void logMessage(final String message) {
+        final String formatMessage = mChatDateFormat.format(new Date())+message;
+        mLogHistory.add(formatMessage);
         notifyObservers(new ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
-                observer.onMessageReceived(message);
+                observer.onMessageReceived(formatMessage);
             }
         });
     }

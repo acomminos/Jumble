@@ -87,6 +87,7 @@ public class JumbleConnection {
     private boolean mUseTor;
     private boolean mUsingUDP = true;
     private boolean mConnected;
+    private boolean mSynchronized;
     private CryptState mCryptState = new CryptState();
     private long mStartTimestamp; // Time that the connection was initiated in nanoseconds
 
@@ -121,6 +122,7 @@ public class JumbleConnection {
             mPingExecutorService.scheduleAtFixedRate(mPingRunnable, 0, 5, TimeUnit.SECONDS);
 
             mSession = msg.getSession();
+            mSynchronized = true;
 
             mMainHandler.post(new Runnable() {
                 @Override
@@ -146,7 +148,7 @@ public class JumbleConnection {
 
         @Override
         public void messageUserRemove(final Mumble.UserRemove msg) {
-            if(msg.getActor() == mSession) {
+            if(msg.getSession() == mSession) {
                 if(mListener != null) {
                     mMainHandler.post(new Runnable() {
                         @Override
@@ -292,6 +294,7 @@ public class JumbleConnection {
 
     public void connect() {
         mConnected = false;
+        mSynchronized = false;
         mUsingUDP = !mForceTCP;
         mStartTimestamp = System.nanoTime();
 
@@ -307,6 +310,15 @@ public class JumbleConnection {
 
     public boolean isConnected() {
         return mConnected;
+    }
+
+    /**
+     * Returns whether or not the service is fully synchronized with the remote server- this happens when we get the ServerSync message.
+     * You shouldn't log any user actions until the connection is synchronized.
+     * @return true or false, depending on whether or not we have received the ServerSync message.
+     */
+    public boolean isSynchronized() {
+        return mSynchronized;
     }
 
     public long getElapsed() {
@@ -346,6 +358,7 @@ public class JumbleConnection {
      */
     public void disconnect() {
         mConnected = false;
+        mSynchronized = false;
         mNetworkHandler.postAtFrontOfQueue(new Runnable() {
             @Override
             public void run() {
@@ -368,6 +381,7 @@ public class JumbleConnection {
      */
     public void forceDisconnect() {
         mConnected = false;
+        mSynchronized = false;
         mExecutorService.shutdownNow();
         mPingExecutorService.shutdownNow();
         mTCP = null;

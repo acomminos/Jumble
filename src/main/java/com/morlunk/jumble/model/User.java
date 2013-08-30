@@ -19,6 +19,8 @@ package com.morlunk.jumble.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.google.protobuf.ByteString;
+
 public class User implements Parcelable {
 
     public static enum TalkState {
@@ -29,10 +31,10 @@ public class User implements Parcelable {
     }
 
     private int mSession;
-    private int mId;
+    private int mId = -1;
     private String mName;
     private String mComment;
-    private byte[] mCommentHash;
+    private ByteString mCommentHash;
     private String mHash;
 
     private boolean mMuted;
@@ -85,8 +87,8 @@ public class User implements Parcelable {
         out.writeInt(mId);
         out.writeString(mName);
         out.writeString(mComment);
-        out.writeInt(mCommentHash.length);
-        out.writeByteArray(mCommentHash);
+        out.writeInt(mCommentHash.size());
+        out.writeByteArray(mCommentHash.toByteArray());
         out.writeString(mHash);
         out.writeValue(mMuted);
         out.writeValue(mDeafened);
@@ -105,8 +107,9 @@ public class User implements Parcelable {
         mId = in.readInt();
         mName = in.readString();
         mComment = in.readString();
-        mCommentHash = new byte[in.readInt()];
-        in.readByteArray(mCommentHash);
+        byte[] commentHash = new byte[in.readInt()];
+        in.readByteArray(commentHash);
+        mCommentHash = ByteString.copyFrom(commentHash);
         mHash = in.readString();
         mMuted = (Boolean)in.readValue(null);
         mDeafened = (Boolean)in.readValue(null);
@@ -161,12 +164,12 @@ public class User implements Parcelable {
         this.mComment = mComment;
     }
 
-    public byte[] getCommentHash() {
+    public ByteString getCommentHash() {
         return mCommentHash;
     }
 
-    public void setCommentHash(byte[] mCommentHash) {
-        this.mCommentHash = mCommentHash;
+    public void setCommentHash(ByteString commentHash) {
+        mCommentHash = commentHash;
     }
 
     public String getHash() {

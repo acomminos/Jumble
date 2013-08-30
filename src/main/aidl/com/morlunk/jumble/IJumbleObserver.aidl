@@ -29,6 +29,7 @@ interface IJumbleObserver {
     void onChannelAdded(out Channel channel);
     void onChannelStateUpdated(out Channel channel);
     void onChannelRemoved(out Channel channel);
+    void onChannelPermissionsUpdated(out Channel channel);
 
     // User
     void onUserConnected(out User user);

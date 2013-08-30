@@ -36,6 +36,7 @@ public final class Channel implements Parcelable {
     private List<Integer> mUsers = new ArrayList<Integer>();
     private List<Integer> mLinks = new ArrayList<Integer>();
     private int mUserCount;
+    private int mPermissions;
 
     public static final Parcelable.Creator<Channel> CREATOR = new Parcelable.Creator<Channel>() {
 
@@ -77,6 +78,7 @@ public final class Channel implements Parcelable {
         out.writeList(mUsers);
         out.writeList(mLinks);
         out.writeInt(mUserCount);
+        out.writeInt(mPermissions);
     }
 
     public void readFromParcel(Parcel in) {
@@ -93,6 +95,7 @@ public final class Channel implements Parcelable {
         mUsers = in.readArrayList(null);
         mLinks = in.readArrayList(null);
         mUserCount = in.readInt();
+        mPermissions = in.readInt();
     }
 
     @Override
@@ -205,5 +208,13 @@ public final class Channel implements Parcelable {
 
     public void setSubchannelUserCount(int userCount) {
         mUserCount = userCount;
+    }
+
+    public int getPermissions() {
+        return mPermissions;
+    }
+
+    public void setPermissions(int permissions) {
+        mPermissions = permissions;
     }
 }

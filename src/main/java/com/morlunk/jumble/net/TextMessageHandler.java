@@ -19,6 +19,7 @@ package com.morlunk.jumble.net;
 import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.protobuf.Mumble;
+import com.morlunk.jumble.util.MessageFormatter;
 
 /**
  * Handles receiving text messages.
@@ -41,7 +42,7 @@ public class TextMessageHandler extends JumbleMessageHandler.Stub {
             return;
 
         // TODO use more localized strings here
-        String senderName = sender != null ? sender.getName() : "Server";
+        String senderName = sender != null ? MessageFormatter.highlightString(sender.getName()) : "Server";
         String senderTarget = "";
 
         if(msg.getTreeIdCount() > 0)

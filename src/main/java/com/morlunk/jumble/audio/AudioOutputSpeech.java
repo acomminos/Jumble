@@ -230,29 +230,29 @@ public class AudioOutputSpeech {
 
                     if(mCodec == JumbleUDPMessageType.UDPVoiceCELTAlpha) {
                         CELT7.celt_decode_float(mCELTAlphaDecoder,
-                                mFrames.isEmpty() ? null : data,
+                                data,
                                 data.length,
                                 out);
                     } else if(mCodec == JumbleUDPMessageType.UDPVoiceCELTBeta) {
                         CELT11.celt_decode_float(mCELTBetaDecoder,
-                                mFrames.isEmpty() ? null : data,
+                                data,
                                 data.length,
                                 out,
                                 Audio.FRAME_SIZE);
                     } else if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
                         decodedSamples = Opus.opus_decode_float(mOpusDecoder,
-                                mFrames.isEmpty() ? null : data,
+                                data,
                                 data.length,
                                 out,
                                 mAudioBufferSize,
                                 0);
                     } else { // Speex
-                        if(mFrames.isEmpty())
-                            Speex.speex_decode(mSpeexDecoder, null, out);
-                        else {
+//                        if(data.isEmpty())
+//                            Speex.speex_decode(mSpeexDecoder, null, out);
+//                        else {
                             Speex.speex_bits_read_from(mSpeexBits, data, data.length);
                             Speex.speex_decode(mSpeexDecoder, mSpeexBits, out);
-                        }
+//                        }
                         for(int i = 0; i < Audio.FRAME_SIZE; i++)
                             out[i] *= (1.0f / 32767.f);
                     }
@@ -307,6 +307,7 @@ public class AudioOutputSpeech {
                 talkState = User.TalkState.WHISPERING;
                 break;
         }
+
         mTalkStateListener.onTalkStateUpdated(mSession, talkState);
 
         boolean tmp = mLastAlive;
@@ -331,6 +332,10 @@ public class AudioOutputSpeech {
 
     public JumbleUDPMessageType getCodec() {
         return mCodec;
+    }
+
+    public int getSession() {
+        return mSession;
     }
 
     /**

@@ -34,6 +34,8 @@ interface IJumbleService {
     Channel getChannel(int id);
     List getUserList();
     List getChannelList();
+    List getLogHistory();
+    int getPermissions();
 
     // Audio actions
     int getTransmitMode();
@@ -49,6 +51,7 @@ interface IJumbleService {
     void requestBanList();
     void requestUserList();
     //void requestACL(int channel);
+    void requestPermissions(int channel);
     void requestComment(int session);
     void requestChannelDescription(int channel);
     void registerUser(int session);
@@ -59,6 +62,7 @@ interface IJumbleService {
     void removeChannel(int channel);
     //void addChannelLink(int channel, int link);
     //void requestChannelPermissions(int channel);
+    void setMuteDeafState(int session, boolean mute, boolean deaf);
     void setSelfMuteDeafState(boolean mute, boolean deaf);
     //void announceRecordingState(boolean recording);
 

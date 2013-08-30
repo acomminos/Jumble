@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="chat_message_to">To %1$s: %2$s</string>
     <string name="chat_notify_moved">%1$s moved in from %2$s by %3$s.</string>
     <string name="chat_notify_muted_deafened">Muted and deafened.</string>
     <string name="chat_notify_muted">Muted.</string>

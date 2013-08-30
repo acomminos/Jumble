@@ -35,6 +35,7 @@ import com.morlunk.jumble.net.PacketDataStream;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -43,6 +44,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, AudioOutputSpeech.TalkStateListener {
 
+    /** Number of nanoseconds until sleeping audio output thread. */
+    private static final long SLEEP_THRESHOLD = 2000000000L;
+
     private JumbleService mService;
     private ConcurrentHashMap<Integer, AudioOutputSpeech> mAudioOutputs = new ConcurrentHashMap<Integer, AudioOutputSpeech>();
     private AudioTrack mAudioTrack;
@@ -50,6 +54,7 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
     private Thread mThread;
     private Object mInactiveLock = new Object(); // Lock that the audio thread waits on when there's no audio to play. Wake when we get a frame.
     private boolean mRunning = false;
+    private long mLastPacket; // Time that the last packet was received, in nanoseconds
 
     public AudioOutput(JumbleService service) {
         mService = service;
@@ -59,7 +64,7 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
                 Audio.SAMPLE_RATE,
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
-                bufferSize,
+                Audio.FRAME_SIZE*12,
                 AudioTrack.MODE_STREAM);
     }
 
@@ -86,10 +91,11 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
         final short[] mix = new short[Audio.FRAME_SIZE*12];
 
         while(mRunning) {
+            Arrays.fill(mix, (short)0);
             boolean play = mix(mix, mix.length);
             if(play) {
                 mAudioTrack.write(mix, 0, mix.length);
-            } else {
+            } else if(System.nanoTime()-mLastPacket > SLEEP_THRESHOLD) {
                 Log.v(Constants.TAG, "Pausing audio output thread.");
                 synchronized (mInactiveLock) {
                     try {
@@ -131,7 +137,7 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
         }
 
         for(AudioOutputSpeech speech : del)
-            mAudioOutputs.remove(speech);
+            mAudioOutputs.remove(speech.getSession());
 
         return !mix.isEmpty();
     }
@@ -167,6 +173,8 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
             }
 
             aop.addFrameToBuffer(packet.array(), seq);
+
+            mLastPacket = System.nanoTime();
             synchronized (mInactiveLock) {
                 mInactiveLock.notify();
             }

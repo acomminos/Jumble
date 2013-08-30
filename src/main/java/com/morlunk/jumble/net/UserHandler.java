@@ -26,6 +26,7 @@ import com.morlunk.jumble.R;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.protobuf.Mumble;
+import com.morlunk.jumble.util.MessageFormatter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,6 +90,12 @@ public class UserHandler extends JumbleMessageHandler.Stub {
                 user = new User(msg.getSession(), msg.getName());
                 mUsers.put(msg.getSession(), user);
                 newUser = true;
+                // Add user to root channel by default. This works because for some reason, we don't get a channel ID when the user joins into root.
+                Channel root = mService.getChannelHandler().getChannel(0);
+                user.setChannelId(0);
+                root.addUser(user.getSession());
+                root.setSubchannelUserCount(root.getSubchannelUserCount()+1);
+                sortUsers(root);
             }
             else
                 return;
@@ -110,7 +117,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
         }
 
         if(newUser)
-            mService.logInfo(mService.getString(R.string.chat_notify_connected, user.getName()));
+            mService.logInfo(mService.getString(R.string.chat_notify_connected, MessageFormatter.highlightString(user.getName())));
 
         if(msg.hasSelfDeaf() || msg.hasSelfMute()) {
             if(msg.hasSelfMute())
@@ -120,11 +127,11 @@ public class UserHandler extends JumbleMessageHandler.Stub {
 
             if(self != null && user.getSession() != self.getSession() && (user.getChannelId() == self.getChannelId())) {
                 if(user.isSelfMuted() && user.isSelfDeafened())
-                    mService.logInfo(mService.getString(R.string.chat_notify_now_muted_deafened, user.getName()));
+                    mService.logInfo(mService.getString(R.string.chat_notify_now_muted_deafened, MessageFormatter.highlightString(user.getName())));
                 else if(user.isSelfMuted())
-                    mService.logInfo(mService.getString(R.string.chat_notify_now_muted, user.getName()));
+                    mService.logInfo(mService.getString(R.string.chat_notify_now_muted, MessageFormatter.highlightString(user.getName())));
                 else
-                    mService.logInfo(mService.getString(R.string.chat_notify_now_unmuted, user.getName()));
+                    mService.logInfo(mService.getString(R.string.chat_notify_now_unmuted, MessageFormatter.highlightString(user.getName())));
             }
         }
 
@@ -142,9 +149,9 @@ public class UserHandler extends JumbleMessageHandler.Stub {
                     // If in a linked channel OR the same channel as the current user, notify the user about recording
                     if(selfChannel != null && (selfChannel.getLinks().contains(user.getChannelId()) || self.getChannelId() == user.getChannelId())) {
                         if(user.isRecording())
-                            mService.logInfo(mService.getString(R.string.chat_notify_user_recording_started, user.getName()));
+                            mService.logInfo(mService.getString(R.string.chat_notify_user_recording_started, MessageFormatter.highlightString(user.getName())));
                         else
-                            mService.logInfo(mService.getString(R.string.chat_notify_user_recording_stopped, user.getName()));
+                            mService.logInfo(mService.getString(R.string.chat_notify_user_recording_stopped, MessageFormatter.highlightString(user.getName())));
                     }
                 }
             }
@@ -203,7 +210,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
          */
 
         if(msg.hasCommentHash())
-            user.setCommentHash(msg.getCommentHash().toByteArray());
+            user.setCommentHash(msg.getCommentHash());
 
         if(msg.hasComment())
             user.setComment(msg.getComment());
