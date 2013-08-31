@@ -118,7 +118,7 @@ public class AudioOutputSpeech {
 
             byte[] packet = pds.dataBlock(size);
             int frames = Opus.opus_packet_get_nb_frames(packet, size);
-            samples = Opus.opus_packet_get_samples_per_frame(packet, Audio.FRAME_SIZE);
+            samples = frames * Opus.opus_packet_get_samples_per_frame(packet, Audio.FRAME_SIZE);
 
             if(samples % Audio.FRAME_SIZE == 0)
                 return; // We can't handle frames which are not a multiple of 10ms.

@@ -30,6 +30,7 @@ public class PacketDataStream {
     private boolean mOk;
 
     public PacketDataStream(byte[] data, int len) {
+        mOk = true;
         mData = data;
         mMaxSize = len;
     }
@@ -96,6 +97,7 @@ public class PacketDataStream {
     public byte[] dataBlock(int size) {
         byte[] block = new byte[size];
         System.arraycopy(mData, mOffset, block, 0, size);
+        mOffset += size;
         return block;
     }
 

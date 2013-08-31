@@ -135,30 +135,13 @@ public class JumbleConnection {
 
         @Override
         public void messageReject(final Mumble.Reject msg) {
-            if(mListener != null) {
-                mMainHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mListener.onConnectionError(new JumbleConnectionException(msg));
-                    }
-                });
-            }
-            disconnect();
+            handleFatalException(new JumbleConnectionException(msg));
         }
 
         @Override
         public void messageUserRemove(final Mumble.UserRemove msg) {
-            if(msg.getSession() == mSession) {
-                if(mListener != null) {
-                    mMainHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            mListener.onConnectionError(new JumbleConnectionException(msg));
-                        }
-                    });
-                }
-                disconnect();
-            }
+            if(msg.getSession() == mSession)
+                handleFatalException(new JumbleConnectionException(msg));
         }
 
         @Override

@@ -1617,13 +1617,8 @@ SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_SpeexBits_1
     arg2 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg2, 0); 
   }
   {
-    free(arg1->chars);
-    if (arg2) {
-      arg1->chars = (char *) malloc(strlen((const char *)arg2)+1);
-      strcpy((char *)arg1->chars, (const char *)arg2);
-    } else {
-      arg1->chars = 0;
-    }
+    if (arg2) strcpy((char *)arg1->chars, (const char *)arg2);
+    else arg1->chars[0] = 0;
   }
   {
     (*jenv)->ReleaseByteArrayElements(jenv, jarg2, (jbyte *) arg2, 0); 
@@ -2206,13 +2201,8 @@ SWIGEXPORT void JNICALL Java_com_morlunk_jumble_audio_speex_SpeexJNI_JitterBuffe
     arg2 = (char *) (*jenv)->GetByteArrayElements(jenv, jarg2, 0); 
   }
   {
-    free(arg1->data);
-    if (arg2) {
-      arg1->data = (char *) malloc(strlen((const char *)arg2)+1);
-      strcpy((char *)arg1->data, (const char *)arg2);
-    } else {
-      arg1->data = 0;
-    }
+    if (arg2) strcpy((char *)arg1->data, (const char *)arg2);
+    else arg1->data[0] = 0;
   }
   {
     (*jenv)->ReleaseByteArrayElements(jenv, jarg2, (jbyte *) arg2, 0); 

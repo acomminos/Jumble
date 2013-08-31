@@ -149,7 +149,7 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
 
         JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[data[0] >> 5 & 0x7];
         int msgFlags = data[0] & 0x1f;
-        byte[] voiceData = new byte[data.length-5];
+        byte[] voiceData = new byte[data.length-1];
         System.arraycopy(data, 1, voiceData, 0, voiceData.length);
 
         PacketDataStream pds = new PacketDataStream(voiceData, voiceData.length);
@@ -158,8 +158,8 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
         if(user != null && !user.isLocalMuted()) {
             // TODO check for whispers here
             int seq = pds.next();
-            ByteBuffer packet = ByteBuffer.allocate(pds.left() + 4);
-            packet.putInt(msgFlags);
+            ByteBuffer packet = ByteBuffer.allocate(pds.left() + 1);
+            packet.put((byte)msgFlags);
             packet.put(pds.dataBlock(pds.left()));
 
             AudioOutputSpeech aop = mAudioOutputs.get(session);
