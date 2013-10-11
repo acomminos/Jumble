@@ -14,7 +14,7 @@
 
 /* Wrap pointers to java arrays */
 %include "typemaps.i"
-%apply int *INOUT { int * }
-%apply int *INOUT { unsigned int * }
+%apply int *OUTPUT { int * }
+%apply int *OUTPUT { unsigned int * }
 %apply short *INOUT { short * }
 %apply float *INOUT { float * }

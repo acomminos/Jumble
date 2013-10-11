@@ -24,6 +24,7 @@ import com.morlunk.jumble.IJumbleObserver;
 interface IJumbleService {
     void disconnect();
     boolean isConnected();
+    boolean isConnecting();
 
     // Session and users
     int getSession();
@@ -59,6 +60,7 @@ interface IJumbleService {
     void sendUserTextMessage(int session, String message);
     void sendChannelTextMessage(int channel, String message, boolean tree);
     void setUserComment(int session, String comment);
+    void setPrioritySpeaker(int session, boolean priority);
     void removeChannel(int channel);
     //void addChannelLink(int channel, int link);
     //void requestChannelPermissions(int channel);

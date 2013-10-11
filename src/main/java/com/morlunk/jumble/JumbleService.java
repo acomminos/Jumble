@@ -117,13 +117,18 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
+        public boolean isConnecting() throws RemoteException {
+            return mConnection != null && !mConnection.isConnected();
+        }
+
+        @Override
         public int getSession() throws RemoteException {
             return mConnection.getSession();
         }
 
         @Override
         public User getSessionUser() throws RemoteException {
-            return mUserHandler.getUser(getSession());
+            return mUserHandler != null ? mUserHandler.getUser(getSession()) : null;
         }
 
         @Override
@@ -300,6 +305,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
+        public void setPrioritySpeaker(int session, boolean priority) throws RemoteException {
+            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+            usb.setSession(session);
+            usb.setPrioritySpeaker(priority);
+            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+        }
+
+        @Override
         public void removeChannel(int channel) throws RemoteException {
             Mumble.ChannelRemove.Builder crb = Mumble.ChannelRemove.newBuilder();
             crb.setChannelId(channel);
@@ -422,7 +435,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     }
 
     public boolean isConnected() {
-        return mConnection.isConnected();
+        return mConnection != null ? mConnection.isConnected() : false;
     }
 
     @Override

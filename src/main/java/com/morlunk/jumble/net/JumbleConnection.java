@@ -57,7 +57,8 @@ public class JumbleConnection {
      * For annoying types like UDPTunnel.
      */
     public static final List<JumbleTCPMessageType> UNLOGGED_MESSAGES = Arrays.asList(new JumbleTCPMessageType[] {
-            JumbleTCPMessageType.UDPTunnel
+            JumbleTCPMessageType.UDPTunnel,
+            JumbleTCPMessageType.Ping
     });
 
     // Tor connection details
@@ -497,8 +498,7 @@ public class JumbleConnection {
      * @param data Raw protobuf TCP data.
      * @param messageType Type of the message.
      * @return The parsed protobuf message.
-     * @throws InvalidProtocolBufferException Called if the messageType doe
-                }s not match the data.
+     * @throws InvalidProtocolBufferException Called if the messageType does not match the data.
      */
     public static final Message getProtobufMessage(byte[] data, JumbleTCPMessageType messageType) throws InvalidProtocolBufferException {
         switch (messageType) {
@@ -782,7 +782,8 @@ public class JumbleConnection {
          * @throws IOException if we can't write the message to the server.
          */
         public void sendMessage(Message message, JumbleTCPMessageType messageType) throws IOException {
-            Log.v(Constants.TAG, "OUT: "+messageType);
+            if(!UNLOGGED_MESSAGES.contains(messageType))
+                Log.v(Constants.TAG, "OUT: "+messageType);
             mDataOutput.writeShort(messageType.ordinal());
             mDataOutput.writeInt(message.getSerializedSize());
             message.writeTo(mDataOutput);
@@ -794,7 +795,8 @@ public class JumbleConnection {
          * @throws IOException if we can't write the message to the server.
          */
         public void sendMessage(byte[] message, JumbleTCPMessageType messageType) throws IOException {
-            Log.v(Constants.TAG, "OUT: "+messageType);
+            if(!UNLOGGED_MESSAGES.contains(messageType))
+                Log.v(Constants.TAG, "OUT: "+messageType);
             mDataOutput.writeShort(messageType.ordinal());
             mDataOutput.writeInt(message.length);
             mDataOutput.write(message);
@@ -856,7 +858,7 @@ public class JumbleConnection {
 
             if(!force && (mForceTCP || !mUsingUDP)) {
                 ByteBuffer bb = ByteBuffer.allocate(length + 6);
-                bb.putShort((short) JumbleUDPMessageType.UDPPing.ordinal());
+                bb.putShort((short) messageType.ordinal());
                 bb.putInt(length);
                 bb.put(data);
                 mTCP.sendData(bb.array());

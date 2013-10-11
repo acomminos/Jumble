@@ -18,6 +18,7 @@ package com.morlunk.jumble.net;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.Socket;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -26,41 +27,62 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
-
-import ch.boye.httpclientandroidlib.conn.ssl.SSLSocketFactory;
-import ch.boye.httpclientandroidlib.params.BasicHttpParams;
-import ch.boye.httpclientandroidlib.params.HttpParams;
-import socks.Socks5Proxy;
-import socks.SocksSocket;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 
 public class JumbleSSLSocketFactory {
-    private SSLSocketFactory mSocketFactory;
+    private SSLContext mContext;
 
     public JumbleSSLSocketFactory(KeyStore keystore, String keystorePassword) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException,
             UnrecoverableKeyException, NoSuchProviderException {
-        mSocketFactory = new SSLSocketFactory(SSLSocketFactory.TLS,
-                keystore,
-                keystorePassword,
-                null,
-                new SecureRandom(),
-                SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER); // No need for trust store at the moment. FIXME security
+        mContext = SSLContext.getInstance("TLS");
+
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
+        kmf.init(keystore, keystorePassword != null ? keystorePassword.toCharArray() : new char[0]);
+
+        mContext.init(kmf.getKeyManagers(), new TrustManager[] { new JumblePermissiveTrustManager() }, new SecureRandom());
     }
 
     /**
      * Creates a new SSLSocket that runs through a SOCKS5 proxy to reach its destination.
      */
     public SSLSocket createTorSocket(String host, int port, String proxyHost, int proxyPort) throws IOException {
-        Socks5Proxy proxy = new Socks5Proxy(proxyHost, proxyPort);
-        proxy.resolveAddrLocally(false); // Let SOCKS5 proxy resolve host. Useful for Tor.
-        SocksSocket socksSocket = new SocksSocket(proxy, host, port);
-        return (SSLSocket) mSocketFactory.createLayeredSocket(socksSocket, proxyHost, proxyPort, new BasicHttpParams());
+        Proxy proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(proxyHost, proxyPort));
+        Socket socket = new Socket(proxy);
+        socket.connect(new InetSocketAddress(host, port));
+        return (SSLSocket) mContext.getSocketFactory().createSocket(socket, host, port, true);
     }
 
     public SSLSocket createSocket(String host, int port) throws IOException {
-        HttpParams params = new BasicHttpParams();
-        Socket socket = mSocketFactory.createSocket(params);
-        return (SSLSocket) mSocketFactory.connectSocket(socket, new InetSocketAddress(host, port), null, params);
+        return (SSLSocket) mContext.getSocketFactory().createSocket(host, port);
+    }
+
+    /**
+     * This is horrible practice- we should prompt the user when the server's certificate is not trusted.
+     * TODO FIX: SECURITY
+     */
+    private static class JumblePermissiveTrustManager implements X509TrustManager {
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
     }
 }

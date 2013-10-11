@@ -47,7 +47,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
         public int compare(Integer lhs, Integer rhs) {
             User ulhs = mUsers.get(lhs);
             User urhs = mUsers.get(rhs);
-            return ulhs.getName().compareTo(urhs.getName());
+            return ulhs.getName().toLowerCase().compareTo(urhs.getName().toLowerCase());
         }
     };
 
@@ -100,6 +100,10 @@ public class UserHandler extends JumbleMessageHandler.Stub {
             else
                 return;
         }
+
+        User actor = null;
+        if(msg.hasActor())
+            actor = getUser(msg.getActor());
 
         final User finalUser = user;
 
@@ -164,6 +168,15 @@ public class UserHandler extends JumbleMessageHandler.Stub {
                 user.setDeafened(msg.getDeaf());
             if(msg.hasPrioritySpeaker())
                 user.setPrioritySpeaker(msg.getPrioritySpeaker());
+
+/*            if(self != null && ((user.getChannelId() == self.getChannelId()) || (actor.getSession() == self.getSession()))) {
+                if(user.getSession() == self.getSession()) {
+                    if(msg.hasMute() && msg.hasDeaf() && user.isMuted() && user.isDeafened()) {
+                        mService.logInfo();
+                    }
+                }
+            }*/
+
             /*
              * TODO: logging
              * Base this off of Messages.cpp:353
@@ -230,25 +243,26 @@ public class UserHandler extends JumbleMessageHandler.Stub {
 
     @Override
     public void messageUserRemove(Mumble.UserRemove msg) {
+        final User user = getUser(msg.getSession());
+        final User actor = getUser(msg.getActor());
         final String reason = msg.getReason();
 
-        /*
-         * TODO: logging
-         * Base this off of Messages.cpp:511
-         */
+        if(msg.getSession() == mService.getSession())
+            mService.logWarning(mService.getString(msg.getBan() ? R.string.chat_notify_kick_ban_self : R.string.chat_notify_kick_self, MessageFormatter.highlightString(actor.getName()), reason));
+        else if(actor != null)
+            mService.logInfo(mService.getString(msg.getBan() ? R.string.chat_notify_kick_ban : R.string.chat_notify_kick, MessageFormatter.highlightString(actor.getName()), reason, MessageFormatter.highlightString(user.getName())));
+        else
+            mService.logInfo(mService.getString(R.string.chat_notify_disconnected, MessageFormatter.highlightString(user.getName())));
 
-        if(msg.getSession() != mService.getSession()) {
-            final User user = mService.getUserHandler().getUser(msg.getSession());
-            Channel channel = mService.getChannelHandler().getChannel(user.getChannelId());
-            channel.removeUser(user.getSession());
+        Channel channel = mService.getChannelHandler().getChannel(user.getChannelId());
+        channel.removeUser(user.getSession());
 
-            mService.getChannelHandler().changeSubchannelUsers(channel, -1);
-            mService.notifyObservers(new JumbleService.ObserverRunnable() {
-                @Override
-                public void run(IJumbleObserver observer) throws RemoteException {
-                    observer.onUserRemoved(user, reason);
-                }
-            });
-        }
+        mService.getChannelHandler().changeSubchannelUsers(channel, -1);
+        mService.notifyObservers(new JumbleService.ObserverRunnable() {
+            @Override
+            public void run(IJumbleObserver observer) throws RemoteException {
+                observer.onUserRemoved(user, reason);
+            }
+        });
     }
 }

@@ -29,6 +29,7 @@ import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleObserver;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
@@ -55,13 +56,8 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
 
     private IJumbleService mBinder;
 
-    public ServiceTest() {
+    public ServiceTest() throws IOException, RemoteException, InterruptedException {
         super(JumbleService.class);
-    }
-
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
 
         Intent intent = new Intent(JumbleService.ACTION_CONNECT);
         Server server = new Server(-1, "Test Server", HOST, PORT, USERNAME, PASSWORD);
@@ -111,17 +107,6 @@ public class ServiceTest extends ServiceTestCase<JumbleService> {
         mBinder.unregisterObserver(observer);
 
         assertTrue(mBinder.isConnected());
-    }
-
-    @Override
-    protected void tearDown() throws Exception {
-        mBinder.disconnect();
-        try {
-            Thread.sleep(TEST_NETWORK_DELAY);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        super.tearDown();
     }
 
     /**
