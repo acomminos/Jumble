@@ -16,9 +16,6 @@
 
 package com.morlunk.jumble.audio;
 
-import android.util.Log;
-
-import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.audio.celt11.CELT11;
 import com.morlunk.jumble.audio.celt7.CELT7;
 import com.morlunk.jumble.audio.opus.Opus;
@@ -107,14 +104,12 @@ public class AudioOutputSpeech {
             return;
 
         PacketDataStream pds = new PacketDataStream(data, data.length);
-
-        // skip flags
-        pds.next();
+        pds.next(); // skip flags
 
         int samples = 0;
         if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
-            int size = pds.next();
-            size &= 0x1fff;
+            long header = pds.readLong();
+            int size = (int) (header & ((1 << 13) - 1));
 
             byte[] packet = pds.dataBlock(size);
             int frames = Opus.opus_packet_get_nb_frames(packet, size);
@@ -132,11 +127,7 @@ public class AudioOutputSpeech {
         }
 
         if(pds.isValid()) {
-            JitterBufferPacket jbp = new JitterBufferPacket();
-            jbp.setData(data);
-            jbp.setLen(data.length);
-            jbp.setSpan(samples);
-            jbp.setTimestamp(Audio.FRAME_SIZE * seq);
+            JitterBufferPacket jbp = Speex.wrap_create_jitter_buffer_packet(data, Audio.FRAME_SIZE*seq, samples);
             synchronized(mJitterBuffer) {
                 Speex.jitter_buffer_put(mJitterBuffer, jbp);
             }
@@ -180,11 +171,7 @@ public class AudioOutputSpeech {
                 }
 
                 if(mFrames.isEmpty()) {
-                    byte[] data = new byte[4096];
-                    JitterBufferPacket jbp = new JitterBufferPacket();
-                    jbp.setData(data);
-                    jbp.setLen(4096);
-
+                    JitterBufferPacket jbp = Speex.wrap_create_jitter_buffer_packet(new byte[4096], 0, 0);
                     int[] startofs = new int[1];
                     int result = 0;
 
@@ -193,17 +180,19 @@ public class AudioOutputSpeech {
                     }
 
                     if(result == SpeexConstants.JITTER_BUFFER_OK) {
-                        PacketDataStream pds = new PacketDataStream(jbp.getData(), (int)jbp.getLen());
+                        byte[] data = jbp.getData();
+                        PacketDataStream pds = new PacketDataStream(data, (int)jbp.getLen());
 
                         mMissCount = 0;
                         ucFlags = pds.next();
 
                         mHasTerminator = false;
                         if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
-                            int size = pds.next();
+                            long header = pds.readLong();
+                            int size = (int) (header & ((1 << 13) - 1));
 
-                            mHasTerminator = (size & 0x2000) > 0;
-                            mFrames.add(pds.dataBlock(size & 0x1fff));
+                            mHasTerminator = (header & (1 << 13)) > 0;
+                            mFrames.add(pds.dataBlock(size));
                         } else {
                             int header;
                             do {
@@ -260,7 +249,7 @@ public class AudioOutputSpeech {
 
                     if(mFrames.isEmpty())
                         synchronized (mJitterBuffer) {
-                            Speex.jitter_buffer_update_delay(mJitterBuffer, null, null);
+                            Speex.jitter_buffer_update_delay(mJitterBuffer, null, new int[] { 0 });
                         }
 
                     if(mFrames.isEmpty() && mHasTerminator)

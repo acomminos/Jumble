@@ -79,6 +79,8 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
     public void stopPlaying() {
         mRunning = false;
         mThread = null;
+        for(AudioOutputSpeech s : mAudioOutputs.values())
+            s.destroy();
     }
 
     @Override
@@ -153,11 +155,11 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
         System.arraycopy(data, 1, voiceData, 0, voiceData.length);
 
         PacketDataStream pds = new PacketDataStream(voiceData, voiceData.length);
-        int session = pds.next();
+        int session = (int) pds.readLong();
         User user = mService.getUserHandler().getUser(session);
         if(user != null && !user.isLocalMuted()) {
             // TODO check for whispers here
-            int seq = pds.next();
+            int seq = (int) pds.readLong();
             ByteBuffer packet = ByteBuffer.allocate(pds.left() + 1);
             packet.put((byte)msgFlags);
             packet.put(pds.dataBlock(pds.left()));

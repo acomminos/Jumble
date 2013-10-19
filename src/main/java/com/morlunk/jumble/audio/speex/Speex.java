@@ -160,51 +160,6 @@ public class Speex implements SpeexConstants {
     SpeexJNI.speex_bits_insert_terminator(SpeexBits.getCPtr(bits), bits);
   }
 
-  public static SWIGTYPE_p_JitterBuffer_ jitter_buffer_init(int step_size) {
-    long cPtr = SpeexJNI.jitter_buffer_init(step_size);
-    return (cPtr == 0) ? null : new SWIGTYPE_p_JitterBuffer_(cPtr, false);
-  }
-
-  public static void jitter_buffer_reset(SWIGTYPE_p_JitterBuffer_ jitter) {
-    SpeexJNI.jitter_buffer_reset(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter));
-  }
-
-  public static void jitter_buffer_destroy(SWIGTYPE_p_JitterBuffer_ jitter) {
-    SpeexJNI.jitter_buffer_destroy(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter));
-  }
-
-  public static void jitter_buffer_put(SWIGTYPE_p_JitterBuffer_ jitter, JitterBufferPacket packet) {
-    SpeexJNI.jitter_buffer_put(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter), JitterBufferPacket.getCPtr(packet), packet);
-  }
-
-  public static int jitter_buffer_get(SWIGTYPE_p_JitterBuffer_ jitter, JitterBufferPacket packet, int desired_span, int[] start_offset) {
-    return SpeexJNI.jitter_buffer_get(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter), JitterBufferPacket.getCPtr(packet), packet, desired_span, start_offset);
-  }
-
-  public static int jitter_buffer_get_another(SWIGTYPE_p_JitterBuffer_ jitter, JitterBufferPacket packet) {
-    return SpeexJNI.jitter_buffer_get_another(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter), JitterBufferPacket.getCPtr(packet), packet);
-  }
-
-  public static int jitter_buffer_get_pointer_timestamp(SWIGTYPE_p_JitterBuffer_ jitter) {
-    return SpeexJNI.jitter_buffer_get_pointer_timestamp(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter));
-  }
-
-  public static void jitter_buffer_tick(SWIGTYPE_p_JitterBuffer_ jitter) {
-    SpeexJNI.jitter_buffer_tick(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter));
-  }
-
-  public static void jitter_buffer_remaining_span(SWIGTYPE_p_JitterBuffer_ jitter, long rem) {
-    SpeexJNI.jitter_buffer_remaining_span(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter), rem);
-  }
-
-  public static int jitter_buffer_ctl(SWIGTYPE_p_JitterBuffer_ jitter, int request, int[] ptr) {
-    return SpeexJNI.jitter_buffer_ctl(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter), request, ptr);
-  }
-
-  public static int jitter_buffer_update_delay(SWIGTYPE_p_JitterBuffer_ jitter, JitterBufferPacket packet, int[] start_offset) {
-    return SpeexJNI.jitter_buffer_update_delay(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter), JitterBufferPacket.getCPtr(packet), packet, start_offset);
-  }
-
   public static SWIGTYPE_p_SpeexEchoState_ speex_echo_state_init(int frame_size, int filter_length) {
     long cPtr = SpeexJNI.speex_echo_state_init(frame_size, filter_length);
     return (cPtr == 0) ? null : new SWIGTYPE_p_SpeexEchoState_(cPtr, false);
@@ -344,6 +299,55 @@ public class Speex implements SpeexConstants {
 
   public static byte[] speex_resampler_strerror(int err) {
     return SpeexJNI.speex_resampler_strerror(err);
+  }
+
+  public static SWIGTYPE_p_JitterBuffer_ jitter_buffer_init(int step_size) {
+    long cPtr = SpeexJNI.jitter_buffer_init(step_size);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_JitterBuffer_(cPtr, false);
+  }
+
+  public static void jitter_buffer_reset(SWIGTYPE_p_JitterBuffer_ jitter) {
+    SpeexJNI.jitter_buffer_reset(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter));
+  }
+
+  public static void jitter_buffer_destroy(SWIGTYPE_p_JitterBuffer_ jitter) {
+    SpeexJNI.jitter_buffer_destroy(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter));
+  }
+
+  public static void jitter_buffer_put(SWIGTYPE_p_JitterBuffer_ jitter, JitterBufferPacket packet) {
+    SpeexJNI.jitter_buffer_put(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter), JitterBufferPacket.getCPtr(packet), packet);
+  }
+
+  public static int jitter_buffer_get(SWIGTYPE_p_JitterBuffer_ jitter, JitterBufferPacket packet, int desired_span, int[] start_offset) {
+    return SpeexJNI.jitter_buffer_get(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter), JitterBufferPacket.getCPtr(packet), packet, desired_span, start_offset);
+  }
+
+  public static int jitter_buffer_get_another(SWIGTYPE_p_JitterBuffer_ jitter, JitterBufferPacket packet) {
+    return SpeexJNI.jitter_buffer_get_another(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter), JitterBufferPacket.getCPtr(packet), packet);
+  }
+
+  public static int jitter_buffer_get_pointer_timestamp(SWIGTYPE_p_JitterBuffer_ jitter) {
+    return SpeexJNI.jitter_buffer_get_pointer_timestamp(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter));
+  }
+
+  public static void jitter_buffer_tick(SWIGTYPE_p_JitterBuffer_ jitter) {
+    SpeexJNI.jitter_buffer_tick(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter));
+  }
+
+  public static void jitter_buffer_remaining_span(SWIGTYPE_p_JitterBuffer_ jitter, long rem) {
+    SpeexJNI.jitter_buffer_remaining_span(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter), rem);
+  }
+
+  public static int jitter_buffer_ctl(SWIGTYPE_p_JitterBuffer_ jitter, int request, int[] ptr) {
+    return SpeexJNI.jitter_buffer_ctl(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter), request, ptr);
+  }
+
+  public static int jitter_buffer_update_delay(SWIGTYPE_p_JitterBuffer_ jitter, JitterBufferPacket packet, int[] start_offset) {
+    return SpeexJNI.jitter_buffer_update_delay(SWIGTYPE_p_JitterBuffer_.getCPtr(jitter), JitterBufferPacket.getCPtr(packet), packet, start_offset);
+  }
+
+  public static JitterBufferPacket wrap_create_jitter_buffer_packet(byte[] data, long timestamp, long span) {
+    return new JitterBufferPacket(SpeexJNI.wrap_create_jitter_buffer_packet(data, timestamp, span), true);
   }
 
 }
