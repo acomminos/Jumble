@@ -25,6 +25,7 @@ import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.googlecode.javacpp.BytePointer;
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.IJumbleObserver;
 import com.morlunk.jumble.JumbleService;

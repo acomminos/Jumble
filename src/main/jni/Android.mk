@@ -31,24 +31,30 @@ LOCAL_SRC_FILES		:= cb_search.c		exc_10_32_table.c 	exc_8_128_table.c 	filters.c
 					   window.c			resample.c			jitter.c            preprocess.c \
 					   mdf.c            kiss_fft.c          kiss_fftr.c         fftwrap.c \
 					   filterbank.c     scal.c \
-					   ../../speex-build/speex_wrap.c
+					   $(ROOT)/speex.cpp
 LOCAL_CFLAGS		:= -D__EMX__ -DUSE_KISS_FFT -DFIXED_POINT -DEXPORT=''
+LOCAL_CPP_FEATURES := exceptions
+LOCAL_LDLIBS := -llog
 include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_PATH			:= $(ROOT)/celt-0.11.0-src/libcelt
 LOCAL_MODULE		:= libcelt11
-LOCAL_SRC_FILES		:= bands.c celt.c cwrs.c entcode.c entdec.c entenc.c header.c kiss_fft.c laplace.c mathops.c mdct.c modes.c pitch.c plc.c quant_bands.c rate.c vq.c ../../celt-0.11.0-build/celt_wrap.c
+LOCAL_SRC_FILES		:= bands.c celt.c cwrs.c entcode.c entdec.c entenc.c header.c kiss_fft.c laplace.c mathops.c mdct.c modes.c pitch.c plc.c quant_bands.c rate.c vq.c # ../../celt-0.11.0-build/celt_wrap.c
 LOCAL_C_INCLUDES    := $(ROOT)/celt-0.11.0-src/libcelt/
 LOCAL_CFLAGS		:= -I$(ROOT)/celt-0.11.0-build -DHAVE_CONFIG_H -fvisibility=hidden
+LOCAL_CPP_FEATURES := exceptions
+LOCAL_LDLIBS := -llog
 include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_PATH			:= $(ROOT)/celt-0.7.0-src/libcelt
 LOCAL_MODULE		:= libcelt7
-LOCAL_SRC_FILES		:= bands.c celt.c cwrs.c entcode.c entdec.c entenc.c header.c kiss_fft.c kiss_fftr.c laplace.c mdct.c modes.c pitch.c psy.c quant_bands.c rangedec.c rangeenc.c rate.c vq.c ../../celt-0.7.0-build/celt_wrap.c
+LOCAL_SRC_FILES		:= bands.c celt.c cwrs.c entcode.c entdec.c entenc.c header.c kiss_fft.c kiss_fftr.c laplace.c mdct.c modes.c pitch.c psy.c quant_bands.c rangedec.c rangeenc.c rate.c vq.c # ../../celt-0.7.0-build/celt_wrap.c
 LOCAL_C_INCLUDES    := $(ROOT)/celt-0.7.0-src/libcelt/
 LOCAL_CFLAGS		:= -I$(ROOT)/celt-0.7.0-build -DHAVE_CONFIG_H -fvisibility=hidden
+LOCAL_CPP_FEATURES := exceptions
+LOCAL_LDLIBS := -llog
 include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
@@ -181,6 +187,8 @@ silk/fixed/vector_ops_FIX.c \
 silk/fixed/schur64_FIX.c \
 silk/fixed/schur_FIX.c \
 src/repacketizer.c \
-../opus-build/opus_wrap.c
+$(ROOT)/opus.cpp
 LOCAL_CFLAGS		:= -DOPUS_BUILD -DVAR_ARRAYS -Wno-traditional -DFIXED_POINT
+LOCAL_CPP_FEATURES := exceptions
+LOCAL_LDLIBS := -llog
 include $(BUILD_SHARED_LIBRARY)

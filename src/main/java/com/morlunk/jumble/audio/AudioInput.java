@@ -20,12 +20,6 @@ import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 
-import com.morlunk.jumble.audio.celt11.CELT11;
-import com.morlunk.jumble.audio.celt7.CELT7;
-import com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTMode;
-import com.morlunk.jumble.audio.opus.Opus;
-import com.morlunk.jumble.audio.opus.OpusConstants;
-import com.morlunk.jumble.audio.opus.SWIGTYPE_p_OpusEncoder;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 
 /**
@@ -36,10 +30,10 @@ public class AudioInput implements Runnable {
         public void onFrameEncoded(byte[] data, int frameSize);
     }
 
-    private SWIGTYPE_p_OpusEncoder mOpusEncoder;
-    private com.morlunk.jumble.audio.celt11.SWIGTYPE_p_CELTEncoder mCELTBetaEncoder;
-    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTMode mCELTAlphaMode;
-    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTEncoder mCELTAlphaEncoder;
+//    private SWIGTYPE_p_OpusEncoder mOpusEncoder;
+//    private com.morlunk.jumble.audio.celt11.SWIGTYPE_p_CELTEncoder mCELTBetaEncoder;
+//    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTMode mCELTAlphaMode;
+//    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTEncoder mCELTAlphaEncoder;
 
     private JumbleVoiceListener mListener;
 
@@ -54,21 +48,21 @@ public class AudioInput implements Runnable {
         mCodec = codec;
         mListener = listener;
         int[] error = new int[1];
-        switch (codec) {
-            case UDPVoiceOpus:
-                mOpusEncoder = Opus.opus_encoder_create(Audio.SAMPLE_RATE, 1, OpusConstants.OPUS_APPLICATION_VOIP, error);
-                break;
-            case UDPVoiceCELTBeta:
-                mCELTBetaEncoder = CELT11.celt_encoder_create(Audio.SAMPLE_RATE, 1, error);
-                break;
-            case UDPVoiceCELTAlpha:
-                mCELTAlphaMode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, error);
-                mCELTAlphaEncoder = CELT7.celt_encoder_create(mCELTAlphaMode, 1, error);
-                break;
-            case UDPVoiceSpeex:
-                // TODO
-                break;
-        }
+//        switch (codec) {
+//            case UDPVoiceOpus:
+//                mOpusEncoder = Opus.opus_encoder_create(Audio.SAMPLE_RATE, 1, OpusConstants.OPUS_APPLICATION_VOIP, error);
+//                break;
+//            case UDPVoiceCELTBeta:
+//                mCELTBetaEncoder = CELT11.celt_encoder_create(Audio.SAMPLE_RATE, 1, error);
+//                break;
+//            case UDPVoiceCELTAlpha:
+//                mCELTAlphaMode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, error);
+//                mCELTAlphaEncoder = CELT7.celt_encoder_create(mCELTAlphaMode, 1, error);
+//                break;
+//            case UDPVoiceSpeex:
+//                // TODO
+//                break;
+//        }
 
         mMinBufferSize = AudioRecord.getMinBufferSize(mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
@@ -90,7 +84,7 @@ public class AudioInput implements Runnable {
             if(mAudioRecord.read(audioData, 0, mFrameSize) == AudioRecord.SUCCESS) {
                 switch (mCodec) {
                     case UDPVoiceOpus:
-                        Opus.opus_encode(mOpusEncoder, audioData, mFrameSize, encodedData, 512);
+//                        Opus.opus_encode(mOpusEncoder, audioData, mFrameSize, encodedData, 512);
                         break;
                     case UDPVoiceCELTBeta:
                         break;

@@ -17,10 +17,6 @@
 package com.morlunk.jumble;
 
 import com.morlunk.jumble.audio.Audio;
-import com.morlunk.jumble.audio.celt11.CELT11;
-import com.morlunk.jumble.audio.celt11.CELT11Constants;
-import com.morlunk.jumble.audio.celt7.CELT7;
-import com.morlunk.jumble.audio.celt7.CELT7Constants;
 
 public class Constants {
 
@@ -31,20 +27,20 @@ public class Constants {
 
     static {
         // Load CELT bitstream versions from JNI. TODO clean me with renamed types for version
-        int[] error = new int[1];
-        com.morlunk.jumble.audio.celt11.SWIGTYPE_p_CELTMode celt11Mode = CELT11.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, error);
-        com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTMode celt7Mode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, error);
-
-        int[] celt11Version = new int[1];
-        int[] celt7Version = new int[1];
-
-        CELT11.celt_mode_info(celt11Mode, CELT11Constants.CELT_GET_BITSTREAM_VERSION, celt11Version);
-        CELT7.celt_mode_info(celt7Mode, CELT7Constants.CELT_GET_BITSTREAM_VERSION, celt7Version);
-        CELT11.celt_mode_destroy(celt11Mode);
-        CELT7.celt_mode_destroy(celt7Mode);
-
-        CELT_11_VERSION = celt11Version[0];
-        CELT_7_VERSION = celt7Version[0];
+//        int[] error = new int[1];
+//        com.morlunk.jumble.audio.celt11.SWIGTYPE_p_CELTMode celt11Mode = CELT11.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, error);
+//        com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTMode celt7Mode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, error);
+//
+//        int[] celt11Version = new int[1];
+//        int[] celt7Version = new int[1];
+//
+//        CELT11.celt_mode_info(celt11Mode, CELT11Constants.CELT_GET_BITSTREAM_VERSION, celt11Version);
+//        CELT7.celt_mode_info(celt7Mode, CELT7Constants.CELT_GET_BITSTREAM_VERSION, celt7Version);
+//        CELT11.celt_mode_destroy(celt11Mode);
+//        CELT7.celt_mode_destroy(celt7Mode);
+//
+//        CELT_11_VERSION = celt11Version[0];
+//        CELT_7_VERSION = celt7Version[0];
     }
 
     public static final int PROTOCOL_MAJOR = 1;
