@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, AudioOutputSpeech.TalkStateListener {
 
     /** Number of nanoseconds until sleeping audio output thread. */
-    private static final long SLEEP_THRESHOLD = 2000000000L;
+    private static final long SLEEP_THRESHOLD = 3000000000L;
 
     private JumbleService mService;
     private ConcurrentHashMap<Integer, AudioOutputSpeech> mAudioOutputs = new ConcurrentHashMap<Integer, AudioOutputSpeech>();
@@ -65,7 +65,7 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
                 Audio.SAMPLE_RATE,
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
-                Audio.FRAME_SIZE*12,
+                bufferSize*2,
                 AudioTrack.MODE_STREAM);
     }
 

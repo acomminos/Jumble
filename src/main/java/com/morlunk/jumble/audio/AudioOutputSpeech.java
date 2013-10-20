@@ -92,7 +92,7 @@ public class AudioOutputSpeech {
 //                break;
         }
 
-        mBuffer = new float[mAudioBufferSize];
+        mBuffer = new float[mAudioBufferSize*2];
         mJitterBuffer = new Speex.JitterBuffer(Audio.FRAME_SIZE);
         IntPointer margin = new IntPointer(1);
         margin.put(10 * Audio.FRAME_SIZE);
@@ -116,6 +116,7 @@ public class AudioOutputSpeech {
                 BytePointer packetPointer = new BytePointer(packet);
                 int frames = Opus.opus_packet_get_nb_frames(packetPointer, size);
                 samples = frames * Opus.opus_packet_get_samples_per_frame(packetPointer, Audio.SAMPLE_RATE);
+                packetPointer.deallocate();
             }
         } else {
             int header;
@@ -127,10 +128,11 @@ public class AudioOutputSpeech {
         }
 
         if(pds.isValid()) {
-            Speex.JitterBufferPacket packet = new Speex.JitterBufferPacket(data, Audio.FRAME_SIZE * seq, samples, 0);
+            Speex.JitterBufferPacket packet = new Speex.JitterBufferPacket(data, data.length, Audio.FRAME_SIZE * seq, samples, 0);
             synchronized (mJitterBuffer) {
                 mJitterBuffer.put(packet);
             }
+            packet.deallocate();
         }
     }
 
@@ -150,7 +152,7 @@ public class AudioOutputSpeech {
 
         while(mBufferFilled < num) {
             int decodedSamples = Audio.FRAME_SIZE;
-            resizeBuffer(mBufferFilled + mAudioBufferSize);
+            //resizeBuffer(mBufferFilled + mAudioBufferSize);
 
             if(!mLastAlive)
                 out.fill(0);
@@ -170,6 +172,7 @@ public class AudioOutputSpeech {
                         mMissCount++;
                         if(mMissCount < 20) {
                             out.fill(0);
+                            out.get(mBuffer, mBufferFilled, decodedSamples);
                             mBufferFilled += decodedSamples;
                             continue;
                         }
@@ -177,9 +180,9 @@ public class AudioOutputSpeech {
                 }
 
                 if(mFrames.isEmpty()) {
-                    Speex.JitterBufferPacket jbp = new Speex.JitterBufferPacket(new byte[4096], 0, 0, 0);
+                    Speex.JitterBufferPacket jbp = new Speex.JitterBufferPacket(null, 4096, 0, 0, 0);
                     IntPointer startofs = new IntPointer(1);
-                    int result = 0;
+                    int result;
 
                     synchronized (mJitterBuffer) {
                         result = mJitterBuffer.get(jbp, startofs);
@@ -197,9 +200,10 @@ public class AudioOutputSpeech {
                         if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
                             long header = pds.readLong();
                             int size = (int) (header & ((1 << 13) - 1));
-
                             mHasTerminator = (header & (1 << 13)) > 0;
-                            mFrames.add(new BytePointer(pds.dataBlock(size)));
+
+                            BytePointer audioData = new BytePointer(pds.dataBlock(size));
+                            mFrames.add(audioData);
                         } else {
                             int header;
                             do {
@@ -219,7 +223,7 @@ public class AudioOutputSpeech {
 
                     } else {
                         synchronized (mJitterBuffer) {
-                            mJitterBuffer.updateDelay(jbp, new IntPointer(1));
+                            mJitterBuffer.updateDelay(jbp, null);
                         }
 
                         mMissCount++;
@@ -260,6 +264,8 @@ public class AudioOutputSpeech {
                             out.put(i, out.get(i) * (1.0f / 32767.f));
                     }
 
+                    data.deallocate();
+
 
                     if(mFrames.isEmpty())
                         synchronized (mJitterBuffer) {
@@ -282,10 +288,10 @@ public class AudioOutputSpeech {
 //                    }
                 }
 
-                for(int i = decodedSamples / Audio.FRAME_SIZE; i > 0; i--)
-                    synchronized (mJitterBuffer) {
+                synchronized (mJitterBuffer) {
+                    for(int i = decodedSamples / Audio.FRAME_SIZE; i > 0; i--)
                         mJitterBuffer.tick();
-                    }
+                }
             }
 
             out.get(mBuffer, mBufferFilled, decodedSamples);
@@ -320,7 +326,7 @@ public class AudioOutputSpeech {
     }
 
     public void resizeBuffer(int newSize) {
-        if(newSize > mAudioBufferSize) {
+        if(newSize > mBuffer.length) {
             float[] n = new float[newSize];
             if(mBuffer != null)
                 System.arraycopy(mBuffer, 0, n, 0, mAudioBufferSize);

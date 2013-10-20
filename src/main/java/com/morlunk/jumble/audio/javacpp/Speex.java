@@ -42,10 +42,13 @@ public class Speex {
     @Name("_JitterBufferPacket")
     public static class JitterBufferPacket extends Pointer {
 
-        public JitterBufferPacket(byte[] data, int timestamp, int span, int sequence) {
+        public JitterBufferPacket(byte[] data, int length, int timestamp, int span, int sequence) {
             allocate();
-            setData(new BytePointer(data));
-            setLength(data.length);
+            if(data != null)
+                setData(new BytePointer(data));
+            else
+                setData(new BytePointer(4096));
+            setLength(length);
             setTimestamp(timestamp);
             setSpan(span);
             setSequence(sequence);
