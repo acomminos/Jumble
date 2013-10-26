@@ -21,21 +21,16 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
 
-import com.googlecode.javacpp.BytePointer;
 import com.googlecode.javacpp.IntPointer;
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacpp.Pointer;
-import com.googlecode.javacpp.ShortPointer;
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.audio.javacpp.Opus;
+import com.morlunk.jumble.audio.javacpp.Speex;
 import com.morlunk.jumble.net.JumbleMessageHandler;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
 import com.morlunk.jumble.protobuf.Mumble;
-
-import java.nio.ShortBuffer;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created by andrew on 23/08/13.
@@ -52,13 +47,15 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
 
     public static final int OPUS_MAX_BYTES = 512; // Opus specifies 4000 bytes as a recommended value for encoding, but the official mumble project uses 512.
 
-    private volatile Pointer mOpusEncoder;;
+    private Pointer mOpusEncoder;;
 //    private SWIGTYPE_p_OpusEncoder mOpusEncoder;
 //    private com.morlunk.jumble.audio.celt11.SWIGTYPE_p_CELTEncoder mCELTBetaEncoder;
 //    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTMode mCELTAlphaMode;
 //    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTEncoder mCELTAlphaEncoder;
+    private Speex.SpeexPreprocessState mPreprocessState;
 
     private AudioInputListener mListener;
+    private int mTransmitMode = Constants.TRANSMIT_PUSH_TO_TALK;
 
     private AudioRecord mAudioRecord;
     private int mMinBufferSize;
@@ -78,20 +75,44 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
     private Thread mRecordThread;
     private boolean mRecording;
 
-    private ExecutorService mEncodingThread = Executors.newSingleThreadExecutor();
-
     /**
      * Creates a new audio input manager configured for the specified codec.
      * @param listener
      */
-    public AudioInput(JumbleUDPMessageType codec, AudioInputListener listener) {
+    public AudioInput(JumbleUDPMessageType codec, int transmitMode, AudioInputListener listener) {
         mListener = listener;
+        mTransmitMode = transmitMode;
         switchCodec(codec);
+        configurePreprocessState();
 
         // TODO support input resampling. We can't expect 48000hz on all android devices.
         int reportedMinBufferSize = AudioRecord.getMinBufferSize(Audio.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         mMinBufferSize = Math.max(reportedMinBufferSize, mFrameSize);
         mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
+    }
+
+    /**
+     * Initializes and configures the Speex preprocessor.
+     * Based off of Mumble project's AudioInput method resetAudioProcessor().
+     */
+    private void configurePreprocessState() {
+        if(mPreprocessState != null)
+            mPreprocessState.destroy();
+
+        mPreprocessState = new Speex.SpeexPreprocessState(mFrameSize, Audio.SAMPLE_RATE);
+
+        IntPointer arg = new IntPointer(1);
+
+        arg.put(1);
+        mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_SET_VAD, arg);
+        mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_SET_AGC, arg);
+        mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_SET_DENOISE, arg);
+        mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_SET_DEREVERB, arg);
+
+        arg.put(30000);
+        mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_SET_AGC_TARGET, arg);
+
+        // TODO AGC max gain, decrement, noise suppress, echo
     }
 
     /**
@@ -191,6 +212,23 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
                 boolean encoded = false;
                 mFrameCounter++;
 
+                boolean talking = true;
+
+                if(mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY) {
+                    // Check if audio input registered as probable speech.
+                    IntPointer prob = new IntPointer(1);
+                    mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_GET_PROB, prob);
+                    float speechProbablilty = (float)prob.get() / 100.0f;
+                    // TODO use determined probability
+                    // talking = ...?
+                }
+
+                if(!talking)
+                    continue;
+
+                // Run preprocessor on audio data. TODO echo!
+                mPreprocessState.preprocess(audioData);
+
                 switch (mCodec) {
                     case UDPVoiceOpus:
                         System.arraycopy(audioData, 0, mOpusBuffer, mFrameSize * mBufferedFrames, mFrameSize);
@@ -222,6 +260,7 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
                     sendFrame(mEncodedBuffer);
             } else {
                 Log.e(Constants.TAG, "Error fetching audio! AudioRecord error "+shortsRead);
+                mBufferedFrames = 0;
             }
         }
 
@@ -264,6 +303,8 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
     public void destroy() {
         if(mOpusEncoder != null)
             Opus.opus_encoder_destroy(mOpusEncoder);
+        if(mPreprocessState != null)
+            mPreprocessState.destroy();
     }
 
     @Override

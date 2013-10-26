@@ -32,7 +32,7 @@ import com.googlecode.javacpp.annotation.Platform;
  * JavaCPP interface for Speex JNI.
  * Created by andrew on 18/10/13.
  */
-@Platform(library="speex", link="speex", cinclude={"<speex/speex.h>","<speex/speex_types.h>","<speex/speex_jitter.h>"})
+@Platform(library="speex", link="speex", cinclude={"<speex/speex.h>","<speex/speex_types.h>","<speex/speex_jitter.h>", "<speex/speex_preprocess.h>"})
 public class Speex {
 
     static {
@@ -125,6 +125,71 @@ public class Speex {
 
     }
 
+    public static class SpeexPreprocessState extends Pointer {
+
+        public static final int SPEEX_PREPROCESS_SET_DENOISE = 0;
+        public static final int SPEEX_PREPROCESS_GET_DENOISE = 1;
+        public static final int SPEEX_PREPROCESS_SET_AGC = 2;
+        public static final int SPEEX_PREPROCESS_GET_AGC = 3;
+        public static final int SPEEX_PREPROCESS_SET_VAD = 4;
+        public static final int SPEEX_PREPROCESS_GET_VAD = 5;
+        public static final int SPEEX_PREPROCESS_SET_AGC_LEVEL = 6;
+        public static final int SPEEX_PREPROCESS_GET_AGC_LEVEL = 7;
+        public static final int SPEEX_PREPROCESS_SET_DEREVERB = 8;
+        public static final int SPEEX_PREPROCESS_GET_DEREVERB = 9;
+        public static final int SPEEX_PREPROCESS_SET_DEREVERB_LEVEL = 10;
+        public static final int SPEEX_PREPROCESS_GET_DEREVERB_LEVEL = 11;
+        public static final int SPEEX_PREPROCESS_SET_DEREVERB_DECAY = 12;
+        public static final int SPEEX_PREPROCESS_GET_DEREVERB_DECAY = 13;
+        public static final int SPEEX_PREPROCESS_SET_PROB_START = 14;
+        public static final int SPEEX_PREPROCESS_GET_PROB_START = 15;
+        public static final int SPEEX_PREPROCESS_SET_PROB_CONTINUE = 16;
+        public static final int SPEEX_PREPROCESS_GET_PROB_CONTINUE = 17;
+        public static final int SPEEX_PREPROCESS_SET_NOISE_SUPPRESS = 18;
+        public static final int SPEEX_PREPROCESS_GET_NOISE_SUPPRESS = 19;
+        public static final int SPEEX_PREPROCESS_SET_ECHO_SUPPRESS = 20;
+        public static final int SPEEX_PREPROCESS_GET_ECHO_SUPPRESS = 21;
+        public static final int SPEEX_PREPROCESS_SET_ECHO_SUPPRESS_ACTIVE = 22;
+        public static final int SPEEX_PREPROCESS_GET_ECHO_SUPPRESS_ACTIVE = 23;
+        public static final int SPEEX_PREPROCESS_SET_ECHO_STATE = 24;
+        public static final int SPEEX_PREPROCESS_GET_ECHO_STATE = 25;
+        public static final int SPEEX_PREPROCESS_SET_AGC_INCREMENT = 26;
+        public static final int SPEEX_PREPROCESS_GET_AGC_INCREMENT = 27;
+        public static final int SPEEX_PREPROCESS_SET_AGC_DECREMENT = 28;
+        public static final int SPEEX_PREPROCESS_GET_AGC_DECREMENT = 29;
+        public static final int SPEEX_PREPROCESS_SET_AGC_MAX_GAIN = 30;
+        public static final int SPEEX_PREPROCESS_GET_AGC_MAX_GAIN = 31;
+        public static final int SPEEX_PREPROCESS_GET_AGC_LOUDNESS = 33;
+        public static final int SPEEX_PREPROCESS_GET_AGC_GAIN = 35;
+        public static final int SPEEX_PREPROCESS_GET_PSD_SIZE = 37;
+        public static final int SPEEX_PREPROCESS_GET_PSD = 39;
+        public static final int SPEEX_PREPROCESS_GET_NOISE_PSD_SIZE = 41;
+        public static final int SPEEX_PREPROCESS_GET_NOISE_PSD = 43;
+        public static final int SPEEX_PREPROCESS_GET_PROB = 45;
+        public static final int SPEEX_PREPROCESS_SET_AGC_TARGET = 46;
+        public static final int SPEEX_PREPROCESS_GET_AGC_TARGET = 47;
+
+        private Pointer mNativeState;
+
+        public SpeexPreprocessState(int frameSize, int samplingRate) {
+            mNativeState = speex_preprocess_state_init(frameSize, samplingRate);
+        }
+
+        public void preprocess(short[] data) {
+            speex_preprocess_run(mNativeState, data);
+        }
+
+        public int control(int request, Pointer pointer) {
+            return speex_preprocess_ctl(mNativeState, request, pointer);
+        }
+
+        public void destroy() {
+            speex_preprocess_state_destroy(mNativeState);
+        }
+
+    }
+
+    // Jitter buffer
     private static native Pointer jitter_buffer_init(int tick);
     private static native void jitter_buffer_reset(@Cast("JitterBuffer*") Pointer jitterBuffer);
     private static native void jitter_buffer_destroy(@Cast("JitterBuffer*") Pointer jitterBuffer);
@@ -135,5 +200,12 @@ public class Speex {
     private static native int jitter_buffer_ctl(@Cast("JitterBuffer*") Pointer jitterBuffer, int request, @Cast("void *") Pointer pointer);
     private static native int jitter_buffer_update_delay(@Cast("JitterBuffer*") Pointer jitterBuffer, JitterBufferPacket packet, IntPointer startOffset);
 
+    // Preprocessor
+    private static native Pointer speex_preprocess_state_init(int frameSize, int samplingRate);
+    private static native void speex_preprocess_state_destroy(@Cast("SpeexPreprocessState*") Pointer state);
+    private static native int speex_preprocess_run(@Cast("SpeexPreprocessState*") Pointer state, short x[]);
+    private static native int speex_preprocess(@Cast("SpeexPreprocessState*") Pointer state, short[] x, int[] echo);
+    private static native void speex_preprocess_estimate_update(@Cast("SpeexPreprocessState*") Pointer state, short[] x);
+    private static native int speex_preprocess_ctl(@Cast("SpeexPreprocessState*") Pointer state, int request, Pointer ptr);
 
 }
