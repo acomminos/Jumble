@@ -16,22 +16,27 @@
 
 package com.morlunk.jumble.net;
 
-import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.Timer;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.ShortBufferException;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Based off of the official Mumble project's 'CryptState.h' and 'CryptState.cpp' files.
- *
+ * <p/>
  * This code implements the patented OCB-AES128 cipher mode of operation.
  * Until recently, this would've posed a problem- Jumble is licensed under Apache v2, and the patent was only licensed for use with GPL software without authorization.
  * As of January 2013, the author has given a free license for any open source software certified by the OSI (Apache v2 included)
  * http://www.cs.ucdavis.edu/~rogaway/ocb/license.htm
- *
+ * <p/>
  * Created by andrew on 24/06/13.
  */
 public class CryptState {
@@ -43,27 +48,30 @@ public class CryptState {
 
         private static final int SHIFTBITS = 7;
 
-        public static void XOR(final byte[] dst, final byte[] blockA, final byte[] blockB) {
-            for(int i=0;i<AES_BLOCK_SIZE;i++)
-                dst[i] = (byte) (blockA[i] ^ blockB[i]);
+        public static void XOR(final byte[] dst, final byte[] a, final byte[] b) {
+            for (int i = 0; i < AES_BLOCK_SIZE; i++) {
+                dst[i] = (byte) (a[i] ^ b[i]);
+            }
         }
 
         public static void S2(final byte[] block) {
             int carry = (block[0] >> SHIFTBITS) & 0x1;
-            for(int i=0;i<AES_BLOCK_SIZE-1;i++)
-                block[i] = (byte) ((block[i] << 1) | ((block[i+1] >> SHIFTBITS) & 0x1));
-            block[AES_BLOCK_SIZE-1] = (byte) ((block[AES_BLOCK_SIZE-1] << 1) & (carry * 0x87));
+            for (int i = 0; i < AES_BLOCK_SIZE - 1; i++) {
+                block[i] = (byte) ((block[i] << 1) | ((block[i + 1] >> SHIFTBITS) & 0x1));
+            }
+            block[AES_BLOCK_SIZE - 1] = (byte) ((block[AES_BLOCK_SIZE - 1] << 1) ^ (carry * 0x87));
         }
 
         public static void S3(final byte[] block) {
-            int carry = (block[0] >> SHIFTBITS) & 0x1;
-            for(int i=0;i<AES_BLOCK_SIZE-1;i++)
-                block[i] ^= (block[i] << 1) | ((block[i+1] >> SHIFTBITS) & 0x1);
-            block[AES_BLOCK_SIZE-1] ^= (block[AES_BLOCK_SIZE-1] << 1) & (carry * 0x87);
+            final int carry = (block[0] >> SHIFTBITS) & 0x1;
+            for (int i = 0; i < AES_BLOCK_SIZE - 1; i++) {
+                block[i] ^= (block[i] << 1) | ((block[i + 1] >> SHIFTBITS) & 0x1);
+            }
+            block[AES_BLOCK_SIZE - 1] ^= ((block[AES_BLOCK_SIZE - 1] << 1) ^ (carry * 0x87));
         }
 
         public static void ZERO(final byte[] block) {
-            Arrays.fill(block, (byte)0);
+            Arrays.fill(block, (byte) 0);
         }
     }
 
@@ -99,14 +107,14 @@ public class CryptState {
      * @return The time since the last good decrypt in microseconds.
      */
     public long getLastGoodElapsed() {
-        return (System.nanoTime()-mLastGoodStart)/1000;
+        return (System.nanoTime() - mLastGoodStart) / 1000;
     }
 
     /**
      * @return The time since the last request in microseconds.
      */
     public long getLastRequestElapsed() {
-        return (System.nanoTime()-mLastRequestStart)/1000;
+        return (System.nanoTime() - mLastRequestStart) / 1000;
     }
 
     /* No need to create a shared secret, no server implementation.
@@ -115,7 +123,7 @@ public class CryptState {
     }
      */
 
-    public void setKey(byte[] rkey, byte[] eiv, byte[] div) throws InvalidKeyException{
+    public void setKey(byte[] rkey, byte[] eiv, byte[] div) throws InvalidKeyException {
         mRawKey = rkey;
         mEncryptIV = eiv;
         mDecryptIV = div;
@@ -142,7 +150,7 @@ public class CryptState {
         return mDecryptIV;
     }
 
-    public void ocbEncrypt(byte[] plain, byte[] encrypted, int len, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
+    public void ocbEncrypt(byte[] plain, byte[] encrypted, int plainLength, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
         final byte[] checksum = new byte[AES_BLOCK_SIZE],
                         delta = new byte[AES_BLOCK_SIZE],
                           tmp = new byte[AES_BLOCK_SIZE],
@@ -154,6 +162,7 @@ public class CryptState {
         final byte[] plainRegion = new byte[AES_BLOCK_SIZE];
         final byte[] encryptedRegion = new byte[AES_BLOCK_SIZE];
 
+        int len = plainLength;
         while(len > AES_BLOCK_SIZE) {
             plainBuffer.get(plainRegion);
             encryptedBuffer.get(encryptedRegion);
@@ -168,9 +177,10 @@ public class CryptState {
 
         CryptSupport.S2(delta);
         CryptSupport.ZERO(tmp);
+        tmp[AES_BLOCK_SIZE-1] = (byte) (((len * 8) >> 8) & 0xFF);
         tmp[AES_BLOCK_SIZE-1] = (byte) ((len * 8) & 0xFF);
         CryptSupport.XOR(tmp, tmp, delta);
-        mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, pad);
+        mEncryptKey.doFinal(tmp, 0, tmp.length, pad);
         System.arraycopy(plain, plainBuffer.position(), tmp, 0, len);
         System.arraycopy(pad, len, tmp, len, AES_BLOCK_SIZE - len);
         CryptSupport.XOR(checksum, checksum, tmp);
@@ -184,9 +194,9 @@ public class CryptState {
 
     public void ocbDecrypt(byte[] encrypted, byte[] plain, int len, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
         final byte[] checksum = new byte[AES_BLOCK_SIZE],
-                        delta = new byte[AES_BLOCK_SIZE],
-                          tmp = new byte[AES_BLOCK_SIZE],
-                          pad = new byte[AES_BLOCK_SIZE];
+                delta = new byte[AES_BLOCK_SIZE],
+                tmp = new byte[AES_BLOCK_SIZE],
+                pad = new byte[AES_BLOCK_SIZE];
 
         System.arraycopy(mEncryptKey.doFinal(nonce), 0, delta, 0, AES_BLOCK_SIZE);
 
@@ -195,7 +205,7 @@ public class CryptState {
         final byte[] plainRegion = new byte[AES_BLOCK_SIZE];
         final byte[] encryptedRegion = new byte[AES_BLOCK_SIZE];
 
-        while(len > AES_BLOCK_SIZE) {
+        while (len > AES_BLOCK_SIZE) {
             plainBuffer.get(plainRegion);
             encryptedBuffer.get(encryptedRegion);
 
@@ -209,7 +219,7 @@ public class CryptState {
 
         CryptSupport.S2(delta);
         CryptSupport.ZERO(tmp);
-        tmp[AES_BLOCK_SIZE-1] = (byte) ((len * 8) & 0xFF);
+        tmp[AES_BLOCK_SIZE - 1] = (byte) ((len * 8) & 0xFF);
         CryptSupport.XOR(tmp, tmp, delta);
         mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, pad);
         System.arraycopy(encrypted, encryptedBuffer.position(), tmp, 0, len);
@@ -224,7 +234,7 @@ public class CryptState {
     }
 
     public boolean decrypt(byte[] source, byte[] dst, int cryptedLength) {
-        if(cryptedLength < 4)
+        if (cryptedLength < 4)
             return false;
 
         int plainLength = cryptedLength - 4;
@@ -244,7 +254,7 @@ public class CryptState {
                 mDecryptIV[0] = ivbyte;
             } else if (ivbyte < mDecryptIV[0]) {
                 mDecryptIV[0] = ivbyte;
-                for (int i=1;i<AES_BLOCK_SIZE;i++)
+                for (int i = 1; i < AES_BLOCK_SIZE; i++)
                     if (++mDecryptIV[i] != 0)
                         break;
             } else {
@@ -255,9 +265,9 @@ public class CryptState {
 
             int diff = ivbyte - mDecryptIV[0];
             if (diff > 128)
-                diff = diff-256;
+                diff = diff - 256;
             else if (diff < -128)
-                diff = diff+256;
+                diff = diff + 256;
 
             if ((ivbyte < mDecryptIV[0]) && (diff > -30) && (diff < 0)) {
                 // Late packet, but no wraparound.
@@ -270,7 +280,7 @@ public class CryptState {
                 late = 1;
                 lost = -1;
                 mDecryptIV[0] = ivbyte;
-                for (int i=1;i<AES_BLOCK_SIZE;i++)
+                for (int i = 1; i < AES_BLOCK_SIZE; i++)
                     if (mDecryptIV[i]-- != 0)
                         break;
                 restore = true;
@@ -282,7 +292,7 @@ public class CryptState {
                 // Lost a few packets, and wrapped around
                 lost = 256 - mDecryptIV[0] + ivbyte - 1;
                 mDecryptIV[0] = ivbyte;
-                for (int i=1;i<AES_BLOCK_SIZE;i++)
+                for (int i = 1; i < AES_BLOCK_SIZE; i++)
                     if (++mDecryptIV[i] != 0)
                         break;
             } else {
@@ -336,8 +346,8 @@ public class CryptState {
         final byte[] tag = new byte[AES_BLOCK_SIZE];
 
         // First, increase our IV.
-        for(int i=0;i<AES_BLOCK_SIZE;i++)
-            if(++mEncryptIV[i] != 0)
+        for (int i = 0; i < AES_BLOCK_SIZE; i++)
+            if ((++mEncryptIV[i]) > 0)
                 break;
 
         try {
@@ -352,6 +362,8 @@ public class CryptState {
             throw new RuntimeException(e);
         }
 
+        // First 4 bytes are header data.
+        System.arraycopy(dst, 0, dst, 4, plainLength);
         dst[0] = mEncryptIV[0];
         dst[1] = tag[0];
         dst[2] = tag[1];

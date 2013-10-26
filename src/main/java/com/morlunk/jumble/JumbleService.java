@@ -24,6 +24,7 @@ import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.db.Database;
 import com.morlunk.jumble.model.Channel;
@@ -33,6 +34,7 @@ import com.morlunk.jumble.net.ChannelHandler;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleConnectionException;
 import com.morlunk.jumble.net.JumbleTCPMessageType;
+import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.TextMessageHandler;
 import com.morlunk.jumble.net.UserHandler;
 import com.morlunk.jumble.protobuf.Mumble;
@@ -86,6 +88,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private UserHandler mUserHandler;
     private TextMessageHandler mTextMessageHandler;
     private AudioOutput mAudioOutput;
+    private AudioInput mAudioInput;
+
+    private AudioInput.AudioInputListener mAudioInputListener = new AudioInput.AudioInputListener() {
+        @Override
+        public void onFrameEncoded(byte[] data, int length, JumbleUDPMessageType messageType) {
+            mConnection.sendUDPMessage(data, length, false);
+        }
+    };
 
     // Logging
     private List<String> mLogHistory = new ArrayList<String>();
@@ -179,12 +189,24 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public boolean isTalking() throws RemoteException {
-            return false;
+            return mAudioInput.isRecording();
         }
 
         @Override
         public void setTalkingState(boolean talking) throws RemoteException {
+            if(talking)
+                mAudioInput.startRecording();
+            else
+                mAudioInput.stopRecording();
 
+            final User currentUser = getSessionUser();
+            currentUser.setTalkState(talking ? User.TalkState.TALKING : User.TalkState.PASSIVE);
+            notifyObservers(new ObserverRunnable() {
+                @Override
+                public void run(IJumbleObserver observer) throws RemoteException {
+                    observer.onUserTalkStateUpdated(currentUser);
+                }
+            });
         }
 
         @Override
@@ -415,12 +437,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mUserHandler = new UserHandler(this);
         mTextMessageHandler = new TextMessageHandler(this);
         mAudioOutput = new AudioOutput(this);
+        mAudioInput = new AudioInput(JumbleUDPMessageType.UDPVoiceOpus, mAudioInputListener);
 
         // Add message handlers for all managers
         mConnection.addMessageHandler(mChannelHandler);
         mConnection.addMessageHandler(mUserHandler);
         mConnection.addMessageHandler(mTextMessageHandler);
         mConnection.addMessageHandler(mAudioOutput);
+        mConnection.addMessageHandler(mAudioInput);
 
         mConnection.connect();
     }
@@ -430,6 +454,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mConnection.removeMessageHandler(mUserHandler);
         mConnection.removeMessageHandler(mTextMessageHandler);
         mConnection.removeMessageHandler(mAudioOutput);
+        mConnection.removeMessageHandler(mAudioInput);
         mConnection.disconnect();
         mConnection = null;
     }

@@ -210,6 +210,7 @@ public class JumbleConnection {
 
         @Override
         public void messageUDPPing(byte[] data) {
+            Log.v(Constants.TAG, "UDP ping from server");
             byte[] timedata = new byte[8];
             System.arraycopy(data, 1, timedata, 0, 8);
             ByteBuffer buffer = ByteBuffer.allocate(8);
@@ -229,13 +230,15 @@ public class JumbleConnection {
             long t = getElapsed();
 
             if(!mForceTCP) {
-                byte[] buffer = new byte[256];
+                byte[] buffer = new byte[16];
                 buffer[0] = (byte) (JumbleUDPMessageType.UDPPing.ordinal() << 5);
-                byte[] data = new byte[255];
-                PacketDataStream dataStream = new PacketDataStream(data, 255);
+
+                byte[] data = new byte[15];
+                PacketDataStream dataStream = new PacketDataStream(data, 8);
                 dataStream.writeLong(t);
-                System.arraycopy(data, 0, buffer, 1, 255);
-                sendUDPMessage(buffer, JumbleUDPMessageType.UDPPing, true);
+                System.arraycopy(data, 0, buffer, 1, dataStream.size());
+
+                sendUDPMessage(buffer, dataStream.size()+1, true);
             }
 
             Mumble.Ping.Builder pb = Mumble.Ping.newBuilder();
@@ -244,6 +247,7 @@ public class JumbleConnection {
             pb.setLate(mCryptState.mUiLate);
             pb.setLost(mCryptState.mUiLost);
             pb.setResync(mCryptState.mUiResync);
+            // TODO accumulate stats and send with ping
             sendTCPMessage(pb.build(), JumbleTCPMessageType.Ping);
         }
     };
@@ -286,6 +290,7 @@ public class JumbleConnection {
         mPingExecutorService = Executors.newSingleThreadScheduledExecutor();
 
         mTCP = new JumbleTCP();
+        mUDP = new JumbleUDP();
         mNetworkThread = new NetworkSendThread();
         mExecutorService.submit(mNetworkThread);
         mExecutorService.submit(mTCP);
@@ -453,12 +458,12 @@ public class JumbleConnection {
         });
     }
 
-    public void sendUDPMessage(final byte[] data, final JumbleUDPMessageType messageType, final boolean force) {
+    public void sendUDPMessage(final byte[] data, final int length, final boolean force) {
         mNetworkHandler.post(new Runnable() {
             @Override
             public void run() {
                 try {
-                    mUDP.sendMessage(data, data.length, messageType, force);
+                    mUDP.sendMessage(data, length, force);
                 } catch (IOException e) {
                     e.printStackTrace(); // TODO handle me
                 }
@@ -738,7 +743,6 @@ public class JumbleConnection {
             Log.v(Constants.TAG, "Started listening");
 
             if(!mForceTCP) {
-                mUDP = new JumbleUDP();
                 mExecutorService.submit(mUDP);
             }
 
@@ -791,19 +795,16 @@ public class JumbleConnection {
         /**
          * Attempts to send a protobuf message over TCP. Executes on the TCP thread.
          * @param message The data to send.
+         * @param length The length of the byte array.
          * @param messageType The type of the message to send.
          * @throws IOException if we can't write the message to the server.
          */
-        public void sendMessage(byte[] message, JumbleTCPMessageType messageType) throws IOException {
+        public void sendMessage(byte[] message, int length, JumbleTCPMessageType messageType) throws IOException {
             if(!UNLOGGED_MESSAGES.contains(messageType))
                 Log.v(Constants.TAG, "OUT: "+messageType);
             mDataOutput.writeShort(messageType.ordinal());
-            mDataOutput.writeInt(message.length);
-            mDataOutput.write(message);
-        }
-
-        public void sendData(byte[] data) throws  IOException {
-            mDataOutput.write(data);
+            mDataOutput.writeInt(length);
+            mDataOutput.write(message, 0, length);
         }
     }
 
@@ -852,20 +853,15 @@ public class JumbleConnection {
             }
         }
 
-        public void sendMessage(byte[] data, int length, JumbleUDPMessageType messageType, boolean force) throws IOException {
-            if(!mCryptState.isValid())
-                return;
-
+        public void sendMessage(byte[] data, int length, boolean force) throws IOException {
             if(!force && (mForceTCP || !mUsingUDP)) {
-                ByteBuffer bb = ByteBuffer.allocate(length + 6);
-                bb.putShort((short) messageType.ordinal());
-                bb.putInt(length);
-                bb.put(data);
-                mTCP.sendData(bb.array());
+                mTCP.sendMessage(data, length, JumbleTCPMessageType.UDPTunnel);
             } else {
-                byte[] encryptedData = new byte[length];
+                if(!mCryptState.isValid())
+                    return;
+                byte[] encryptedData = new byte[length+4];
                 mCryptState.encrypt(data, encryptedData, length);
-                DatagramPacket packet = new DatagramPacket(encryptedData, length);
+                DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
                 packet.setAddress(mHost);
                 packet.setPort(mServer.getPort());
                 mUDPSocket.send(packet);

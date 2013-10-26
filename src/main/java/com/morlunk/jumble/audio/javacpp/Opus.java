@@ -23,6 +23,7 @@ import com.googlecode.javacpp.Loader;
 import com.googlecode.javacpp.Pointer;
 import com.googlecode.javacpp.ShortPointer;
 import com.googlecode.javacpp.annotation.Cast;
+import com.googlecode.javacpp.annotation.NoDeallocator;
 import com.googlecode.javacpp.annotation.Platform;
 
 /**
@@ -31,12 +32,29 @@ import com.googlecode.javacpp.annotation.Platform;
 
 @Platform(library="opus", link="opus", cinclude={"<opus.h>","<opus_types.h>"})
 public class Opus {
+
+    public static final int OPUS_APPLICATION_VOIP = 2048;
+
+    public static final int OPUS_SET_BITRATE_REQUEST = 4002;
+    public static final int OPUS_GET_BITRATE_REQUEST = 4003;
+    public static final int OPUS_SET_VBR_REQUEST = 4006;
+
     static {
         Loader.load();
     }
 
+// TODO work on an oo decoder wrapper
+//    public static class Decoder {
+//        private Pointer mNativeDecoder;
+//
+//        public Decoder(int frameSize, int channels) {
+//            IntPointer error = new IntPointer(1);
+//            mNativeDecoder = opus_decoder_create(frameSize, channels, error);
+//        }
+//    }
+
     public static native int opus_decoder_get_size(int channels);
-    public static native Pointer opus_decoder_create(int fs, int channels, IntPointer error);
+    public static native @NoDeallocator Pointer opus_decoder_create(int fs, int channels, IntPointer error);
     public static native int opus_decoder_init(@Cast("OpusDecoder*") Pointer st, int fs, int channels);
     public static native int opus_decode(@Cast("OpusDecoder*") Pointer st, @Cast("const unsigned char*") BytePointer data, int len, ShortPointer out, int frameSize, int decodeFec);
     public static native int opus_decode_float(@Cast("OpusDecoder*") Pointer st, @Cast("const unsigned char*") BytePointer data, int len, FloatPointer out, int frameSize, int decodeFec);
@@ -49,4 +67,12 @@ public class Opus {
     public static native int opus_packet_get_nb_frames(@Cast("const unsigned char*") BytePointer packet, int len);
     public static native int opus_packet_get_nb_samples(@Cast("const unsigned char*") BytePointer packet, int len, int fs);
 
+
+    public static native int opus_encoder_get_size(int channels);
+    public static native @NoDeallocator Pointer opus_encoder_create(int fs, int channels, int application, IntPointer error);
+    public static native int opus_encoder_init(@Cast("OpusEncoder*") Pointer st, int fs, int channels, int application);
+    public static native int opus_encode(@Cast("OpusEncoder*") Pointer st, @Cast("const short*") short[] pcm, int frameSize, @Cast("unsigned char*") byte[] data, int maxDataBytes);
+    public static native int opus_encode_float(@Cast("OpusEncoder*") Pointer st, @Cast("const float*") FloatPointer pcm, int frameSize, @Cast("unsigned char*") BytePointer data, int maxDataBytes);
+    public static native void opus_encoder_destroy(@Cast("OpusEncoder*") Pointer st);
+    public static native int opus_encoder_ctl(@Cast("OpusEncoder*") Pointer st, int request, Pointer value);
 }

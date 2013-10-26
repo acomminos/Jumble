@@ -92,7 +92,7 @@ public class AudioOutputSpeech {
 //                break;
         }
 
-        mBuffer = new float[mAudioBufferSize*2];
+        mBuffer = new float[mAudioBufferSize*2]; // Leave room for an extra frame in the buffer- TODO fix.
         mJitterBuffer = new Speex.JitterBuffer(Audio.FRAME_SIZE);
         IntPointer margin = new IntPointer(1);
         margin.put(10 * Audio.FRAME_SIZE);
@@ -152,7 +152,7 @@ public class AudioOutputSpeech {
 
         while(mBufferFilled < num) {
             int decodedSamples = Audio.FRAME_SIZE;
-            //resizeBuffer(mBufferFilled + mAudioBufferSize);
+            //resizeBuffer(mBufferFilled + mAudioBufferSize); TODO reimplement resize
 
             if(!mLastAlive)
                 out.fill(0);

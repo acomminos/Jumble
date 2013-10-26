@@ -65,7 +65,7 @@ public class PacketDataStream {
         }
     }
 
-    public void append(byte d, int len) {
+    public void append(byte[] d, int len) {
         if(left() >= len) {
             System.arraycopy(d, 0, mData, mOffset, len);
             mOffset += len;

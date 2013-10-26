@@ -55,13 +55,12 @@
 #endif
 
 extern "C" {
-#include <speex/speex.h>
-#include <speex/speex_types.h>
-#include <speex/speex_jitter.h>
+#include <celt.h>
+#include <celt_types.h>
 }
 
 static JavaVM* JavaCPP_vm = NULL;
-static const char* JavaCPP_classNames[16] = {
+static const char* JavaCPP_classNames[15] = {
         "com/googlecode/javacpp/Loader",
         "com/googlecode/javacpp/Pointer",
         "java/lang/NullPointerException",
@@ -76,9 +75,8 @@ static const char* JavaCPP_classNames[16] = {
         "com/googlecode/javacpp/BoolPointer",
         "com/googlecode/javacpp/CLongPointer",
         "com/googlecode/javacpp/SizeTPointer",
-        "com/morlunk/jumble/audio/javacpp/Speex$JitterBufferPacket",
         "java/lang/RuntimeException" };
-static jclass JavaCPP_classes[16] = { NULL };
+static jclass JavaCPP_classes[15] = { NULL };
 static jmethodID JavaCPP_initMID = NULL;
 static jfieldID JavaCPP_addressFID = NULL;
 static jfieldID JavaCPP_positionFID = NULL;
@@ -149,7 +147,6 @@ static JavaCPP_noinline jthrowable JavaCPP_handleException(JNIEnv* env, int i) {
 
 
 
-static void JavaCPP_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_deallocate(::_JitterBufferPacket* p) { delete p; }
 static void JavaCPP_com_googlecode_javacpp_BytePointer_deallocateArray(signed char* p) { delete[] p; }
 static void JavaCPP_com_googlecode_javacpp_ShortPointer_deallocateArray(short* p) { delete[] p; }
 static void JavaCPP_com_googlecode_javacpp_IntPointer_deallocateArray(int* p) { delete[] p; }
@@ -174,7 +171,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
         return env->GetVersion();
     }
     JavaCPP_vm = vm;
-    const char* members[16][6] = {
+    const char* members[15][1] = {
             {  },
             { "sizeof" },
             {  },
@@ -189,9 +186,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
             { "sizeof" },
             { "sizeof" },
             { "sizeof" },
-            { "sizeof", "timestamp", "data", "sequence", "span", "len" },
             {  } };
-    int offsets[16][6] = {
+    int offsets[15][1] = {
             {  },
             { sizeof(void*) },
             {  },
@@ -206,15 +202,14 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
             { sizeof(bool) },
             { sizeof(long) },
             { sizeof(size_t) },
-            { sizeof(::_JitterBufferPacket), offsetof(::_JitterBufferPacket,timestamp), offsetof(::_JitterBufferPacket,data), offsetof(::_JitterBufferPacket,sequence), offsetof(::_JitterBufferPacket,span), offsetof(::_JitterBufferPacket,len) },
             {  } };
-    int memberOffsetSizes[16] = { 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 0 };
+    int memberOffsetSizes[15] = { 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 };
     jmethodID putMemberOffsetMID = env->GetStaticMethodID(JavaCPP_getClass(env, 0), "putMemberOffset", "(Ljava/lang/String;Ljava/lang/String;I)V");
     if (putMemberOffsetMID == NULL || env->ExceptionCheck()) {
         JavaCPP_log("Error getting method ID of Loader.putMemberOffset().");
         return JNI_ERR;
     }
-    for (int i = 0; i < 16 && !env->ExceptionCheck(); i++) {
+    for (int i = 0; i < 15 && !env->ExceptionCheck(); i++) {
         for (int j = 0; j < memberOffsetSizes[i] && !env->ExceptionCheck(); j++) {
             if (env->PushLocalFrame(2) == 0) {
                 jvalue args[3];
@@ -261,7 +256,7 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* vm, void* reserved) {
         JavaCPP_log("Could not get JNIEnv for JNI_VERSION_1_6 inside JNI_OnUnLoad().");
         return;
     }
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 15; i++) {
         env->DeleteWeakGlobalRef(JavaCPP_classes[i]);
         JavaCPP_classes[i] = NULL;
     }
@@ -1010,312 +1005,21 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_SizeTPointer_put(JNIEnv* e
     return rarg;
 }
 
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_getTimestamp(JNIEnv* env, jobject obj) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return 0;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    jint rarg = 0;
-    int rvalue = ptr->timestamp;
-    rarg = (jint)rvalue;
-    return rarg;
-}
-JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_getData(JNIEnv* env, jobject obj) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return 0;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    jobject rarg = NULL;
-    char * rptr;
-    rptr = (char *)ptr->data;
-    if (rptr != NULL) {
-        rarg = env->AllocObject(JavaCPP_getClass(env, 3));
-        env->SetLongField(rarg, JavaCPP_addressFID, ptr_to_jlong(rptr));
-    }
-    return rarg;
-}
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_sequence(JNIEnv* env, jobject obj) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return 0;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    jint rarg = 0;
-    int rvalue = ptr->sequence;
-    rarg = (jint)rvalue;
-    return rarg;
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_setData(JNIEnv* env, jobject obj, jobject arg0) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    signed char* ptr0 = arg0 == NULL ? NULL : (signed char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    ptr->data = (char *)ptr0;
-}
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_getSpan(JNIEnv* env, jobject obj) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return 0;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    jint rarg = 0;
-    int rvalue = ptr->span;
-    rarg = (jint)rvalue;
-    return rarg;
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_setSpan(JNIEnv* env, jobject obj, jint arg0) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    ptr->span = arg0;
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_setSequence(JNIEnv* env, jobject obj, jint arg0) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    ptr->sequence = arg0;
-}
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_getLength(JNIEnv* env, jobject obj) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return 0;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    jint rarg = 0;
-    int rvalue = ptr->len;
-    rarg = (jint)rvalue;
-    return rarg;
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_setLength(JNIEnv* env, jobject obj, jint arg0) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    ptr->len = arg0;
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_allocate(JNIEnv* env, jobject obj) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 14))) {
-        return;
-    }
-    jthrowable exc = NULL;
-    try {
-        ::_JitterBufferPacket* rptr = new ::_JitterBufferPacket();
-        jint rcapacity = 1;
-        jvalue args[3];
-        args[0].j = ptr_to_jlong(rptr);
-        args[1].i = rcapacity;
-        args[2].j = ptr_to_jlong(&JavaCPP_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_deallocate);
-        env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_setTimestamp(JNIEnv* env, jobject obj, jint arg0) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    ptr->timestamp = arg0;
-}
-
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1reset(JNIEnv* env, jclass cls, jobject arg0) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    jthrowable exc = NULL;
-    try {
-        jitter_buffer_reset((JitterBuffer*)ptr0);
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1destroy(JNIEnv* env, jclass cls, jobject arg0) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    jthrowable exc = NULL;
-    try {
-        jitter_buffer_destroy((JitterBuffer*)ptr0);
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1put(JNIEnv* env, jclass cls, jobject arg0, jobject arg1) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    ::_JitterBufferPacket* ptr1 = arg1 == NULL ? NULL : (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(arg1, JavaCPP_addressFID));
-    jint position1 = arg1 == NULL ? 0 : env->GetIntField(arg1, JavaCPP_positionFID);
-    ptr1 += position1;
-    jthrowable exc = NULL;
-    try {
-        jitter_buffer_put((JitterBuffer*)ptr0, ptr1);
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-}
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1get(JNIEnv* env, jclass cls, jobject arg0, jobject arg1, jint arg2, jobject arg3) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    ::_JitterBufferPacket* ptr1 = arg1 == NULL ? NULL : (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(arg1, JavaCPP_addressFID));
-    jint position1 = arg1 == NULL ? 0 : env->GetIntField(arg1, JavaCPP_positionFID);
-    ptr1 += position1;
-    int* ptr3 = arg3 == NULL ? NULL : (int*)jlong_to_ptr(env->GetLongField(arg3, JavaCPP_addressFID));
-    jint position3 = arg3 == NULL ? 0 : env->GetIntField(arg3, JavaCPP_positionFID);
-    ptr3 += position3;
-    jint rarg = 0;
-    jthrowable exc = NULL;
-    try {
-        int rvalue = jitter_buffer_get((JitterBuffer*)ptr0, ptr1, arg2, ptr3);
-        rarg = (jint)rvalue;
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-    return rarg;
-}
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1get_1pointer_1timestamp(JNIEnv* env, jclass cls, jobject arg0) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    jint rarg = 0;
-    jthrowable exc = NULL;
-    try {
-        int rvalue = jitter_buffer_get_pointer_timestamp((JitterBuffer*)ptr0);
-        rarg = (jint)rvalue;
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-    return rarg;
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1tick(JNIEnv* env, jclass cls, jobject arg0) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    jthrowable exc = NULL;
-    try {
-        jitter_buffer_tick((JitterBuffer*)ptr0);
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-}
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1ctl(JNIEnv* env, jclass cls, jobject arg0, jint arg1, jobject arg2) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    char* ptr2 = arg2 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg2, JavaCPP_addressFID));
-    jint position2 = arg2 == NULL ? 0 : env->GetIntField(arg2, JavaCPP_positionFID);
-    ptr2 += position2;
-    jint rarg = 0;
-    jthrowable exc = NULL;
-    try {
-        int rvalue = jitter_buffer_ctl((JitterBuffer*)ptr0, arg1, (void *)ptr2);
-        rarg = (jint)rvalue;
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-    return rarg;
-}
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1update_1delay(JNIEnv* env, jclass cls, jobject arg0, jobject arg1, jobject arg2) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    ::_JitterBufferPacket* ptr1 = arg1 == NULL ? NULL : (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(arg1, JavaCPP_addressFID));
-    jint position1 = arg1 == NULL ? 0 : env->GetIntField(arg1, JavaCPP_positionFID);
-    ptr1 += position1;
+JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1decoder_1init(JNIEnv* env, jclass cls, jint arg0, jint arg1, jobject arg2) {
     int* ptr2 = arg2 == NULL ? NULL : (int*)jlong_to_ptr(env->GetLongField(arg2, JavaCPP_addressFID));
     jint position2 = arg2 == NULL ? 0 : env->GetIntField(arg2, JavaCPP_positionFID);
     ptr2 += position2;
-    jint rarg = 0;
-    jthrowable exc = NULL;
-    try {
-        int rvalue = jitter_buffer_update_delay((JitterBuffer*)ptr0, ptr1, ptr2);
-        rarg = (jint)rvalue;
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-    return rarg;
-}
-JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1init(JNIEnv* env, jclass cls, jint arg0) {
     jobject rarg = NULL;
     void* rptr;
     jthrowable exc = NULL;
     try {
-        rptr = jitter_buffer_init(arg0);
+        rptr = celt_decoder_init(arg0, arg1, ptr2);
         if (rptr != NULL) {
             rarg = env->AllocObject(JavaCPP_getClass(env, 1));
             env->SetLongField(rarg, JavaCPP_addressFID, ptr_to_jlong(rptr));
         }
     } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
+        exc = JavaCPP_handleException(env, 14);
     }
 
     if (exc != NULL) {
