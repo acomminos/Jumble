@@ -290,7 +290,8 @@ public class JumbleConnection {
         mPingExecutorService = Executors.newSingleThreadScheduledExecutor();
 
         mTCP = new JumbleTCP();
-        mUDP = new JumbleUDP();
+        if(!mForceTCP)
+            mUDP = new JumbleUDP();
         mNetworkThread = new NetworkSendThread();
         mExecutorService.submit(mNetworkThread);
         mExecutorService.submit(mTCP);
@@ -463,7 +464,10 @@ public class JumbleConnection {
             @Override
             public void run() {
                 try {
-                    mUDP.sendMessage(data, length, force);
+                    if(!force && (mForceTCP || !mUsingUDP))
+                        mTCP.sendMessage(data, length, JumbleTCPMessageType.UDPTunnel);
+                    else if(!mForceTCP)
+                        mUDP.sendMessage(data, length);
                 } catch (IOException e) {
                     e.printStackTrace(); // TODO handle me
                 }
@@ -700,6 +704,7 @@ public class JumbleConnection {
                     mHost = InetAddress.getByName(mServer.getHost());
                 } catch (UnknownHostException e) {
                     handleFatalException(new JumbleConnectionException("Could not resolve host", e, true));
+                    return;
                 }
 
                 if(mUseTor)
@@ -742,9 +747,8 @@ public class JumbleConnection {
 
             Log.v(Constants.TAG, "Started listening");
 
-            if(!mForceTCP) {
+            if(!mForceTCP)
                 mExecutorService.submit(mUDP);
-            }
 
             while(mConnected) {
                 try {
@@ -825,7 +829,8 @@ public class JumbleConnection {
                 mUDPSocket = new DatagramSocket();
                 mUDPSocket.connect(mHost, mServer.getPort());
             } catch (SocketException e) {
-                handleFatalException(new JumbleConnectionException("Could not open a connection to the host", e, false));
+                mListener.onConnectionWarning("Could not initialize UDP socket! Try forcing a TCP connection.");
+                return;
             }
 
             DatagramPacket packet = new DatagramPacket(new byte[BUFFER_SIZE], BUFFER_SIZE);
@@ -853,19 +858,15 @@ public class JumbleConnection {
             }
         }
 
-        public void sendMessage(byte[] data, int length, boolean force) throws IOException {
-            if(!force && (mForceTCP || !mUsingUDP)) {
-                mTCP.sendMessage(data, length, JumbleTCPMessageType.UDPTunnel);
-            } else {
-                if(!mCryptState.isValid())
-                    return;
-                byte[] encryptedData = new byte[length+4];
-                mCryptState.encrypt(data, encryptedData, length);
-                DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
-                packet.setAddress(mHost);
-                packet.setPort(mServer.getPort());
-                mUDPSocket.send(packet);
-            }
+        public void sendMessage(byte[] data, int length) throws IOException {
+            if(!mCryptState.isValid())
+                return;
+            byte[] encryptedData = new byte[length+4];
+            mCryptState.encrypt(data, encryptedData, length);
+            DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
+            packet.setAddress(mHost);
+            packet.setPort(mServer.getPort());
+            mUDPSocket.send(packet);
         }
     }
 

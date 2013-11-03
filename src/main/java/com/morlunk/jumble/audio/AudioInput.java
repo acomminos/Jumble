@@ -32,6 +32,8 @@ import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
 import com.morlunk.jumble.protobuf.Mumble;
 
+import java.util.Arrays;
+
 /**
  * Created by andrew on 23/08/13.
  */
@@ -48,7 +50,6 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
     public static final int OPUS_MAX_BYTES = 512; // Opus specifies 4000 bytes as a recommended value for encoding, but the official mumble project uses 512.
 
     private Pointer mOpusEncoder;;
-//    private SWIGTYPE_p_OpusEncoder mOpusEncoder;
 //    private com.morlunk.jumble.audio.celt11.SWIGTYPE_p_CELTEncoder mCELTBetaEncoder;
 //    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTMode mCELTAlphaMode;
 //    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTEncoder mCELTAlphaEncoder;
@@ -66,6 +67,8 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
     // Temporary encoder state
     private final short[] mOpusBuffer = new short[mFrameSize*mFramesPerPacket];
     private final byte[] mEncodedBuffer = new byte[OPUS_MAX_BYTES];
+    private final byte[] mPacketBuffer = new byte[1024];
+    private final PacketDataStream mPacketDataStream = new PacketDataStream(mPacketBuffer, 1024);
     private int mBufferedFrames = 0;
     private int mFrameCounter;
 
@@ -236,9 +239,9 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
 
                         if(!mRecording || mBufferedFrames >= mFramesPerPacket) {
                             if(mBufferedFrames < mFramesPerPacket)
-                                mBufferedFrames = mFramesPerPacket; // If recording was stopped early, encode remaining empty frames too.IntPointer sampleRate = new IntPointer(1);
+                                mBufferedFrames = mFramesPerPacket; // If recording was stopped early, encode remaining empty frames too.
 
-                            len = Opus.opus_encode(mOpusEncoder, mOpusBuffer, mFrameSize*mBufferedFrames, mEncodedBuffer, OPUS_MAX_BYTES);
+                            len = Opus.opus_encode(mOpusEncoder, mOpusBuffer, mFrameSize * mBufferedFrames, mEncodedBuffer, OPUS_MAX_BYTES);
 
                             if(len <= 0) {
                                 mBufferedFrames = 0;
@@ -257,7 +260,7 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
                 }
 
                 if(encoded)
-                    sendFrame(mEncodedBuffer);
+                    sendFrame(mEncodedBuffer, !talking || !mRecording);
             } else {
                 Log.e(Constants.TAG, "Error fetching audio! AudioRecord error "+shortsRead);
                 mBufferedFrames = 0;
@@ -273,28 +276,30 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
 
     /**
      * Sends the encoded frame to the server.
+     * Volatile; depends on class state and must not be called concurrently.
      */
-    private void sendFrame(byte[] frame) {
-
+    private void sendFrame(byte[] frame, boolean terminator) {
         int frames = mBufferedFrames;
         mBufferedFrames = 0;
 
-        byte[] packet = new byte[1024];
+        Arrays.fill(mPacketBuffer, (byte) 0);
+
         int flags = 0;
         flags |= mCodec.ordinal() << 5;
-        packet[0] = (byte) (flags & 0xFF);
-
-        PacketDataStream pds = new PacketDataStream(packet, packet.length);
-        pds.skip(1);
-        pds.writeLong(mFrameCounter - frames);
+        mPacketBuffer[0] = (byte) (flags & 0xFF);
+        mPacketDataStream.rewind();
+        mPacketDataStream.skip(1);
+        mPacketDataStream.writeLong(mFrameCounter - frames);
 
         if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
             long size = frame.length;
-            pds.writeLong(size);
-            pds.append(frame, frame.length);
+            if(terminator)
+                size |= 1 << 13;
+            mPacketDataStream.writeLong(size);
+            mPacketDataStream.append(frame, frame.length);
         }
 
-        mListener.onFrameEncoded(packet, pds.size(), mCodec);
+        mListener.onFrameEncoded(mPacketBuffer, mPacketDataStream.size(), mCodec);
     }
 
     /**
