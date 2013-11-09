@@ -32,7 +32,7 @@ import com.googlecode.javacpp.annotation.Platform;
  * JavaCPP interface for Speex JNI.
  * Created by andrew on 18/10/13.
  */
-@Platform(library="speex", link="speex", cinclude={"<speex/speex.h>","<speex/speex_types.h>","<speex/speex_jitter.h>", "<speex/speex_preprocess.h>"})
+@Platform(library="speex", link="speex", cinclude={"<speex/speex.h>","<speex/speex_types.h>","<speex/speex_jitter.h>", "<speex/speex_preprocess.h>", "<speex/speex_resampler.h>"})
 public class Speex {
 
     static {
@@ -125,7 +125,7 @@ public class Speex {
 
     }
 
-    public static class SpeexPreprocessState extends Pointer {
+    public static class SpeexPreprocessState {
 
         public static final int SPEEX_PREPROCESS_SET_DENOISE = 0;
         public static final int SPEEX_PREPROCESS_GET_DENOISE = 1;
@@ -188,6 +188,28 @@ public class Speex {
         }
 
     }
+
+    public static class SpeexResampler {
+        private Pointer mNativeState;
+
+        public SpeexResampler(int channels, int inSampleRate, int outSampleRate, int quality) {
+            mNativeState = speex_resampler_init(channels, inSampleRate, outSampleRate, quality, null);
+        }
+
+        public void resample(short[] in, short[] out) {
+            speex_resampler_process_int(mNativeState, 0, in, new int[] { in.length }, out, new int[] { out.length });
+        }
+
+        public void destroy() {
+            speex_resampler_destroy(mNativeState);
+        }
+
+    }
+
+    // Resampler
+    private static native Pointer speex_resampler_init(int channels, int inSampleRate, int outSampleRate, int quality, IntPointer error);
+    private static native int speex_resampler_process_int(@Cast("SpeexResamplerState*") Pointer state, int channelIndex, @Cast("short*") short[] in, @Cast("unsigned int*") int[] inLen, @Cast("short*") short[] out, @Cast("unsigned int*") int[] outLen);
+    private static native void speex_resampler_destroy(@Cast("SpeexResamplerState*") Pointer state);
 
     // Jitter buffer
     private static native Pointer jitter_buffer_init(int tick);

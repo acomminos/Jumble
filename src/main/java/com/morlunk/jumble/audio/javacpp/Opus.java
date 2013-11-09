@@ -43,16 +43,6 @@ public class Opus {
         Loader.load();
     }
 
-// TODO work on an oo decoder wrapper
-//    public static class Decoder {
-//        private Pointer mNativeDecoder;
-//
-//        public Decoder(int frameSize, int channels) {
-//            IntPointer error = new IntPointer(1);
-//            mNativeDecoder = opus_decoder_create(frameSize, channels, error);
-//        }
-//    }
-
     public static native int opus_decoder_get_size(int channels);
     public static native @NoDeallocator Pointer opus_decoder_create(int fs, int channels, IntPointer error);
     public static native int opus_decoder_init(@Cast("OpusDecoder*") Pointer st, int fs, int channels);

@@ -243,12 +243,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void requestBanList() throws RemoteException {
-
+            // TODO
         }
 
         @Override
         public void requestUserList() throws RemoteException {
-
+            // TODO
         }
 
         @Override
@@ -605,7 +605,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 runnable.run(mObservers.getBroadcastItem(i));
             } catch (RemoteException e) {
                 e.printStackTrace();
-                // TODO handle this error
             }
         }
         mObservers.finishBroadcast();

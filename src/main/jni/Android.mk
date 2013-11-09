@@ -40,7 +40,7 @@ include $(BUILD_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_PATH			:= $(ROOT)/celt-0.11.0-src/libcelt
 LOCAL_MODULE		:= libcelt11
-LOCAL_SRC_FILES		:= bands.c celt.c cwrs.c entcode.c entdec.c entenc.c header.c kiss_fft.c laplace.c mathops.c mdct.c modes.c pitch.c plc.c quant_bands.c rate.c vq.c # ../../celt-0.11.0-build/celt_wrap.c
+LOCAL_SRC_FILES		:= bands.c celt.c cwrs.c entcode.c entdec.c entenc.c header.c kiss_fft.c laplace.c mathops.c mdct.c modes.c pitch.c plc.c quant_bands.c rate.c vq.c $(ROOT)/celt11.cpp
 LOCAL_C_INCLUDES    := $(ROOT)/celt-0.11.0-src/libcelt/
 LOCAL_CFLAGS		:= -I$(ROOT)/celt-0.11.0-build -DHAVE_CONFIG_H -fvisibility=hidden
 LOCAL_CPP_FEATURES := exceptions
@@ -50,7 +50,7 @@ include $(BUILD_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_PATH			:= $(ROOT)/celt-0.7.0-src/libcelt
 LOCAL_MODULE		:= libcelt7
-LOCAL_SRC_FILES		:= bands.c celt.c cwrs.c entcode.c entdec.c entenc.c header.c kiss_fft.c kiss_fftr.c laplace.c mdct.c modes.c pitch.c psy.c quant_bands.c rangedec.c rangeenc.c rate.c vq.c # ../../celt-0.7.0-build/celt_wrap.c
+LOCAL_SRC_FILES		:= bands.c celt.c cwrs.c entcode.c entdec.c entenc.c header.c kiss_fft.c kiss_fftr.c laplace.c mdct.c modes.c pitch.c psy.c quant_bands.c rangedec.c rangeenc.c rate.c vq.c $(ROOT)/celt7.cpp
 LOCAL_C_INCLUDES    := $(ROOT)/celt-0.7.0-src/libcelt/
 LOCAL_CFLAGS		:= -I$(ROOT)/celt-0.7.0-build -DHAVE_CONFIG_H -fvisibility=hidden
 LOCAL_CPP_FEATURES := exceptions

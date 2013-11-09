@@ -59,6 +59,7 @@ extern "C" {
 #include <speex/speex_types.h>
 #include <speex/speex_jitter.h>
 #include <speex/speex_preprocess.h>
+#include <speex/speex_resampler.h>
 }
 
 static JavaVM* JavaCPP_vm = NULL;
@@ -190,7 +191,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
             { "sizeof" },
             { "sizeof" },
             { "sizeof" },
-            { "sizeof", "timestamp", "data", "sequence", "span", "len" },
+            { "sizeof", "len", "timestamp", "data", "sequence", "span" },
             {  } };
     int offsets[16][6] = {
             {  },
@@ -207,7 +208,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
             { sizeof(bool) },
             { sizeof(long) },
             { sizeof(size_t) },
-            { sizeof(::_JitterBufferPacket), offsetof(::_JitterBufferPacket,timestamp), offsetof(::_JitterBufferPacket,data), offsetof(::_JitterBufferPacket,sequence), offsetof(::_JitterBufferPacket,span), offsetof(::_JitterBufferPacket,len) },
+            { sizeof(::_JitterBufferPacket), offsetof(::_JitterBufferPacket,len), offsetof(::_JitterBufferPacket,timestamp), offsetof(::_JitterBufferPacket,data), offsetof(::_JitterBufferPacket,sequence), offsetof(::_JitterBufferPacket,span) },
             {  } };
     int memberOffsetSizes[16] = { 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 0 };
     jmethodID putMemberOffsetMID = env->GetStaticMethodID(JavaCPP_getClass(env, 0), "putMemberOffset", "(Ljava/lang/String;Ljava/lang/String;I)V");
@@ -280,6 +281,14 @@ JNIEXPORT void JNICALL Java_com_googlecode_javacpp_Pointer_00024NativeDeallocato
 
 
 
+JNIEXPORT void JNICALL Java_com_googlecode_javacpp_Pointer_allocate(JNIEnv* env, jobject obj, jobject arg0) {
+    char* ptr0 = arg0 == NULL ? NULL : (char*)env->GetDirectBufferAddress(arg0);
+    void* rptr = ptr0;
+    jint rcapacity = 1;
+    env->SetLongField(obj, JavaCPP_addressFID, ptr_to_jlong(rptr));
+    env->SetIntField(obj, JavaCPP_limitFID, rcapacity);
+    env->SetIntField(obj, JavaCPP_capacityFID, rcapacity);
+}
 JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_Pointer_asDirectBuffer(JNIEnv* env, jobject obj) {
     char* ptr = (char*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -381,40 +390,7 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_Pointer_memset(JNIEnv* env
     }
     return rarg;
 }
-JNIEXPORT void JNICALL Java_com_googlecode_javacpp_Pointer_allocate(JNIEnv* env, jobject obj, jobject arg0) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)env->GetDirectBufferAddress(arg0);
-    void* rptr = ptr0;
-    jint rcapacity = 1;
-    env->SetLongField(obj, JavaCPP_addressFID, ptr_to_jlong(rptr));
-    env->SetIntField(obj, JavaCPP_limitFID, rcapacity);
-    env->SetIntField(obj, JavaCPP_capacityFID, rcapacity);
-}
 
-JNIEXPORT void JNICALL Java_com_googlecode_javacpp_BytePointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 3))) {
-        return;
-    }
-    signed char* rptr = new (std::nothrow) signed char[arg0];
-    jint rcapacity = arg0;
-    jvalue args[3];
-    args[0].j = ptr_to_jlong(rptr);
-    args[1].i = rcapacity;
-    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_BytePointer_deallocateArray);
-    env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
-}
-JNIEXPORT jbyte JNICALL Java_com_googlecode_javacpp_BytePointer_get__I(JNIEnv* env, jobject obj, jint arg0) {
-    signed char* ptr = (signed char*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return 0;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    jbyte rarg = 0;
-    signed char rvalue = ptr[arg0];
-    rarg = (jbyte)rvalue;
-    return rarg;
-}
 JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_BytePointer_get___3BII(JNIEnv* env, jobject obj, jbyteArray arg0, jint arg1, jint arg2) {
     signed char* ptr = (signed char*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -427,6 +403,19 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_BytePointer_get___3BII(JNI
     jobject rarg = obj;
     memcpy(ptr0 + arg1, ptr, arg2 * sizeof(*ptr0));
     if (arg0 != NULL) env->ReleasePrimitiveArrayCritical(arg0, ptr0, 0);
+    return rarg;
+}
+JNIEXPORT jbyte JNICALL Java_com_googlecode_javacpp_BytePointer_get__I(JNIEnv* env, jobject obj, jint arg0) {
+    signed char* ptr = (signed char*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
+    if (ptr == NULL) {
+        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
+        return 0;
+    }
+    jint position = env->GetIntField(obj, JavaCPP_positionFID);
+    ptr += position;
+    jbyte rarg = 0;
+    signed char rvalue = ptr[arg0];
+    rarg = (jbyte)rvalue;
     return rarg;
 }
 JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_BytePointer_put__IB(JNIEnv* env, jobject obj, jint arg0, jbyte arg1) {
@@ -455,19 +444,19 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_BytePointer_put___3BII(JNI
     if (arg0 != NULL) env->ReleasePrimitiveArrayCritical(arg0, ptr0, 0);
     return rarg;
 }
-
-JNIEXPORT void JNICALL Java_com_googlecode_javacpp_ShortPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 4))) {
+JNIEXPORT void JNICALL Java_com_googlecode_javacpp_BytePointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
+    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 3))) {
         return;
     }
-    short* rptr = new (std::nothrow) short[arg0];
+    signed char* rptr = new (std::nothrow) signed char[arg0];
     jint rcapacity = arg0;
     jvalue args[3];
     args[0].j = ptr_to_jlong(rptr);
     args[1].i = rcapacity;
-    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_ShortPointer_deallocateArray);
+    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_BytePointer_deallocateArray);
     env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
 }
+
 JNIEXPORT jshort JNICALL Java_com_googlecode_javacpp_ShortPointer_get__I(JNIEnv* env, jobject obj, jint arg0) {
     short* ptr = (short*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -495,6 +484,18 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_ShortPointer_get___3SII(JN
     if (arg0 != NULL) env->ReleasePrimitiveArrayCritical(arg0, ptr0, 0);
     return rarg;
 }
+JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_ShortPointer_put__IS(JNIEnv* env, jobject obj, jint arg0, jshort arg1) {
+    short* ptr = (short*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
+    if (ptr == NULL) {
+        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
+        return 0;
+    }
+    jint position = env->GetIntField(obj, JavaCPP_positionFID);
+    ptr += position;
+    jobject rarg = obj;
+    ptr[arg0] = arg1;
+    return rarg;
+}
 JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_ShortPointer_put___3SII(JNIEnv* env, jobject obj, jshortArray arg0, jint arg1, jint arg2) {
     short* ptr = (short*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -509,31 +510,19 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_ShortPointer_put___3SII(JN
     if (arg0 != NULL) env->ReleasePrimitiveArrayCritical(arg0, ptr0, 0);
     return rarg;
 }
-JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_ShortPointer_put__IS(JNIEnv* env, jobject obj, jint arg0, jshort arg1) {
-    short* ptr = (short*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return 0;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    jobject rarg = obj;
-    ptr[arg0] = arg1;
-    return rarg;
-}
-
-JNIEXPORT void JNICALL Java_com_googlecode_javacpp_IntPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 5))) {
+JNIEXPORT void JNICALL Java_com_googlecode_javacpp_ShortPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
+    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 4))) {
         return;
     }
-    int* rptr = new (std::nothrow) int[arg0];
+    short* rptr = new (std::nothrow) short[arg0];
     jint rcapacity = arg0;
     jvalue args[3];
     args[0].j = ptr_to_jlong(rptr);
     args[1].i = rcapacity;
-    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_IntPointer_deallocateArray);
+    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_ShortPointer_deallocateArray);
     env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
 }
+
 JNIEXPORT jint JNICALL Java_com_googlecode_javacpp_IntPointer_get__I(JNIEnv* env, jobject obj, jint arg0) {
     int* ptr = (int*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -587,19 +576,19 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_IntPointer_put__II(JNIEnv*
     ptr[arg0] = arg1;
     return rarg;
 }
-
-JNIEXPORT void JNICALL Java_com_googlecode_javacpp_LongPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 6))) {
+JNIEXPORT void JNICALL Java_com_googlecode_javacpp_IntPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
+    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 5))) {
         return;
     }
-    jlong* rptr = new (std::nothrow) jlong[arg0];
+    int* rptr = new (std::nothrow) int[arg0];
     jint rcapacity = arg0;
     jvalue args[3];
     args[0].j = ptr_to_jlong(rptr);
     args[1].i = rcapacity;
-    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_LongPointer_deallocateArray);
+    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_IntPointer_deallocateArray);
     env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
 }
+
 JNIEXPORT jlong JNICALL Java_com_googlecode_javacpp_LongPointer_get__I(JNIEnv* env, jobject obj, jint arg0) {
     jlong* ptr = (jlong*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -627,6 +616,18 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_LongPointer_get___3JII(JNI
     if (arg0 != NULL) env->ReleasePrimitiveArrayCritical(arg0, ptr0, 0);
     return rarg;
 }
+JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_LongPointer_put__IJ(JNIEnv* env, jobject obj, jint arg0, jlong arg1) {
+    jlong* ptr = (jlong*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
+    if (ptr == NULL) {
+        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
+        return 0;
+    }
+    jint position = env->GetIntField(obj, JavaCPP_positionFID);
+    ptr += position;
+    jobject rarg = obj;
+    ptr[arg0] = arg1;
+    return rarg;
+}
 JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_LongPointer_put___3JII(JNIEnv* env, jobject obj, jlongArray arg0, jint arg1, jint arg2) {
     jlong* ptr = (jlong*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -641,31 +642,19 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_LongPointer_put___3JII(JNI
     if (arg0 != NULL) env->ReleasePrimitiveArrayCritical(arg0, ptr0, 0);
     return rarg;
 }
-JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_LongPointer_put__IJ(JNIEnv* env, jobject obj, jint arg0, jlong arg1) {
-    jlong* ptr = (jlong*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return 0;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    jobject rarg = obj;
-    ptr[arg0] = arg1;
-    return rarg;
-}
-
-JNIEXPORT void JNICALL Java_com_googlecode_javacpp_FloatPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 7))) {
+JNIEXPORT void JNICALL Java_com_googlecode_javacpp_LongPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
+    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 6))) {
         return;
     }
-    float* rptr = new (std::nothrow) float[arg0];
+    jlong* rptr = new (std::nothrow) jlong[arg0];
     jint rcapacity = arg0;
     jvalue args[3];
     args[0].j = ptr_to_jlong(rptr);
     args[1].i = rcapacity;
-    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_FloatPointer_deallocateArray);
+    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_LongPointer_deallocateArray);
     env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
 }
+
 JNIEXPORT jfloat JNICALL Java_com_googlecode_javacpp_FloatPointer_get__I(JNIEnv* env, jobject obj, jint arg0) {
     float* ptr = (float*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -693,6 +682,18 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_FloatPointer_get___3FII(JN
     if (arg0 != NULL) env->ReleasePrimitiveArrayCritical(arg0, ptr0, 0);
     return rarg;
 }
+JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_FloatPointer_put__IF(JNIEnv* env, jobject obj, jint arg0, jfloat arg1) {
+    float* ptr = (float*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
+    if (ptr == NULL) {
+        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
+        return 0;
+    }
+    jint position = env->GetIntField(obj, JavaCPP_positionFID);
+    ptr += position;
+    jobject rarg = obj;
+    ptr[arg0] = arg1;
+    return rarg;
+}
 JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_FloatPointer_put___3FII(JNIEnv* env, jobject obj, jfloatArray arg0, jint arg1, jint arg2) {
     float* ptr = (float*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -707,31 +708,19 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_FloatPointer_put___3FII(JN
     if (arg0 != NULL) env->ReleasePrimitiveArrayCritical(arg0, ptr0, 0);
     return rarg;
 }
-JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_FloatPointer_put__IF(JNIEnv* env, jobject obj, jint arg0, jfloat arg1) {
-    float* ptr = (float*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return 0;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    jobject rarg = obj;
-    ptr[arg0] = arg1;
-    return rarg;
-}
-
-JNIEXPORT void JNICALL Java_com_googlecode_javacpp_DoublePointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 8))) {
+JNIEXPORT void JNICALL Java_com_googlecode_javacpp_FloatPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
+    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 7))) {
         return;
     }
-    double* rptr = new (std::nothrow) double[arg0];
+    float* rptr = new (std::nothrow) float[arg0];
     jint rcapacity = arg0;
     jvalue args[3];
     args[0].j = ptr_to_jlong(rptr);
     args[1].i = rcapacity;
-    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_DoublePointer_deallocateArray);
+    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_FloatPointer_deallocateArray);
     env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
 }
+
 JNIEXPORT jdouble JNICALL Java_com_googlecode_javacpp_DoublePointer_get__I(JNIEnv* env, jobject obj, jint arg0) {
     double* ptr = (double*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -759,6 +748,18 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_DoublePointer_get___3DII(J
     if (arg0 != NULL) env->ReleasePrimitiveArrayCritical(arg0, ptr0, 0);
     return rarg;
 }
+JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_DoublePointer_put__ID(JNIEnv* env, jobject obj, jint arg0, jdouble arg1) {
+    double* ptr = (double*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
+    if (ptr == NULL) {
+        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
+        return 0;
+    }
+    jint position = env->GetIntField(obj, JavaCPP_positionFID);
+    ptr += position;
+    jobject rarg = obj;
+    ptr[arg0] = arg1;
+    return rarg;
+}
 JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_DoublePointer_put___3DII(JNIEnv* env, jobject obj, jdoubleArray arg0, jint arg1, jint arg2) {
     double* ptr = (double*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -773,31 +774,19 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_DoublePointer_put___3DII(J
     if (arg0 != NULL) env->ReleasePrimitiveArrayCritical(arg0, ptr0, 0);
     return rarg;
 }
-JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_DoublePointer_put__ID(JNIEnv* env, jobject obj, jint arg0, jdouble arg1) {
-    double* ptr = (double*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return 0;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    jobject rarg = obj;
-    ptr[arg0] = arg1;
-    return rarg;
-}
-
-JNIEXPORT void JNICALL Java_com_googlecode_javacpp_CharPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 9))) {
+JNIEXPORT void JNICALL Java_com_googlecode_javacpp_DoublePointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
+    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 8))) {
         return;
     }
-    unsigned short* rptr = new (std::nothrow) unsigned short[arg0];
+    double* rptr = new (std::nothrow) double[arg0];
     jint rcapacity = arg0;
     jvalue args[3];
     args[0].j = ptr_to_jlong(rptr);
     args[1].i = rcapacity;
-    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_CharPointer_deallocateArray);
+    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_DoublePointer_deallocateArray);
     env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
 }
+
 JNIEXPORT jchar JNICALL Java_com_googlecode_javacpp_CharPointer_get__I(JNIEnv* env, jobject obj, jint arg0) {
     unsigned short* ptr = (unsigned short*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -851,19 +840,19 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_CharPointer_put__IC(JNIEnv
     ptr[arg0] = arg1;
     return rarg;
 }
-
-JNIEXPORT void JNICALL Java_com_googlecode_javacpp_PointerPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 10))) {
+JNIEXPORT void JNICALL Java_com_googlecode_javacpp_CharPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
+    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 9))) {
         return;
     }
-    void** rptr = new (std::nothrow) void*[arg0];
+    unsigned short* rptr = new (std::nothrow) unsigned short[arg0];
     jint rcapacity = arg0;
     jvalue args[3];
     args[0].j = ptr_to_jlong(rptr);
     args[1].i = rcapacity;
-    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_PointerPointer_deallocateArray);
+    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_CharPointer_deallocateArray);
     env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
 }
+
 JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_PointerPointer_get(JNIEnv* env, jobject obj, jint arg0) {
     void** ptr = (void**)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -896,19 +885,19 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_PointerPointer_put(JNIEnv*
     ptr[arg0] = ptr1;
     return rarg;
 }
-
-JNIEXPORT void JNICALL Java_com_googlecode_javacpp_BoolPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 11))) {
+JNIEXPORT void JNICALL Java_com_googlecode_javacpp_PointerPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
+    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 10))) {
         return;
     }
-    bool* rptr = new (std::nothrow) bool[arg0];
+    void** rptr = new (std::nothrow) void*[arg0];
     jint rcapacity = arg0;
     jvalue args[3];
     args[0].j = ptr_to_jlong(rptr);
     args[1].i = rcapacity;
-    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_BoolPointer_deallocateArray);
+    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_PointerPointer_deallocateArray);
     env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
 }
+
 JNIEXPORT jboolean JNICALL Java_com_googlecode_javacpp_BoolPointer_get(JNIEnv* env, jobject obj, jint arg0) {
     bool* ptr = (bool*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -934,19 +923,19 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_BoolPointer_put(JNIEnv* en
     ptr[arg0] = (bool)arg1;
     return rarg;
 }
-
-JNIEXPORT void JNICALL Java_com_googlecode_javacpp_CLongPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 12))) {
+JNIEXPORT void JNICALL Java_com_googlecode_javacpp_BoolPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
+    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 11))) {
         return;
     }
-    long* rptr = new (std::nothrow) long[arg0];
+    bool* rptr = new (std::nothrow) bool[arg0];
     jint rcapacity = arg0;
     jvalue args[3];
     args[0].j = ptr_to_jlong(rptr);
     args[1].i = rcapacity;
-    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_CLongPointer_deallocateArray);
+    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_BoolPointer_deallocateArray);
     env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
 }
+
 JNIEXPORT jlong JNICALL Java_com_googlecode_javacpp_CLongPointer_get(JNIEnv* env, jobject obj, jint arg0) {
     long* ptr = (long*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -972,19 +961,19 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_CLongPointer_put(JNIEnv* e
     ptr[arg0] = (long)arg1;
     return rarg;
 }
-
-JNIEXPORT void JNICALL Java_com_googlecode_javacpp_SizeTPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 13))) {
+JNIEXPORT void JNICALL Java_com_googlecode_javacpp_CLongPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
+    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 12))) {
         return;
     }
-    size_t* rptr = new (std::nothrow) size_t[arg0];
+    long* rptr = new (std::nothrow) long[arg0];
     jint rcapacity = arg0;
     jvalue args[3];
     args[0].j = ptr_to_jlong(rptr);
     args[1].i = rcapacity;
-    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_SizeTPointer_deallocateArray);
+    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_CLongPointer_deallocateArray);
     env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
 }
+
 JNIEXPORT jlong JNICALL Java_com_googlecode_javacpp_SizeTPointer_get(JNIEnv* env, jobject obj, jint arg0) {
     size_t* ptr = (size_t*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -1010,8 +999,73 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_SizeTPointer_put(JNIEnv* e
     ptr[arg0] = (size_t)arg1;
     return rarg;
 }
+JNIEXPORT void JNICALL Java_com_googlecode_javacpp_SizeTPointer_allocateArray(JNIEnv* env, jobject obj, jint arg0) {
+    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 13))) {
+        return;
+    }
+    size_t* rptr = new (std::nothrow) size_t[arg0];
+    jint rcapacity = arg0;
+    jvalue args[3];
+    args[0].j = ptr_to_jlong(rptr);
+    args[1].i = rcapacity;
+    args[2].j = ptr_to_jlong(&JavaCPP_com_googlecode_javacpp_SizeTPointer_deallocateArray);
+    env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
+}
 
+JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_getLength(JNIEnv* env, jobject obj) {
+    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
+    if (ptr == NULL) {
+        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
+        return 0;
+    }
+    jint position = env->GetIntField(obj, JavaCPP_positionFID);
+    ptr += position;
+    jint rarg = 0;
+    int rvalue = ptr->len;
+    rarg = (jint)rvalue;
+    return rarg;
+}
+JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_setLength(JNIEnv* env, jobject obj, jint arg0) {
+    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
+    if (ptr == NULL) {
+        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
+        return;
+    }
+    jint position = env->GetIntField(obj, JavaCPP_positionFID);
+    ptr += position;
+    ptr->len = arg0;
+}
+JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_allocate(JNIEnv* env, jobject obj) {
+    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 14))) {
+        return;
+    }
+    jthrowable exc = NULL;
+    try {
+        ::_JitterBufferPacket* rptr = new ::_JitterBufferPacket();
+        jint rcapacity = 1;
+        jvalue args[3];
+        args[0].j = ptr_to_jlong(rptr);
+        args[1].i = rcapacity;
+        args[2].j = ptr_to_jlong(&JavaCPP_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_deallocate);
+        env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
+    } catch (...) {
+        exc = JavaCPP_handleException(env, 15);
+    }
 
+    if (exc != NULL) {
+        env->Throw(exc);
+    }
+}
+JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_setTimestamp(JNIEnv* env, jobject obj, jint arg0) {
+    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
+    if (ptr == NULL) {
+        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
+        return;
+    }
+    jint position = env->GetIntField(obj, JavaCPP_positionFID);
+    ptr += position;
+    ptr->timestamp = arg0;
+}
 JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_getTimestamp(JNIEnv* env, jobject obj) {
     ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -1101,42 +1155,62 @@ JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBu
     ptr += position;
     ptr->sequence = arg0;
 }
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_getLength(JNIEnv* env, jobject obj) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return 0;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    jint rarg = 0;
-    int rvalue = ptr->len;
-    rarg = (jint)rvalue;
-    return rarg;
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_setLength(JNIEnv* env, jobject obj, jint arg0) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    ptr->len = arg0;
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_allocate(JNIEnv* env, jobject obj) {
-    if (!env->IsSameObject(env->GetObjectClass(obj), JavaCPP_getClass(env, 14))) {
-        return;
-    }
+
+JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_speex_1resampler_1init(JNIEnv* env, jclass cls, jint arg0, jint arg1, jint arg2, jint arg3, jobject arg4) {
+    int* ptr4 = arg4 == NULL ? NULL : (int*)jlong_to_ptr(env->GetLongField(arg4, JavaCPP_addressFID));
+    jint position4 = arg4 == NULL ? 0 : env->GetIntField(arg4, JavaCPP_positionFID);
+    ptr4 += position4;
+    jobject rarg = NULL;
+    void* rptr;
     jthrowable exc = NULL;
     try {
-        ::_JitterBufferPacket* rptr = new ::_JitterBufferPacket();
-        jint rcapacity = 1;
-        jvalue args[3];
-        args[0].j = ptr_to_jlong(rptr);
-        args[1].i = rcapacity;
-        args[2].j = ptr_to_jlong(&JavaCPP_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_deallocate);
-        env->CallNonvirtualVoidMethodA(obj, JavaCPP_getClass(env, 1), JavaCPP_initMID, args);
+        rptr = speex_resampler_init(arg0, arg1, arg2, arg3, ptr4);
+        if (rptr != NULL) {
+            rarg = env->AllocObject(JavaCPP_getClass(env, 1));
+            env->SetLongField(rarg, JavaCPP_addressFID, ptr_to_jlong(rptr));
+        }
+    } catch (...) {
+        exc = JavaCPP_handleException(env, 15);
+    }
+
+    if (exc != NULL) {
+        env->Throw(exc);
+    }
+    return rarg;
+}
+JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_speex_1resampler_1process_1int(JNIEnv* env, jclass cls, jobject arg0, jint arg1, jshortArray arg2, jintArray arg3, jshortArray arg4, jintArray arg5) {
+    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
+    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
+    ptr0 += position0;
+    short* ptr2 = arg2 == NULL ? NULL : env->GetShortArrayElements(arg2, NULL);
+    int* ptr3 = arg3 == NULL ? NULL : env->GetIntArrayElements(arg3, NULL);
+    short* ptr4 = arg4 == NULL ? NULL : env->GetShortArrayElements(arg4, NULL);
+    int* ptr5 = arg5 == NULL ? NULL : env->GetIntArrayElements(arg5, NULL);
+    jint rarg = 0;
+    jthrowable exc = NULL;
+    try {
+        int rvalue = speex_resampler_process_int((SpeexResamplerState*)ptr0, arg1, (short*)ptr2, (unsigned int*)ptr3, (short*)ptr4, (unsigned int*)ptr5);
+        rarg = (jint)rvalue;
+    } catch (...) {
+        exc = JavaCPP_handleException(env, 15);
+    }
+
+    if (arg2 != NULL) env->ReleaseShortArrayElements(arg2, (jshort*)ptr2, 0);
+    if (arg3 != NULL) env->ReleaseIntArrayElements(arg3, (jint*)ptr3, 0);
+    if (arg4 != NULL) env->ReleaseShortArrayElements(arg4, (jshort*)ptr4, 0);
+    if (arg5 != NULL) env->ReleaseIntArrayElements(arg5, (jint*)ptr5, 0);
+    if (exc != NULL) {
+        env->Throw(exc);
+    }
+    return rarg;
+}
+JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_speex_1resampler_1destroy(JNIEnv* env, jclass cls, jobject arg0) {
+    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
+    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
+    ptr0 += position0;
+    jthrowable exc = NULL;
+    try {
+        speex_resampler_destroy((SpeexResamplerState*)ptr0);
     } catch (...) {
         exc = JavaCPP_handleException(env, 15);
     }
@@ -1145,17 +1219,6 @@ JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBu
         env->Throw(exc);
     }
 }
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBufferPacket_setTimestamp(JNIEnv* env, jobject obj, jint arg0) {
-    ::_JitterBufferPacket* ptr = (::_JitterBufferPacket*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    ptr->timestamp = arg0;
-}
-
 JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1init(JNIEnv* env, jclass cls, jint arg0) {
     jobject rarg = NULL;
     void* rptr;

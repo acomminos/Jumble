@@ -16,8 +16,14 @@
 
 package com.morlunk.jumble.audio.javacpp;
 
+import com.googlecode.javacpp.BytePointer;
+import com.googlecode.javacpp.FloatPointer;
 import com.googlecode.javacpp.IntPointer;
+import com.googlecode.javacpp.Loader;
 import com.googlecode.javacpp.Pointer;
+import com.googlecode.javacpp.ShortPointer;
+import com.googlecode.javacpp.annotation.Cast;
+import com.googlecode.javacpp.annotation.NoDeallocator;
 import com.googlecode.javacpp.annotation.Platform;
 
 /**
@@ -26,21 +32,19 @@ import com.googlecode.javacpp.annotation.Platform;
 @Platform(library="celt11", cinclude={"<celt.h>","<celt_types.h>"})
 public class CELT11 {
 
-    public static class Decoder {
+    public static final int CELT_GET_BITSTREAM_VERSION = 2000;
 
-        private Pointer mNativeDecoder;
-        private int mError;
-
-        public Decoder(int sampleRate, int channels) {
-            IntPointer error = new IntPointer(1);
-            mNativeDecoder = celt_decoder_init(sampleRate, channels, error);
-            mError = error.get();
-        }
-
-        public int getError() {
-            return mError;
-        }
+    static {
+        Loader.load();
     }
 
-    private static native Pointer celt_decoder_init(int sampleRate, int channels, IntPointer error);
+    public static native @NoDeallocator Pointer celt_mode_create(int sampleRate, int frameSize, IntPointer error);
+    public static native int celt_mode_info(@Cast("const CELTMode*") Pointer mode, int request, IntPointer value);
+    public static native void celt_mode_destroy(@Cast("CELTMode*") Pointer mode);
+
+    public static native @NoDeallocator Pointer celt_decoder_create(int sampleRate, int channels, IntPointer error);
+    public static native int celt_decode(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") BytePointer data, int len, ShortPointer pcm, int frameSize);
+    public static native int celt_decode_float(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") BytePointer data, int len, FloatPointer pcm, int frameSize);
+    public static native int celt_decoder_ctl(@Cast("CELTDecoder*") Pointer st, int request, Pointer val);
+    public static native void celt_decoder_destroy(@Cast("CELTDecoder*") Pointer st);
 }

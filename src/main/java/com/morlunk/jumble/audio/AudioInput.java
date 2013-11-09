@@ -18,6 +18,7 @@ package com.morlunk.jumble.audio;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
+import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.util.Log;
 
@@ -47,6 +48,8 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
         public void onFrameEncoded(byte[] data, int length, JumbleUDPMessageType messageType);
     }
 
+    public static final int[] SAMPLE_RATES = { 48000, 44100, 22050, 160000, 11025, 8000 };
+    public static final int SPEEX_RESAMPLE_QUALITY = 3;
     public static final int OPUS_MAX_BYTES = 512; // Opus specifies 4000 bytes as a recommended value for encoding, but the official mumble project uses 512.
 
     private Pointer mOpusEncoder;;
@@ -54,15 +57,17 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
 //    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTMode mCELTAlphaMode;
 //    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTEncoder mCELTAlphaEncoder;
     private Speex.SpeexPreprocessState mPreprocessState;
+    private Speex.SpeexResampler mResampler;
 
     private AudioInputListener mListener;
     private int mTransmitMode = Constants.TRANSMIT_PUSH_TO_TALK;
 
     private AudioRecord mAudioRecord;
     private int mMinBufferSize;
-    private int mInputSampleRate = 48000; //44100; FIXME
+    private int mInputSampleRate = -1;
     private int mFrameSize = Audio.FRAME_SIZE;
-    private int mFramesPerPacket = 2;
+    private int mMicFrameSize = Audio.FRAME_SIZE;
+    private int mFramesPerPacket = 6;
 
     // Temporary encoder state
     private final short[] mOpusBuffer = new short[mFrameSize*mFramesPerPacket];
@@ -88,8 +93,24 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
         switchCodec(codec);
         configurePreprocessState();
 
-        // TODO support input resampling. We can't expect 48000hz on all android devices.
-        int reportedMinBufferSize = AudioRecord.getMinBufferSize(Audio.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        // Use the highest sample rate we can get. TODO make this an option in settings.
+        for(int rate : SAMPLE_RATES) {
+            if(AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT) > 0) {
+                mInputSampleRate = rate;
+                break;
+            }
+        }
+        if(mInputSampleRate != -1) {
+            Log.d(Constants.TAG, "Initialized AudioInput with sample rate "+mInputSampleRate);
+            if(mInputSampleRate != Audio.SAMPLE_RATE) {
+                mResampler = new Speex.SpeexResampler(1, mInputSampleRate, Audio.SAMPLE_RATE, SPEEX_RESAMPLE_QUALITY);
+                mMicFrameSize = (mFrameSize * mInputSampleRate)/Audio.SAMPLE_RATE;
+            }
+        } else {
+            throw new RuntimeException("Device does not support any compatible input sampling rates!");
+        }
+
+        int reportedMinBufferSize = AudioRecord.getMinBufferSize(mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         mMinBufferSize = Math.max(reportedMinBufferSize, mFrameSize);
         mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
     }
@@ -205,15 +226,21 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
 
         if(mAudioRecord.getState() != AudioRecord.STATE_INITIALIZED)
             return;
+
         final short[] audioData = new short[mFrameSize];
+        final short[] resampleBuffer = new short[mMicFrameSize];
 
         // We loop when the 'recording' instance var is true instead of checking audio record state because we want to always cleanly shutdown.
         while(mRecording) {
-            int shortsRead = mAudioRecord.read(audioData, 0, mFrameSize);
+            int shortsRead = mAudioRecord.read(mResampler != null ? resampleBuffer : audioData, 0, mResampler != null ? mMicFrameSize : mFrameSize);
             if(shortsRead > 0) {
                 int len;
                 boolean encoded = false;
                 mFrameCounter++;
+
+                // Resample if necessary
+                if(mResampler != null)
+                    mResampler.resample(resampleBuffer, audioData);
 
                 boolean talking = true;
 
@@ -310,6 +337,8 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
             Opus.opus_encoder_destroy(mOpusEncoder);
         if(mPreprocessState != null)
             mPreprocessState.destroy();
+        if(mResampler != null)
+            mResampler.destroy();
     }
 
     @Override

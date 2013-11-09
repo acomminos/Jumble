@@ -16,8 +16,35 @@
 
 package com.morlunk.jumble.audio.javacpp;
 
+import com.googlecode.javacpp.BytePointer;
+import com.googlecode.javacpp.FloatPointer;
+import com.googlecode.javacpp.IntPointer;
+import com.googlecode.javacpp.Loader;
+import com.googlecode.javacpp.Pointer;
+import com.googlecode.javacpp.ShortPointer;
+import com.googlecode.javacpp.annotation.Cast;
+import com.googlecode.javacpp.annotation.NoDeallocator;
+import com.googlecode.javacpp.annotation.Platform;
+
 /**
  * Created by andrew on 20/10/13.
  */
+@Platform(library="celt7", cinclude={"<celt.h>","<celt_types.h>"})
 public class CELT7 {
+
+    public static final int CELT_GET_BITSTREAM_VERSION = 2000;
+
+    static {
+        Loader.load();
+    }
+
+    public static native @NoDeallocator Pointer celt_mode_create(int sampleRate, int frameSize, IntPointer error);
+    public static native int celt_mode_info(@Cast("const CELTMode*") Pointer mode, int request, IntPointer value);
+    public static native void celt_mode_destroy(@Cast("CELTMode*") Pointer mode);
+
+    public static native @NoDeallocator Pointer celt_decoder_create(@Cast("CELTMode*") Pointer mode, int channels, IntPointer error);
+    public static native int celt_decode(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") BytePointer data, int len, ShortPointer pcm);
+    public static native int celt_decode_float(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") BytePointer data, int len, FloatPointer pcm);
+    public static native int celt_decoder_ctl(@Cast("CELTDecoder*") Pointer st, int request, Pointer val);
+    public static native void celt_decoder_destroy(@Cast("CELTDecoder*") Pointer st);
 }
