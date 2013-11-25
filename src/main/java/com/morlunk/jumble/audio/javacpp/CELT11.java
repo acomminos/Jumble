@@ -47,4 +47,8 @@ public class CELT11 {
     public static native int celt_decode_float(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") BytePointer data, int len, FloatPointer pcm, int frameSize);
     public static native int celt_decoder_ctl(@Cast("CELTDecoder*") Pointer st, int request, Pointer val);
     public static native void celt_decoder_destroy(@Cast("CELTDecoder*") Pointer st);
+
+    public static native @NoDeallocator Pointer celt_encoder_create(int sampleRate, int frameSize, IntPointer error);
+    public static native int celt_encode(@Cast("CELTEncoder*") Pointer state, @Cast("const short*") short[] pcm, int frameSize, @Cast("unsigned char*") byte[] compressed, int maxCompressedBytes);
+    public static native void celt_encoder_destroy(@Cast("CELTEncoder*") Pointer state);
 }

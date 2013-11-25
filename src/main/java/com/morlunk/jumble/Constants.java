@@ -55,7 +55,7 @@ public class Constants {
     public static final int TRANSMIT_CONTINUOUS = 2;
 
     public static final int PROTOCOL_VERSION = (PROTOCOL_MAJOR << 16) | (PROTOCOL_MINOR << 8) | PROTOCOL_PATCH;
-    public static final String PROTOCOL_STRING = PROTOCOL_MAJOR+"."+PROTOCOL_MINOR+"."+PROTOCOL_PATCH;
+    public static final String PROTOCOL_STRING = PROTOCOL_MAJOR+ "" +PROTOCOL_MINOR+"."+PROTOCOL_PATCH;
     public static final int DEFAULT_PORT = 64738;
 
     public static final String TAG = "Jumble";

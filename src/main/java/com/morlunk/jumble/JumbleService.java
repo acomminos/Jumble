@@ -18,7 +18,9 @@ package com.morlunk.jumble;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
@@ -30,18 +32,18 @@ import com.morlunk.jumble.db.Database;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
-import com.morlunk.jumble.net.ChannelHandler;
+import com.morlunk.jumble.protocol.ChannelHandler;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleConnectionException;
 import com.morlunk.jumble.net.JumbleTCPMessageType;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
-import com.morlunk.jumble.net.TextMessageHandler;
-import com.morlunk.jumble.net.UserHandler;
+import com.morlunk.jumble.protocol.JumbleMessageListener;
+import com.morlunk.jumble.protocol.TextMessageHandler;
+import com.morlunk.jumble.protocol.UserHandler;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.util.MessageFormatter;
 
 import java.security.Security;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -75,7 +77,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public boolean mAutoReconnect;
     public byte[] mCertificate;
     public String mCertificatePassword;
-    public int mDetectionThreshold;
+    public float mDetectionThreshold;
     public int mTransmitMode;
     public boolean mUseOpus;
     public boolean mForceTcp;
@@ -93,7 +95,28 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private AudioInput.AudioInputListener mAudioInputListener = new AudioInput.AudioInputListener() {
         @Override
         public void onFrameEncoded(byte[] data, int length, JumbleUDPMessageType messageType) {
-            mConnection.sendUDPMessage(data, length, false);
+            if(isConnected())
+                mConnection.sendUDPMessage(data, length, false);
+        }
+
+        @Override
+        public void onTalkStateChanged(final boolean talking) {
+            if(!isConnected())
+                return;
+
+            new Handler(getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    final User currentUser = getUserHandler().getUser(getSession());
+                    currentUser.setTalkState(talking ? User.TalkState.TALKING : User.TalkState.PASSIVE);
+                    notifyObservers(new ObserverRunnable() {
+                        @Override
+                        public void run(IJumbleObserver observer) throws RemoteException {
+                            observer.onUserTalkStateUpdated(currentUser);
+                        }
+                    });
+                }
+            });
         }
     };
 
@@ -198,15 +221,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 mAudioInput.startRecording();
             else
                 mAudioInput.stopRecording();
-
-            final User currentUser = getSessionUser();
-            currentUser.setTalkState(talking ? User.TalkState.TALKING : User.TalkState.PASSIVE);
-            notifyObservers(new ObserverRunnable() {
-                @Override
-                public void run(IJumbleObserver observer) throws RemoteException {
-                    observer.onUserTalkStateUpdated(currentUser);
-                }
-            });
         }
 
         @Override
@@ -299,7 +313,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             // Log message to chat
             User target = getUser(session);
             String formattedMessage = getString(R.string.chat_message_to, MessageFormatter.highlightString(target.getName()), message);
-            logMessage(formattedMessage);
+            logMessage(getSessionUser(), formattedMessage);
         }
 
         @Override
@@ -315,7 +329,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             // Log message to chat
             Channel target = getChannel(channel);
             String formattedMessage = getString(R.string.chat_message_to, MessageFormatter.highlightString(target.getName()), message);
-            logMessage(formattedMessage);
+            logMessage(getSessionUser(), formattedMessage);
         }
 
         @Override
@@ -382,7 +396,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mAutoReconnect = extras.getBoolean(EXTRAS_AUTO_RECONNECT, true);
             mCertificate = extras.getByteArray(EXTRAS_CERTIFICATE);
             mCertificatePassword = extras.getString(EXTRAS_CERTIFICATE_PASSWORD);
-            mDetectionThreshold = extras.getInt(EXTRAS_DETECTION_THRESHOLD, 1400);
+            mDetectionThreshold = extras.getFloat(EXTRAS_DETECTION_THRESHOLD, 0.5f);
             mTransmitMode = extras.getInt(EXTRAS_TRANSMIT_MODE, Constants.TRANSMIT_VOICE_ACTIVITY);
             mUseOpus = extras.getBoolean(EXTRAS_USE_OPUS, true);
             mUseTor = extras.getBoolean(EXTRAS_USE_TOR, false);
@@ -437,24 +451,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mUserHandler = new UserHandler(this);
         mTextMessageHandler = new TextMessageHandler(this);
         mAudioOutput = new AudioOutput(this);
-        mAudioInput = new AudioInput(JumbleUDPMessageType.UDPVoiceOpus, mTransmitMode, mAudioInputListener);
+        mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mTransmitMode, mDetectionThreshold, mAudioInputListener);
 
-        // Add message handlers for all managers
-        mConnection.addMessageHandler(mChannelHandler);
-        mConnection.addMessageHandler(mUserHandler);
-        mConnection.addMessageHandler(mTextMessageHandler);
-        mConnection.addMessageHandler(mAudioOutput);
-        mConnection.addMessageHandler(mAudioInput);
-
+        mConnection.addMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioOutput, mAudioInput);
         mConnection.connect();
     }
 
     public void disconnect() {
-        mConnection.removeMessageHandler(mChannelHandler);
-        mConnection.removeMessageHandler(mUserHandler);
-        mConnection.removeMessageHandler(mTextMessageHandler);
-        mConnection.removeMessageHandler(mAudioOutput);
-        mConnection.removeMessageHandler(mAudioInput);
         mConnection.disconnect();
         mConnection = null;
     }
@@ -468,6 +471,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         Log.v(Constants.TAG, "Connected");
 
         mAudioOutput.startPlaying();
+        if(mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY)
+            mAudioInput.startRecording();
 
         if(mServer.getId() != -1) {
             // Send access tokens
@@ -489,6 +494,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         Log.v(Constants.TAG, "Disconnected");
 
         mAudioOutput.stopPlaying();
+        mAudioInput.stopRecording();
 
         notifyObservers(new ObserverRunnable() {
             @Override
@@ -580,15 +586,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     /**
      * Logs a text message to the client.
+     * @param user The user that sent the message.
      * @param message An HTML message to send to the client.
      */
-    public void logMessage(final String message) {
+    public void logMessage(final User user, final String message) {
         final String formatMessage = mChatDateFormat.format(new Date())+message;
         mLogHistory.add(formatMessage);
         notifyObservers(new ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
-                observer.onMessageReceived(formatMessage);
+                observer.onMessageReceived(user, formatMessage);
             }
         });
     }

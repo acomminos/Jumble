@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.morlunk.jumble.net;
+package com.morlunk.jumble.protocol;
 
 import android.os.RemoteException;
 import android.util.Log;
@@ -37,7 +37,7 @@ import java.util.List;
 /**
  * Created by andrew on 18/07/13.
  */
-public class UserHandler extends JumbleMessageHandler.Stub {
+public class UserHandler extends ProtocolHandler {
 
     /**
      * Comparator to sort users alphabetically.
@@ -51,11 +51,10 @@ public class UserHandler extends JumbleMessageHandler.Stub {
         }
     };
 
-    private JumbleService mService;
     private HashMap<Integer, User> mUsers = new HashMap<Integer, User>();
 
     public UserHandler(JumbleService service) {
-        mService = service;
+        super(service);
     }
 
     public User getUser(int id) {
@@ -83,7 +82,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
         User user = mUsers.get(msg.getSession());
         boolean newUser = false;
 
-        User self = mUsers.get(mService.getSession());
+        User self = mUsers.get(getService().getSession());
 
         if(user == null) {
             if(msg.hasName()) {
@@ -91,7 +90,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
                 mUsers.put(msg.getSession(), user);
                 newUser = true;
                 // Add user to root channel by default. This works because for some reason, we don't get a channel ID when the user joins into root.
-                Channel root = mService.getChannelHandler().getChannel(0);
+                Channel root = getService().getChannelHandler().getChannel(0);
                 user.setChannelId(0);
                 root.addUser(user.getSession());
                 root.setSubchannelUserCount(root.getSubchannelUserCount()+1);
@@ -121,7 +120,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
         }
 
         if(newUser)
-            mService.logInfo(mService.getString(R.string.chat_notify_connected, MessageFormatter.highlightString(user.getName())));
+            getService().logInfo(getService().getString(R.string.chat_notify_connected, MessageFormatter.highlightString(user.getName())));
 
         if(msg.hasSelfDeaf() || msg.hasSelfMute()) {
             if(msg.hasSelfMute())
@@ -131,11 +130,11 @@ public class UserHandler extends JumbleMessageHandler.Stub {
 
             if(self != null && user.getSession() != self.getSession() && (user.getChannelId() == self.getChannelId())) {
                 if(user.isSelfMuted() && user.isSelfDeafened())
-                    mService.logInfo(mService.getString(R.string.chat_notify_now_muted_deafened, MessageFormatter.highlightString(user.getName())));
+                    getService().logInfo(getService().getString(R.string.chat_notify_now_muted_deafened, MessageFormatter.highlightString(user.getName())));
                 else if(user.isSelfMuted())
-                    mService.logInfo(mService.getString(R.string.chat_notify_now_muted, MessageFormatter.highlightString(user.getName())));
+                    getService().logInfo(getService().getString(R.string.chat_notify_now_muted, MessageFormatter.highlightString(user.getName())));
                 else
-                    mService.logInfo(mService.getString(R.string.chat_notify_now_unmuted, MessageFormatter.highlightString(user.getName())));
+                    getService().logInfo(getService().getString(R.string.chat_notify_now_unmuted, MessageFormatter.highlightString(user.getName())));
             }
         }
 
@@ -145,17 +144,17 @@ public class UserHandler extends JumbleMessageHandler.Stub {
             if(self != null) {
                 if(user.getSession() == self.getSession()) {
                     if(user.isRecording())
-                        mService.logInfo(mService.getString(R.string.chat_notify_self_recording_started));
+                        getService().logInfo(getService().getString(R.string.chat_notify_self_recording_started));
                     else
-                        mService.logInfo(mService.getString(R.string.chat_notify_self_recording_stopped));
+                        getService().logInfo(getService().getString(R.string.chat_notify_self_recording_stopped));
                 } else {
-                    Channel selfChannel = mService.getChannelHandler().getChannel(user.getChannelId());
+                    Channel selfChannel = getService().getChannelHandler().getChannel(user.getChannelId());
                     // If in a linked channel OR the same channel as the current user, notify the user about recording
                     if(selfChannel != null && (selfChannel.getLinks().contains(user.getChannelId()) || self.getChannelId() == user.getChannelId())) {
                         if(user.isRecording())
-                            mService.logInfo(mService.getString(R.string.chat_notify_user_recording_started, MessageFormatter.highlightString(user.getName())));
+                            getService().logInfo(getService().getString(R.string.chat_notify_user_recording_started, MessageFormatter.highlightString(user.getName())));
                         else
-                            mService.logInfo(mService.getString(R.string.chat_notify_user_recording_stopped, MessageFormatter.highlightString(user.getName())));
+                            getService().logInfo(getService().getString(R.string.chat_notify_user_recording_stopped, MessageFormatter.highlightString(user.getName())));
                     }
                 }
             }
@@ -172,7 +171,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
 /*            if(self != null && ((user.getChannelId() == self.getChannelId()) || (actor.getSession() == self.getSession()))) {
                 if(user.getSession() == self.getSession()) {
                     if(msg.hasMute() && msg.hasDeaf() && user.isMuted() && user.isDeafened()) {
-                        mService.logInfo();
+                        getService().logInfo();
                     }
                 }
             }*/
@@ -184,25 +183,25 @@ public class UserHandler extends JumbleMessageHandler.Stub {
         }
 
         if(msg.hasChannelId()) {
-            final Channel channel = mService.getChannelHandler().getChannel(msg.getChannelId());
+            final Channel channel = getService().getChannelHandler().getChannel(msg.getChannelId());
             if(channel == null) {
                 Log.e(Constants.TAG, "Invalid channel for user!");
                 return; // TODO handle better
             }
-            final Channel old = mService.getChannelHandler().getChannel(user.getChannelId());
+            final Channel old = getService().getChannelHandler().getChannel(user.getChannelId());
 
             user.setChannelId(msg.getChannelId());
 
             if(old != null) {
                 old.removeUser(user.getSession());
-                mService.getChannelHandler().changeSubchannelUsers(old, -1);
+                getService().getChannelHandler().changeSubchannelUsers(old, -1);
             }
 
             channel.addUser(user.getSession());
-            mService.getChannelHandler().changeSubchannelUsers(channel, 1);
+            getService().getChannelHandler().changeSubchannelUsers(channel, 1);
             sortUsers(channel);
             if(!newUser) {
-                mService.notifyObservers(new JumbleService.ObserverRunnable() {
+                getService().notifyObservers(new JumbleService.ObserverRunnable() {
                     @Override
                     public void run(IJumbleObserver observer) throws RemoteException {
                         observer.onUserJoinedChannel(finalUser, channel, old);
@@ -230,7 +229,7 @@ public class UserHandler extends JumbleMessageHandler.Stub {
 
         final boolean finalNewUser = newUser;
 
-        mService.notifyObservers(new JumbleService.ObserverRunnable() {
+        getService().notifyObservers(new JumbleService.ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
                 if(finalNewUser)
@@ -247,18 +246,18 @@ public class UserHandler extends JumbleMessageHandler.Stub {
         final User actor = getUser(msg.getActor());
         final String reason = msg.getReason();
 
-        if(msg.getSession() == mService.getSession())
-            mService.logWarning(mService.getString(msg.getBan() ? R.string.chat_notify_kick_ban_self : R.string.chat_notify_kick_self, MessageFormatter.highlightString(actor.getName()), reason));
+        if(msg.getSession() == getService().getSession())
+            getService().logWarning(getService().getString(msg.getBan() ? R.string.chat_notify_kick_ban_self : R.string.chat_notify_kick_self, MessageFormatter.highlightString(actor.getName()), reason));
         else if(actor != null)
-            mService.logInfo(mService.getString(msg.getBan() ? R.string.chat_notify_kick_ban : R.string.chat_notify_kick, MessageFormatter.highlightString(actor.getName()), reason, MessageFormatter.highlightString(user.getName())));
+            getService().logInfo(getService().getString(msg.getBan() ? R.string.chat_notify_kick_ban : R.string.chat_notify_kick, MessageFormatter.highlightString(actor.getName()), reason, MessageFormatter.highlightString(user.getName())));
         else
-            mService.logInfo(mService.getString(R.string.chat_notify_disconnected, MessageFormatter.highlightString(user.getName())));
+            getService().logInfo(getService().getString(R.string.chat_notify_disconnected, MessageFormatter.highlightString(user.getName())));
 
-        Channel channel = mService.getChannelHandler().getChannel(user.getChannelId());
+        Channel channel = getService().getChannelHandler().getChannel(user.getChannelId());
         channel.removeUser(user.getSession());
 
-        mService.getChannelHandler().changeSubchannelUsers(channel, -1);
-        mService.notifyObservers(new JumbleService.ObserverRunnable() {
+        getService().getChannelHandler().changeSubchannelUsers(channel, -1);
+        getService().notifyObservers(new JumbleService.ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
                 observer.onUserRemoved(user, reason);

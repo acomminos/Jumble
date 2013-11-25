@@ -28,6 +28,7 @@ import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.protobuf.Mumble;
+import com.morlunk.jumble.protocol.JumbleMessageListener;
 
 import javax.net.ssl.SSLSocket;
 
@@ -36,6 +37,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -103,12 +105,12 @@ public class JumbleConnection {
     private int mSession;
 
     // Message handlers
-    private ConcurrentLinkedQueue<JumbleMessageHandler> mHandlers = new ConcurrentLinkedQueue<JumbleMessageHandler>();
+    private ConcurrentLinkedQueue<JumbleMessageListener> mHandlers = new ConcurrentLinkedQueue<JumbleMessageListener>();
 
     /**
      * Handles packets received that are critical to the connection state.
      */
-    private JumbleMessageHandler mConnectionMessageHandler = new JumbleMessageHandler.Stub() {
+    private JumbleMessageListener mConnectionMessageHandler = new JumbleMessageListener.Stub() {
 
         @Override
         public void messageServerSync(Mumble.ServerSync msg) {
@@ -230,15 +232,11 @@ public class JumbleConnection {
             long t = getElapsed();
 
             if(!mForceTCP) {
-                byte[] buffer = new byte[16];
-                buffer[0] = (byte) (JumbleUDPMessageType.UDPPing.ordinal() << 5);
+                ByteBuffer buffer = ByteBuffer.allocate(16);
+                buffer.put((byte) (JumbleUDPMessageType.UDPPing.ordinal() << 5));
+                buffer.putLong(t);
 
-                byte[] data = new byte[15];
-                PacketDataStream dataStream = new PacketDataStream(data, 8);
-                dataStream.writeLong(t);
-                System.arraycopy(data, 0, buffer, 1, dataStream.size());
-
-                sendUDPMessage(buffer, dataStream.size()+1, true);
+                sendUDPMessage(buffer.array(), 16, true);
             }
 
             Mumble.Ping.Builder pb = Mumble.Ping.newBuilder();
@@ -315,11 +313,16 @@ public class JumbleConnection {
         return (System.nanoTime()-mStartTimestamp)/1000;
     }
 
-    public void addMessageHandler(JumbleMessageHandler handler) {
+    public void addMessageHandler(JumbleMessageListener handler) {
         mHandlers.add(handler);
     }
 
-    public void removeMessageHandler(JumbleMessageHandler handler) {
+    public void addMessageHandlers(JumbleMessageListener... handlers) {
+        for(JumbleMessageListener listener : handlers)
+            mHandlers.add(listener);
+    }
+
+    public void removeMessageHandler(JumbleMessageListener handler) {
         mHandlers.remove(handler);
     }
 
@@ -486,7 +489,7 @@ public class JumbleConnection {
 
         try {
             Message message = getProtobufMessage(data, messageType);
-            for(JumbleMessageHandler handler : mHandlers) {
+            for(JumbleMessageListener handler : mHandlers) {
                 broadcastTCPMessage(handler, message, messageType);
             }
         } catch (InvalidProtocolBufferException e) {
@@ -496,7 +499,7 @@ public class JumbleConnection {
 
     private final void handleUDPMessage(byte[] data) {
         final JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[data[0] >> 5 & 0x7];
-        for(JumbleMessageHandler handler : mHandlers) {
+        for(JumbleMessageListener handler : mHandlers) {
             broadcastUDPMessage(handler, data, dataType);
         }
     }
@@ -573,7 +576,7 @@ public class JumbleConnection {
      * @param msg Protobuf message.
      * @param messageType The type of the message.
      */
-    public final void broadcastTCPMessage(JumbleMessageHandler handler, Message msg, JumbleTCPMessageType messageType) {
+    public final void broadcastTCPMessage(JumbleMessageListener handler, Message msg, JumbleTCPMessageType messageType) {
         switch (messageType) {
             case Authenticate:
                 handler.messageAuthenticate((Mumble.Authenticate) msg);
@@ -666,7 +669,7 @@ public class JumbleConnection {
      * @param data Raw UDP data of the message.
      * @param messageType The type of the message.
      */
-    public final void broadcastUDPMessage(JumbleMessageHandler handler, byte[] data, JumbleUDPMessageType messageType) {
+    public final void broadcastUDPMessage(JumbleMessageListener handler, byte[] data, JumbleUDPMessageType messageType) {
         switch (messageType) {
             case UDPPing:
                 handler.messageUDPPing(data);
@@ -771,8 +774,6 @@ public class JumbleConnection {
                 }
             }
 
-            mConnected = false;
-
             if(mListener != null) {
                 mMainHandler.post(new Runnable() {
                     @Override
@@ -827,11 +828,11 @@ public class JumbleConnection {
         public void run() {
             try {
                 mUDPSocket = new DatagramSocket();
-                mUDPSocket.connect(mHost, mServer.getPort());
             } catch (SocketException e) {
                 mListener.onConnectionWarning("Could not initialize UDP socket! Try forcing a TCP connection.");
                 return;
             }
+            mUDPSocket.connect(mHost, mServer.getPort());
 
             DatagramPacket packet = new DatagramPacket(new byte[BUFFER_SIZE], BUFFER_SIZE);
 
@@ -841,8 +842,8 @@ public class JumbleConnection {
                 try {
                     mUDPSocket.receive(packet);
                     // Decrypt UDP packet using OCB-AES128
-                    final byte[] decryptedData = new byte[packet.getLength()];
-                    if(!mCryptState.decrypt(packet.getData(), decryptedData, packet.getLength()) &&
+                    final byte[] decryptedData = mCryptState.decrypt(packet.getData(), packet.getLength());
+                    if(decryptedData == null &&
                             mCryptState.getLastGoodElapsed() > 5000000 &&
                             mCryptState.getLastRequestElapsed() > 5000000) {
                         // If decryption fails, request resync
@@ -861,8 +862,7 @@ public class JumbleConnection {
         public void sendMessage(byte[] data, int length) throws IOException {
             if(!mCryptState.isValid())
                 return;
-            byte[] encryptedData = new byte[length+4];
-            mCryptState.encrypt(data, encryptedData, length);
+            byte[] encryptedData = mCryptState.encrypt(data, length);
             DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
             packet.setAddress(mHost);
             packet.setPort(mServer.getPort());

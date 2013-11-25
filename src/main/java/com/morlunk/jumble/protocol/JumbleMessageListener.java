@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.morlunk.jumble.net;
+package com.morlunk.jumble.protocol;
 
 import com.morlunk.jumble.protobuf.Mumble;
 
-public interface JumbleMessageHandler {
+public interface JumbleMessageListener {
     public void messageAuthenticate(Mumble.Authenticate msg);
     public void messageBanList(Mumble.BanList msg);
     public void messageReject(Mumble.Reject msg);
@@ -55,7 +55,8 @@ public interface JumbleMessageHandler {
      * Designed to be subclassed at any level of the library, the default implementations do nothing.
      * Created by andrew on 24/06/13.
      */
-    public static class Stub implements JumbleMessageHandler {
+    public static class Stub implements JumbleMessageListener {
+
         public void messageAuthenticate(Mumble.Authenticate msg) {}
         public void messageBanList(Mumble.BanList msg) {}
         public void messageReject(Mumble.Reject msg) {}

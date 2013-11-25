@@ -98,7 +98,7 @@ public class JumbleObserver extends IJumbleObserver.Stub {
     }
 
     @Override
-    public void onMessageReceived(String message) throws RemoteException {
+    public void onMessageReceived(User user, String message) throws RemoteException {
 
     }
 }

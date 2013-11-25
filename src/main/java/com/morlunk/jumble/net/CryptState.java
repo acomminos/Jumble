@@ -31,12 +31,12 @@ import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Based off of the official Mumble project's 'CryptState.h' and 'CryptState.cpp' files.
- * <p/>
+ *
  * This code implements the patented OCB-AES128 cipher mode of operation.
  * Until recently, this would've posed a problem- Jumble is licensed under Apache v2, and the patent was only licensed for use with GPL software without authorization.
  * As of January 2013, the author has given a free license for any open source software certified by the OSI (Apache v2 included)
  * http://www.cs.ucdavis.edu/~rogaway/ocb/license.htm
- * <p/>
+ *
  * Created by andrew on 24/06/13.
  */
 public class CryptState {
@@ -152,10 +152,9 @@ public class CryptState {
 
     public void ocbEncrypt(byte[] plain, byte[] encrypted, int plainLength, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
         final byte[] checksum = new byte[AES_BLOCK_SIZE],
-                        delta = new byte[AES_BLOCK_SIZE],
                           tmp = new byte[AES_BLOCK_SIZE],
-                          pad = new byte[AES_BLOCK_SIZE];
-        System.arraycopy(mEncryptKey.doFinal(nonce), 0, delta, 0, AES_BLOCK_SIZE);
+                          pad = new byte[AES_BLOCK_SIZE],
+                          delta = mEncryptKey.doFinal(nonce);
 
         final ByteBuffer plainBuffer = ByteBuffer.wrap(plain);
         final ByteBuffer encryptedBuffer = ByteBuffer.wrap(encrypted);
@@ -164,8 +163,8 @@ public class CryptState {
 
         int len = plainLength;
         while(len > AES_BLOCK_SIZE) {
-            plainBuffer.get(plainRegion);
-            encryptedBuffer.get(encryptedRegion);
+            plainBuffer.get(plainRegion, 0, AES_BLOCK_SIZE);
+            encryptedBuffer.get(encryptedRegion, 0, AES_BLOCK_SIZE);
 
             CryptSupport.S2(delta);
             CryptSupport.XOR(tmp, delta, plainRegion);
@@ -177,8 +176,9 @@ public class CryptState {
 
         CryptSupport.S2(delta);
         CryptSupport.ZERO(tmp);
-        tmp[AES_BLOCK_SIZE-1] = (byte) (((len * 8) >> 8) & 0xFF);
-        tmp[AES_BLOCK_SIZE-1] = (byte) ((len * 8) & 0xFF);
+        long num = len * 8;
+        tmp[AES_BLOCK_SIZE-1] = (byte) ((num >> 8) & 0xFF);
+        tmp[AES_BLOCK_SIZE-1] = (byte) (num & 0xFF);
         CryptSupport.XOR(tmp, tmp, delta);
         mEncryptKey.doFinal(tmp, 0, tmp.length, pad);
         System.arraycopy(plain, plainBuffer.position(), tmp, 0, len);
@@ -192,7 +192,7 @@ public class CryptState {
         mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, tag);
     }
 
-    public void ocbDecrypt(byte[] encrypted, byte[] plain, int len, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
+    public void ocbDecrypt(byte[] encrypted, byte[] plain, int encryptedLen, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
         final byte[] checksum = new byte[AES_BLOCK_SIZE],
                 delta = new byte[AES_BLOCK_SIZE],
                 tmp = new byte[AES_BLOCK_SIZE],
@@ -205,6 +205,7 @@ public class CryptState {
         final byte[] plainRegion = new byte[AES_BLOCK_SIZE];
         final byte[] encryptedRegion = new byte[AES_BLOCK_SIZE];
 
+        int len = encryptedLen;
         while (len > AES_BLOCK_SIZE) {
             plainBuffer.get(plainRegion);
             encryptedBuffer.get(encryptedRegion);
@@ -219,7 +220,9 @@ public class CryptState {
 
         CryptSupport.S2(delta);
         CryptSupport.ZERO(tmp);
-        tmp[AES_BLOCK_SIZE - 1] = (byte) ((len * 8) & 0xFF);
+        long num = len * 8;
+        tmp[AES_BLOCK_SIZE - 2] = (byte) ((num >> 8) & 0xFF);
+        tmp[AES_BLOCK_SIZE - 1] = (byte) (num & 0xFF);
         CryptSupport.XOR(tmp, tmp, delta);
         mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, pad);
         System.arraycopy(encrypted, encryptedBuffer.position(), tmp, 0, len);
@@ -233,11 +236,12 @@ public class CryptState {
 
     }
 
-    public boolean decrypt(byte[] source, byte[] dst, int cryptedLength) {
+    public synchronized byte[] decrypt(byte[] source, int cryptedLength) {
         if (cryptedLength < 4)
-            return false;
+            return null;
 
         int plainLength = cryptedLength - 4;
+        final byte[] dst = new byte[plainLength];
         byte[] saveiv = new byte[AES_BLOCK_SIZE];
         byte ivbyte = source[0];
         boolean restore = false;
@@ -258,7 +262,7 @@ public class CryptState {
                     if (++mDecryptIV[i] != 0)
                         break;
             } else {
-                return false;
+                return null;
             }
         } else {
             // This is either out of order or a repeat.
@@ -296,12 +300,12 @@ public class CryptState {
                     if (++mDecryptIV[i] != 0)
                         break;
             } else {
-                return false;
+                return null;
             }
 
             if (mDecryptHistory[mDecryptIV[0]] == mDecryptIV[1]) {
                 System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
-                return false;
+                return null;
             }
         }
 
@@ -327,7 +331,7 @@ public class CryptState {
 
         if (Arrays.equals(shiftedSource, threeTag)) {
             System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
-            return false;
+            return null;
         }
         mDecryptHistory[mDecryptIV[0]] = mDecryptIV[1];
 
@@ -339,11 +343,12 @@ public class CryptState {
         mUiLost += lost;
 
         mLastGoodStart = System.nanoTime();
-        return true;
+        return dst;
     }
 
-    public void encrypt(byte[] source, byte[] dst, int plainLength) {
+    public synchronized byte[] encrypt(byte[] source, int plainLength) {
         final byte[] tag = new byte[AES_BLOCK_SIZE];
+        final byte[] dst = new byte[plainLength+4];
 
         // First, increase our IV.
         for (int i = 0; i < AES_BLOCK_SIZE; i++)
@@ -368,5 +373,6 @@ public class CryptState {
         dst[1] = tag[0];
         dst[2] = tag[1];
         dst[3] = tag[2];
+        return dst;
     }
 }

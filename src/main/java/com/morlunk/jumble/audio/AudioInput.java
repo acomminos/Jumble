@@ -18,7 +18,6 @@ package com.morlunk.jumble.audio;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
-import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.util.Log;
 
@@ -26,41 +25,55 @@ import com.googlecode.javacpp.IntPointer;
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacpp.Pointer;
 import com.morlunk.jumble.Constants;
+import com.morlunk.jumble.JumbleService;
+import com.morlunk.jumble.audio.javacpp.CELT11;
+import com.morlunk.jumble.audio.javacpp.CELT7;
 import com.morlunk.jumble.audio.javacpp.Opus;
 import com.morlunk.jumble.audio.javacpp.Speex;
-import com.morlunk.jumble.net.JumbleMessageHandler;
+import com.morlunk.jumble.protocol.JumbleMessageListener;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
 import com.morlunk.jumble.protobuf.Mumble;
+import com.morlunk.jumble.protocol.ProtocolHandler;
 
 import java.util.Arrays;
 
 /**
  * Created by andrew on 23/08/13.
  */
-public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
+public class AudioInput extends ProtocolHandler implements Runnable {
 
     static {
         Loader.load(Opus.class); // Do this so we can reference IntPointer and the like earlier.
     }
 
     public interface AudioInputListener {
+        /**
+         * Called when a frame has finished processing, and is ready to go to the server.
+         * @param data The encoded audio data.
+         * @param length The length of the encoded audio data.
+         * @param messageType The codec of the encoded data.
+         */
         public void onFrameEncoded(byte[] data, int length, JumbleUDPMessageType messageType);
+
+        public void onTalkStateChanged(boolean talking);
     }
 
-    public static final int[] SAMPLE_RATES = { 48000, 44100, 22050, 160000, 11025, 8000 };
-    public static final int SPEEX_RESAMPLE_QUALITY = 3;
-    public static final int OPUS_MAX_BYTES = 512; // Opus specifies 4000 bytes as a recommended value for encoding, but the official mumble project uses 512.
+    private static final int[] SAMPLE_RATES = { 48000, 44100, 22050, 160000, 11025, 8000 };
+    private static final int SPEEX_RESAMPLE_QUALITY = 3;
+    private static final int OPUS_MAX_BYTES = 512; // Opus specifies 4000 bytes as a recommended value for encoding, but the official mumble project uses 512.
 
-    private Pointer mOpusEncoder;;
-//    private com.morlunk.jumble.audio.celt11.SWIGTYPE_p_CELTEncoder mCELTBetaEncoder;
-//    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTMode mCELTAlphaMode;
-//    private com.morlunk.jumble.audio.celt7.SWIGTYPE_p_CELTEncoder mCELTAlphaEncoder;
+    private Pointer mOpusEncoder;
+    private Pointer mCELTBetaEncoder;
+    private Pointer mCELTAlphaMode;
+    private Pointer mCELTAlphaEncoder;
     private Speex.SpeexPreprocessState mPreprocessState;
     private Speex.SpeexResampler mResampler;
 
     private AudioInputListener mListener;
     private int mTransmitMode = Constants.TRANSMIT_PUSH_TO_TALK;
+    private float mVADThreshold = 0;
+    private boolean mVADLastDetected = false;
 
     private AudioRecord mAudioRecord;
     private int mMinBufferSize;
@@ -87,9 +100,11 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
      * Creates a new audio input manager configured for the specified codec.
      * @param listener
      */
-    public AudioInput(JumbleUDPMessageType codec, int transmitMode, AudioInputListener listener) {
+    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int transmitMode, float voiceThreshold, AudioInputListener listener) {
+        super(service);
         mListener = listener;
         mTransmitMode = transmitMode;
+        mVADThreshold = voiceThreshold;
         switchCodec(codec);
         configurePreprocessState();
 
@@ -137,6 +152,10 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
         mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_SET_AGC_TARGET, arg);
 
         // TODO AGC max gain, decrement, noise suppress, echo
+
+        // Increase VAD difficulty
+        arg.put(99);
+        mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_GET_PROB_START, arg);
     }
 
     /**
@@ -160,11 +179,11 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
                 Opus.opus_encoder_ctl(mOpusEncoder, Opus.OPUS_SET_VBR_REQUEST, vbr);
                 break;
             case UDPVoiceCELTBeta:
-//                mCELTBetaEncoder = CELT11.celt_encoder_create(Audio.SAMPLE_RATE, 1, error);
+                mCELTBetaEncoder = CELT11.celt_encoder_create(Audio.SAMPLE_RATE, mFrameSize, error);
                 break;
             case UDPVoiceCELTAlpha:
-//                mCELTAlphaMode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, error);
-//                mCELTAlphaEncoder = CELT7.celt_encoder_create(mCELTAlphaMode, 1, error);
+                mCELTAlphaMode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, mFrameSize, error);
+                mCELTAlphaEncoder = CELT7.celt_encoder_create(mCELTAlphaMode, 1, error);
                 break;
             case UDPVoiceSpeex:
                 // TODO
@@ -221,6 +240,7 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
         mRecording = true;
         mBufferedFrames = 0;
         mFrameCounter = 0;
+        mVADLastDetected = false;
 
         mAudioRecord.startRecording();
 
@@ -230,8 +250,11 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
         final short[] audioData = new short[mFrameSize];
         final short[] resampleBuffer = new short[mMicFrameSize];
 
+        if(mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK)
+            mListener.onTalkStateChanged(true);
+
         // We loop when the 'recording' instance var is true instead of checking audio record state because we want to always cleanly shutdown.
-        while(mRecording) {
+        while(mRecording || mBufferedFrames > 0) { // Make sure we clear all buffered frames before stopping. FIXME- second 'or' condition is experimental, untested.
             int shortsRead = mAudioRecord.read(mResampler != null ? resampleBuffer : audioData, 0, mResampler != null ? mMicFrameSize : mFrameSize);
             if(shortsRead > 0) {
                 int len;
@@ -242,6 +265,9 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
                 if(mResampler != null)
                     mResampler.resample(resampleBuffer, audioData);
 
+                // Run preprocessor on audio data. TODO echo!
+                mPreprocessState.preprocess(audioData);
+
                 boolean talking = true;
 
                 if(mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY) {
@@ -249,15 +275,15 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
                     IntPointer prob = new IntPointer(1);
                     mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_GET_PROB, prob);
                     float speechProbablilty = (float)prob.get() / 100.0f;
-                    // TODO use determined probability
-                    // talking = ...?
+                    talking = speechProbablilty >= mVADThreshold;
+
+                    if(talking ^ mVADLastDetected) // Update the service with the new talking state if we detected voice.
+                        mListener.onTalkStateChanged(talking);
+                    mVADLastDetected = talking;
                 }
 
                 if(!talking)
                     continue;
-
-                // Run preprocessor on audio data. TODO echo!
-                mPreprocessState.preprocess(audioData);
 
                 switch (mCodec) {
                     case UDPVoiceOpus:
@@ -279,8 +305,12 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
                         }
                         break;
                     case UDPVoiceCELTBeta:
+                        int betaResult = CELT11.celt_encode(mCELTBetaEncoder, audioData, mFrameSize, mEncodedBuffer, OPUS_MAX_BYTES);
+                        encoded = betaResult == 0;
                         break;
                     case UDPVoiceCELTAlpha:
+                        int alphaResult = CELT7.celt_encode(mCELTAlphaEncoder, audioData, null, mEncodedBuffer, OPUS_MAX_BYTES);
+                        encoded = alphaResult == 0;
                         break;
                     case UDPVoiceSpeex:
                         break;
@@ -295,6 +325,8 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
         }
 
         mAudioRecord.stop();
+
+        mListener.onTalkStateChanged(false);
 
         synchronized (mRecordLock) {
             mRecordLock.notify();
@@ -324,6 +356,8 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
                 size |= 1 << 13;
             mPacketDataStream.writeLong(size);
             mPacketDataStream.append(frame, frame.length);
+        } else {
+
         }
 
         mListener.onFrameEncoded(mPacketBuffer, mPacketDataStream.size(), mCodec);
@@ -335,6 +369,12 @@ public class AudioInput extends JumbleMessageHandler.Stub implements Runnable {
     public void destroy() {
         if(mOpusEncoder != null)
             Opus.opus_encoder_destroy(mOpusEncoder);
+        if(mCELTBetaEncoder != null)
+            CELT11.celt_encoder_destroy(mCELTBetaEncoder);
+        if(mCELTAlphaEncoder != null)
+            CELT7.celt_encoder_destroy(mCELTAlphaEncoder);
+        if(mCELTAlphaMode != null)
+            CELT7.celt_mode_destroy(mCELTAlphaMode);
         if(mPreprocessState != null)
             mPreprocessState.destroy();
         if(mResampler != null)

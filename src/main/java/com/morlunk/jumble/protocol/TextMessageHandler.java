@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.morlunk.jumble.net;
+package com.morlunk.jumble.protocol;
 
 import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.User;
@@ -25,18 +25,16 @@ import com.morlunk.jumble.util.MessageFormatter;
  * Handles receiving text messages.
  * Created by andrew on 27/07/13.
  */
-public class TextMessageHandler extends JumbleMessageHandler.Stub {
-
-    private JumbleService mService;
+public class TextMessageHandler extends ProtocolHandler {
 
     public TextMessageHandler(JumbleService service) {
-        mService = service;
+        super(service);
     }
 
     @Override
     public void messageTextMessage(Mumble.TextMessage msg) {
         // TODO format user colors
-        User sender = mService.getUserHandler().getUser(msg.getActor());
+        User sender = getService().getUserHandler().getUser(msg.getActor());
 
         if(sender != null && sender.isLocalIgnored())
             return;
@@ -50,6 +48,6 @@ public class TextMessageHandler extends JumbleMessageHandler.Stub {
         else if(msg.getChannelIdCount() > 0)
             senderTarget = "(Channel) ";
 
-        mService.logMessage(String.format("%s%s: %s", senderTarget, senderName, msg.getMessage()));
+        getService().logMessage(sender, String.format("%s%s: %s", senderTarget, senderName, msg.getMessage()));
     }
 }

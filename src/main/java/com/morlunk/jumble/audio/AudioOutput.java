@@ -25,14 +25,14 @@ import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
 
-import com.googlecode.javacpp.BytePointer;
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.IJumbleObserver;
 import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.User;
-import com.morlunk.jumble.net.JumbleMessageHandler;
+import com.morlunk.jumble.protocol.JumbleMessageListener;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
+import com.morlunk.jumble.protocol.ProtocolHandler;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -43,12 +43,11 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Created by andrew on 16/07/13.
  */
-public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, AudioOutputSpeech.TalkStateListener {
+public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutputSpeech.TalkStateListener {
 
     /** Number of nanoseconds until sleeping audio output thread. */
     private static final long SLEEP_THRESHOLD = 3000000000L;
 
-    private JumbleService mService;
     private ConcurrentHashMap<Integer, AudioOutputSpeech> mAudioOutputs = new ConcurrentHashMap<Integer, AudioOutputSpeech>();
     private AudioTrack mAudioTrack;
 
@@ -58,7 +57,7 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
     private long mLastPacket; // Time that the last packet was received, in nanoseconds
 
     public AudioOutput(JumbleService service) {
-        mService = service;
+        super(service);
         int bufferSize = AudioTrack.getMinBufferSize(Audio.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT) * 2;
 
         mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
@@ -157,7 +156,7 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
 
         PacketDataStream pds = new PacketDataStream(voiceData, voiceData.length);
         int session = (int) pds.readLong();
-        User user = mService.getUserHandler().getUser(session);
+        User user = getService().getUserHandler().getUser(session);
         if(user != null && !user.isLocalMuted()) {
             // TODO check for whispers here
             int seq = (int) pds.readLong();
@@ -187,14 +186,14 @@ public class AudioOutput extends JumbleMessageHandler.Stub implements Runnable, 
 
     @Override
     public void onTalkStateUpdated(int session, User.TalkState state) {
-        final User user = mService.getUserHandler().getUser(session);
+        final User user = getService().getUserHandler().getUser(session);
         if(user.getTalkState() != state) {
             user.setTalkState(state);
             Handler handler = new Handler(Looper.getMainLooper());
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mService.notifyObservers(new JumbleService.ObserverRunnable() {
+                    getService().notifyObservers(new JumbleService.ObserverRunnable() {
                         @Override
                         public void run(IJumbleObserver observer) throws RemoteException {
                             observer.onUserTalkStateUpdated(user);

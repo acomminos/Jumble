@@ -41,5 +41,5 @@ interface IJumbleObserver {
     // Logging & Messaging
     void onLogInfo(String message);
     void onLogWarning(String message);
-    void onMessageReceived(String message);
+    void onMessageReceived(out User user, String message);
 }

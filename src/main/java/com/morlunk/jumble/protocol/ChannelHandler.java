@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.morlunk.jumble.net;
+package com.morlunk.jumble.protocol;
 
 import android.os.RemoteException;
 
@@ -33,7 +33,7 @@ import java.util.Map;
 /**
  * Created by andrew on 18/07/13.
  */
-public class ChannelHandler extends JumbleMessageHandler.Stub {
+public class ChannelHandler extends ProtocolHandler {
 
     private Comparator<Integer> mChannelComparator = new Comparator<Integer>() {
         @Override
@@ -46,11 +46,10 @@ public class ChannelHandler extends JumbleMessageHandler.Stub {
         }
     };
 
-    private JumbleService mService;
     private Map<Integer, Channel> mChannels = new HashMap<Integer, Channel>();
 
     public ChannelHandler(JumbleService service) {
-        mService = service;
+        super(service);
     }
 
     public Channel getChannel(int id) {
@@ -130,7 +129,7 @@ public class ChannelHandler extends JumbleMessageHandler.Stub {
         }
 
         final Channel finalChannel = channel;
-        mService.notifyObservers(new JumbleService.ObserverRunnable() {
+        getService().notifyObservers(new JumbleService.ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
                 if(newChannel)
@@ -151,7 +150,7 @@ public class ChannelHandler extends JumbleMessageHandler.Stub {
                 parent.removeSubchannel(msg.getChannelId());
                 changeSubchannelUsers(parent, -channel.getUsers().size());
             }
-            mService.notifyObservers(new JumbleService.ObserverRunnable() {
+            getService().notifyObservers(new JumbleService.ObserverRunnable() {
                 @Override
                 public void run(IJumbleObserver observer) throws RemoteException {
                     observer.onChannelRemoved(channel);
@@ -170,8 +169,8 @@ public class ChannelHandler extends JumbleMessageHandler.Stub {
         if(channel != null) {
             channel.setPermissions(msg.getPermissions());
             if(msg.getChannelId() == 0) // If we're provided permissions for the root channel, we'll apply these as our server permissions.
-                mService.setPermissions(msg.getPermissions());
-            mService.notifyObservers(new JumbleService.ObserverRunnable() {
+                getService().setPermissions(msg.getPermissions());
+            getService().notifyObservers(new JumbleService.ObserverRunnable() {
                 @Override
                 public void run(IJumbleObserver observer) throws RemoteException {
                     observer.onChannelPermissionsUpdated(channel);

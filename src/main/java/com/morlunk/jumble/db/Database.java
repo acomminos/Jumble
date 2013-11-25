@@ -22,9 +22,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import com.morlunk.jumble.Constants;
-import com.morlunk.jumble.model.Server;
-
 import java.util.ArrayList;
 import java.util.List;
 

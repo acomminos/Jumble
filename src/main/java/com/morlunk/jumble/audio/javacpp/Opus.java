@@ -30,7 +30,7 @@ import com.googlecode.javacpp.annotation.Platform;
  * Created by andrew on 18/10/13.
  */
 
-@Platform(library="opus", link="opus", cinclude={"<opus.h>","<opus_types.h>"})
+@Platform(library= "opus", link= "opus", cinclude={"<opus.h>","<opus_types.h>"})
 public class Opus {
 
     public static final int OPUS_APPLICATION_VOIP = 2048;
