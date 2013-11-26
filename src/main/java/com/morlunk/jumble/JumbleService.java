@@ -224,6 +224,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
+        public boolean isBluetoothAvailable() throws RemoteException {
+            return false;
+        }
+
+        @Override
+        public void setBluetoothEnabled(boolean enabled) throws RemoteException {
+
+        }
+
+        @Override
         public void joinChannel(int channel) throws RemoteException {
             Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
             usb.setSession(mConnection.getSession());
@@ -452,8 +462,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mTextMessageHandler = new TextMessageHandler(this);
         mAudioOutput = new AudioOutput(this);
         mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mTransmitMode, mDetectionThreshold, mAudioInputListener);
-
         mConnection.addMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioOutput, mAudioInput);
+
         mConnection.connect();
     }
 

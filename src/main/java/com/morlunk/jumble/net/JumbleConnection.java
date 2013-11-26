@@ -237,6 +237,7 @@ public class JumbleConnection {
                 buffer.putLong(t);
 
                 sendUDPMessage(buffer.array(), 16, true);
+                Log.v(Constants.TAG, "OUT: UDP Ping");
             }
 
             Mumble.Ping.Builder pb = Mumble.Ping.newBuilder();
@@ -311,10 +312,6 @@ public class JumbleConnection {
 
     public long getElapsed() {
         return (System.nanoTime()-mStartTimestamp)/1000;
-    }
-
-    public void addMessageHandler(JumbleMessageListener handler) {
-        mHandlers.add(handler);
     }
 
     public void addMessageHandlers(JumbleMessageListener... handlers) {

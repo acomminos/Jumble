@@ -264,4 +264,14 @@ public class UserHandler extends ProtocolHandler {
             }
         });
     }
+
+    @Override
+    public void messagePermissionDenied(final Mumble.PermissionDenied msg) {
+        getService().notifyObservers(new JumbleService.ObserverRunnable() {
+            @Override
+            public void run(IJumbleObserver observer) throws RemoteException {
+                observer.onPermissionDenied(msg.getReason());
+            }
+        });
+    }
 }

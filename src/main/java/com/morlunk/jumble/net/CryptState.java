@@ -158,26 +158,25 @@ public class CryptState {
 
         final ByteBuffer plainBuffer = ByteBuffer.wrap(plain);
         final ByteBuffer encryptedBuffer = ByteBuffer.wrap(encrypted);
-        final byte[] plainRegion = new byte[AES_BLOCK_SIZE];
-        final byte[] encryptedRegion = new byte[AES_BLOCK_SIZE];
+        final byte[] buffer = new byte[AES_BLOCK_SIZE];
 
         int len = plainLength;
         while(len > AES_BLOCK_SIZE) {
-            plainBuffer.get(plainRegion, 0, AES_BLOCK_SIZE);
-            encryptedBuffer.get(encryptedRegion, 0, AES_BLOCK_SIZE);
-
             CryptSupport.S2(delta);
-            CryptSupport.XOR(tmp, delta, plainRegion);
+            plainBuffer.get(buffer, 0, AES_BLOCK_SIZE);
+            CryptSupport.XOR(checksum, checksum, buffer);
+            CryptSupport.XOR(tmp, delta, buffer);
             mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, tmp);
-            CryptSupport.XOR(encryptedRegion, delta, tmp);
-            CryptSupport.XOR(checksum, checksum, plainRegion);
+
+            CryptSupport.XOR(buffer, delta, tmp);
+            encryptedBuffer.get(buffer, 0, AES_BLOCK_SIZE);
             len -= AES_BLOCK_SIZE;
         }
 
         CryptSupport.S2(delta);
         CryptSupport.ZERO(tmp);
         long num = len * 8;
-        tmp[AES_BLOCK_SIZE-1] = (byte) ((num >> 8) & 0xFF);
+        tmp[AES_BLOCK_SIZE-2] = (byte) ((num >> 8) & 0xFF);
         tmp[AES_BLOCK_SIZE-1] = (byte) (num & 0xFF);
         CryptSupport.XOR(tmp, tmp, delta);
         mEncryptKey.doFinal(tmp, 0, tmp.length, pad);

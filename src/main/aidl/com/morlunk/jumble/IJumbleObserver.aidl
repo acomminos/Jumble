@@ -26,20 +26,21 @@ interface IJumbleObserver {
     void onConnectionError(String message, boolean reconnecting);
 
     // Channel
-    void onChannelAdded(out Channel channel);
-    void onChannelStateUpdated(out Channel channel);
-    void onChannelRemoved(out Channel channel);
-    void onChannelPermissionsUpdated(out Channel channel);
+    void onChannelAdded(in Channel channel);
+    void onChannelStateUpdated(in Channel channel);
+    void onChannelRemoved(in Channel channel);
+    void onChannelPermissionsUpdated(in Channel channel);
 
     // User
-    void onUserConnected(out User user);
-    void onUserStateUpdated(out User user);
-    void onUserTalkStateUpdated(out User user);
-    void onUserJoinedChannel(out User user, out Channel newChannel, out Channel oldChannel);
-    void onUserRemoved(out User user, String reason);
+    void onUserConnected(in User user);
+    void onUserStateUpdated(in User user);
+    void onUserTalkStateUpdated(in User user);
+    void onUserJoinedChannel(in User user, in Channel newChannel, in Channel oldChannel);
+    void onUserRemoved(in User user, String reason);
+    void onPermissionDenied(String reason);
 
     // Logging & Messaging
     void onLogInfo(String message);
     void onLogWarning(String message);
-    void onMessageReceived(out User user, String message);
+    void onMessageReceived(in User user, String message);
 }

@@ -43,6 +43,10 @@ interface IJumbleService {
     boolean isTalking();
     void setTalkingState(boolean talking);
 
+    // Bluetooth
+    boolean isBluetoothAvailable();
+    void setBluetoothEnabled(boolean enabled);
+
     // Server actions
     void joinChannel(int channel);
     void createChannel(int parent, String name, String description, int position, boolean temporary);

@@ -88,6 +88,11 @@ public class JumbleObserver extends IJumbleObserver.Stub {
     }
 
     @Override
+    public void onPermissionDenied(String reason) throws RemoteException {
+
+    }
+
+    @Override
     public void onLogInfo(String message) throws RemoteException {
 
     }
