@@ -29,6 +29,7 @@ import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
 
+import java.util.Arrays;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -54,7 +55,7 @@ public class AudioOutputSpeech {
     private float[] mBuffer;
     private float[] mFadeOut;
     private float[] mFadeIn;
-    private Queue<BytePointer> mFrames = new ConcurrentLinkedQueue<BytePointer>();
+    private Queue<byte[]> mFrames = new ConcurrentLinkedQueue<byte[]>();
     private int mMissCount = 0;
     private float mAverageAvailable = 0;
     private boolean mHasTerminator = false;
@@ -151,8 +152,7 @@ public class AudioOutputSpeech {
         if(mBufferFilled >= num)
             return mLastAlive;
 
-        FloatPointer out = new FloatPointer(mAudioBufferSize);
-        out.fill(0);
+        float[] out = new float[mAudioBufferSize];
         boolean nextAlive = mLastAlive;
 
         while(mBufferFilled < num) {
@@ -160,7 +160,7 @@ public class AudioOutputSpeech {
             resizeBuffer(mBufferFilled + mAudioBufferSize);
 
             if(!mLastAlive)
-                out.fill(0);
+                Arrays.fill(out, 0);
             else {
                 IntPointer avail = new IntPointer(1);
                 avail.put(0);
@@ -207,14 +207,14 @@ public class AudioOutputSpeech {
                             int size = (int) (header & ((1 << 13) - 1));
                             mHasTerminator = (header & (1 << 13)) > 0;
 
-                            BytePointer audioData = new BytePointer(pds.dataBlock(size));
+                            byte[] audioData = pds.dataBlock(size);
                             mFrames.add(audioData);
                         } else {
                             int header;
                             do {
                                 header = pds.next() & 0xFF;
                                 if(header > 0)
-                                    mFrames.add(new BytePointer(pds.dataBlock(header & 0x7f)));
+                                    mFrames.add(pds.dataBlock(header & 0x7f));
                                 else
                                     mHasTerminator = true;
                             } while ((header & 0x80) > 0 && pds.isValid());
@@ -238,23 +238,23 @@ public class AudioOutputSpeech {
                 }
 
                 if(!mFrames.isEmpty()) {
-                    BytePointer data = mFrames.poll();
+                    byte[] data = mFrames.poll();
 
                     if(mCodec == JumbleUDPMessageType.UDPVoiceCELTAlpha) {
                         CELT7.celt_decode_float(mCELTAlphaDecoder,
                                 data,
-                                data.capacity(),
+                                data.length,
                                 out);
                     } else if(mCodec == JumbleUDPMessageType.UDPVoiceCELTBeta) {
                         CELT11.celt_decode_float(mCELTBetaDecoder,
                                 data,
-                                data.capacity(),
+                                data.length,
                                 out,
                                 Audio.FRAME_SIZE);
                     } else if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
                         decodedSamples = Opus.opus_decode_float(mOpusDecoder,
                                 data,
-                                data.capacity(),
+                                data.length,
                                 out,
                                 mAudioBufferSize,
                                 0);
@@ -266,11 +266,8 @@ public class AudioOutputSpeech {
 //                            Speex.speex_decode(mSpeexDecoder, mSpeexBits, out);
 //                        }
                         for(int i = 0; i < Audio.FRAME_SIZE; i++)
-                            out.put(i, out.get(i) * (1.0f / 32767.f));
+                            out[i] *= (1.0f / 32767.f);
                     }
-
-                    data.deallocate();
-
 
                     if(mFrames.isEmpty())
                         synchronized (mJitterBuffer) {
@@ -295,11 +292,11 @@ public class AudioOutputSpeech {
 
                 if (!nextAlive) {
                     for (int i = 0; i < Audio.FRAME_SIZE; i++) {
-                        out.put(i, out.get(i) * mFadeOut[i]);
+                        out[i] *= mFadeOut[i];
                     }
                 } else if (ts == 0) {
                     for (int i = 0; i < Audio.FRAME_SIZE; i++) {
-                        out.put(i, out.get(i) * mFadeIn[i]);
+                        out[i] *= mFadeIn[i];
                     }
                 }
 
@@ -309,7 +306,7 @@ public class AudioOutputSpeech {
                 }
             }
 
-            out.get(mBuffer, mBufferFilled, decodedSamples);
+            System.arraycopy(out, 0, mBuffer, mBufferFilled, decodedSamples);
             mBufferFilled += decodedSamples;
         }
 

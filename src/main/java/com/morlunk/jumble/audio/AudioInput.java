@@ -58,8 +58,6 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
         public void onTalkStateChanged(boolean talking);
 
-        // Debug methods
-
         /**
          * Called after a frame is passed into the speex preprocessor.
          * @param prob The probability of speech, from 0 to 1.

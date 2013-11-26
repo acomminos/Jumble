@@ -43,8 +43,8 @@ public class CELT7 {
     public static native void celt_mode_destroy(@Cast("CELTMode*") Pointer mode);
 
     public static native @NoDeallocator Pointer celt_decoder_create(@Cast("CELTMode*") Pointer mode, int channels, IntPointer error);
-    public static native int celt_decode(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") BytePointer data, int len, ShortPointer pcm);
-    public static native int celt_decode_float(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") BytePointer data, int len, FloatPointer pcm);
+    public static native int celt_decode(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") byte[] data, int len, short[] pcm);
+    public static native int celt_decode_float(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") byte[] data, int len, float[] pcm);
     public static native int celt_decoder_ctl(@Cast("CELTDecoder*") Pointer st, int request, Pointer val);
     public static native void celt_decoder_destroy(@Cast("CELTDecoder*") Pointer st);
 
