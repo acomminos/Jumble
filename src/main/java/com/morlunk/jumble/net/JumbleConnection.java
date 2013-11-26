@@ -158,7 +158,7 @@ public class JumbleConnection {
                     if(key.size() == CryptState.AES_BLOCK_SIZE &&
                             clientNonce.size() == CryptState.AES_BLOCK_SIZE &&
                             serverNonce.size() == CryptState.AES_BLOCK_SIZE)
-                        mCryptState.setKey(key.toByteArray(), clientNonce.toByteArray(), serverNonce.toByteArray());
+                        mCryptState.setKeys(key.toByteArray(), clientNonce.toByteArray(), serverNonce.toByteArray());
                 } else if(msg.hasServerNonce()) {
                     ByteString serverNonce = msg.getServerNonce();
                     if(serverNonce.size() == CryptState.AES_BLOCK_SIZE) {
@@ -167,7 +167,7 @@ public class JumbleConnection {
                     }
                 } else {
                     Mumble.CryptSetup.Builder csb = Mumble.CryptSetup.newBuilder();
-                    csb.setClientNonce(ByteString.copyFrom(mCryptState.getEncryptIV()));
+                    csb.setClientNonce(ByteString.copyFrom(mCryptState.mEncryptIV));
                     sendTCPMessage(csb.build(), JumbleTCPMessageType.CryptSetup);
                 }
             } catch (InvalidKeyException e) {
@@ -212,7 +212,7 @@ public class JumbleConnection {
 
         @Override
         public void messageUDPPing(byte[] data) {
-            Log.v(Constants.TAG, "UDP ping from server");
+            Log.v(Constants.TAG, "IN: UDP Ping");
             byte[] timedata = new byte[8];
             System.arraycopy(data, 1, timedata, 0, 8);
             ByteBuffer buffer = ByteBuffer.allocate(8);

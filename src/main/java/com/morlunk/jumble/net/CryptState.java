@@ -16,7 +16,6 @@
 
 package com.morlunk.jumble.net;
 
-import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -25,7 +24,6 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -40,6 +38,311 @@ import javax.crypto.spec.SecretKeySpec;
  * Created by andrew on 24/06/13.
  */
 public class CryptState {
+
+    public static final int AES_BLOCK_SIZE = 16;
+    private static final String AES_TRANSFORMATION = "AES/ECB/NoPadding";
+    byte[] mRawKey = new byte[AES_BLOCK_SIZE];
+    byte[] mEncryptIV = new byte[AES_BLOCK_SIZE];
+    byte[] mDecryptIV = new byte[AES_BLOCK_SIZE];
+    byte[] mDecryptHistory = new byte[0x100];
+    int mUiGood = 0;
+    int mUiLate = 0;
+    int mUiLost = 0;
+    int mUiResync = 0;
+    int mUiRemoteGood = 0;
+    int mUiRemoteLate = 0;
+    int mUiRemoteLost = 0;
+    int mUiRemoteResync = 0;
+    Cipher mEncryptCipher;
+    Cipher mDecryptCipher;
+    long mLastGoodStart;
+    long mLastRequestStart;
+    boolean mInit = false;
+
+    public boolean isValid() {
+        return mInit;
+    }
+
+    /**
+     * @return The time since the last good decrypt in microseconds.
+     */
+    public long getLastGoodElapsed() {
+        return (System.nanoTime() - mLastGoodStart) / 1000;
+    }
+
+    /**
+     * @return The time since the last request in microseconds.
+     */
+    public long getLastRequestElapsed() {
+        return (System.nanoTime() - mLastRequestStart) / 1000;
+    }
+
+    public byte[] getEncryptIV() {
+        return mEncryptIV;
+    }
+
+    public byte[] getDecryptIV() {
+        return mDecryptIV;
+    }
+
+    public void setKeys(final byte[] rkey, final byte[] eiv, final byte[] div) throws InvalidKeyException {
+        try {
+            mEncryptCipher = Cipher.getInstance(AES_TRANSFORMATION);
+            mDecryptCipher = Cipher.getInstance(AES_TRANSFORMATION);
+        } catch (final NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return;
+        } catch (final NoSuchPaddingException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        final SecretKeySpec cryptKey = new SecretKeySpec(rkey, "AES");
+        mRawKey = new byte[rkey.length];
+        System.arraycopy(rkey, 0, mRawKey, 0, AES_BLOCK_SIZE);
+        mEncryptIV = new byte[eiv.length];
+        System.arraycopy(eiv, 0, mEncryptIV, 0, AES_BLOCK_SIZE);
+        mDecryptIV = new byte[div.length];
+        System.arraycopy(div, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
+
+        mEncryptCipher.init(Cipher.ENCRYPT_MODE, cryptKey);
+        mDecryptCipher.init(Cipher.DECRYPT_MODE, cryptKey);
+
+        mInit = true;
+    }
+
+    public byte[] decrypt(final byte[] source, final int length) {
+        if (length < 4) {
+            return null;
+        }
+
+        final int plainLength = length - 4;
+        final byte[] dst = new byte[plainLength];
+
+        final byte[] saveiv = new byte[AES_BLOCK_SIZE];
+        final short ivbyte = (short) (source[0] & 0xFF);
+        boolean restore = false;
+        final byte[] tag = new byte[AES_BLOCK_SIZE];
+
+        int lost = 0;
+        int late = 0;
+
+        System.arraycopy(mDecryptIV, 0, saveiv, 0, AES_BLOCK_SIZE);
+
+        if (((mDecryptIV[0] + 1) & 0xFF) == ivbyte) {
+            // In order as expected.
+            if (ivbyte > (mDecryptIV[0] & 0xFF)) {
+                mDecryptIV[0] = (byte) ivbyte;
+            } else if (ivbyte < (mDecryptIV[0] & 0xFF)) {
+                mDecryptIV[0] = (byte) ivbyte;
+                for (int i = 1; i < AES_BLOCK_SIZE; i++) {
+                    if ((++mDecryptIV[i]) != 0) {
+                        break;
+                    }
+                }
+            } else {
+                return null;
+            }
+        } else {
+            // This is either out of order or a repeat.
+            int diff = ivbyte - (mDecryptIV[0] & 0xFF);
+            if (diff > 128) {
+                diff = diff - 256;
+            } else if (diff < -128) {
+                diff = diff + 256;
+            }
+
+            if ((ivbyte < (mDecryptIV[0] & 0xFF)) && (diff > -30) && (diff < 0)) {
+                // Late packet, but no wraparound.
+                late = 1;
+                lost = -1;
+                mDecryptIV[0] = (byte) ivbyte;
+                restore = true;
+            } else if ((ivbyte > (mDecryptIV[0] & 0xFF)) && (diff > -30) &&
+                    (diff < 0)) {
+                // Last was 0x02, here comes 0xff from last round
+                late = 1;
+                lost = -1;
+                mDecryptIV[0] = (byte) ivbyte;
+                for (int i = 1; i < AES_BLOCK_SIZE; i++) {
+                    if ((mDecryptIV[i]--) != 0) {
+                        break;
+                    }
+                }
+                restore = true;
+            } else if ((ivbyte > (mDecryptIV[0] & 0xFF)) && (diff > 0)) {
+                // Lost a few packets, but beyond that we're good.
+                lost = ivbyte - mDecryptIV[0] - 1;
+                mDecryptIV[0] = (byte) ivbyte;
+            } else if ((ivbyte < (mDecryptIV[0] & 0xFF)) && (diff > 0)) {
+                // Lost a few packets, and wrapped around
+                lost = 256 - (mDecryptIV[0] & 0xFF) + ivbyte - 1;
+                mDecryptIV[0] = (byte) ivbyte;
+                for (int i = 1; i < AES_BLOCK_SIZE; i++) {
+                    if ((++mDecryptIV[i]) != 0) {
+                        break;
+                    }
+                }
+            } else {
+                return null;
+            }
+
+            if (mDecryptHistory[mDecryptIV[0] & 0xFF] == mEncryptIV[0]) {
+                System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
+                return null;
+            }
+        }
+
+        final byte[] tagShiftedDst = new byte[plainLength];
+        System.arraycopy(source, 4, tagShiftedDst, 0, plainLength);
+        try {
+            ocbDecrypt(tagShiftedDst, dst, mDecryptIV, tag);
+        } catch (BadPaddingException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalBlockSizeException e) {
+            // Should never occur. We use a constant, reasonable block size.
+            throw new RuntimeException(e);
+        } catch (ShortBufferException e) {
+            // Should never occur. We use a constant, reasonable block size.
+            throw new RuntimeException(e);
+        }
+
+        if (tag[0] != source[1] || tag[1] != source[2] || tag[2] != source[3]) {
+            System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
+            return null;
+        }
+        mDecryptHistory[mDecryptIV[0] & 0xff] = mDecryptIV[1];
+
+        if (restore)
+            System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
+
+        mUiGood++;
+        mUiLate += late;
+        mUiLost += lost;
+
+        mLastGoodStart = System.nanoTime();
+        return dst;
+    }
+
+    public void ocbDecrypt(byte[] encrypted, byte[] plain, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
+        final byte[] checksum = new byte[AES_BLOCK_SIZE];
+        final byte[] tmp = new byte[AES_BLOCK_SIZE];
+
+        final byte[] delta = mEncryptCipher.doFinal(nonce);
+
+        int offset = 0;
+        int len = encrypted.length;
+        while (len > AES_BLOCK_SIZE) {
+            final byte[] buffer = new byte[AES_BLOCK_SIZE];
+            CryptSupport.S2(delta);
+            System.arraycopy(encrypted, offset, buffer, 0, AES_BLOCK_SIZE);
+
+            CryptSupport.XOR(tmp, delta, buffer);
+            mDecryptCipher.doFinal(tmp, 0, AES_BLOCK_SIZE, tmp);
+
+            CryptSupport.XOR(buffer, delta, tmp);
+            System.arraycopy(buffer, 0, plain, offset, AES_BLOCK_SIZE);
+
+            CryptSupport.XOR(checksum, checksum, buffer);
+            len -= AES_BLOCK_SIZE;
+            offset += AES_BLOCK_SIZE;
+        }
+
+        CryptSupport.S2(delta);
+        CryptSupport.ZERO(tmp);
+
+        final long num = len * 8;
+        tmp[AES_BLOCK_SIZE - 2] = (byte) ((num >> 8) & 0xFF);
+        tmp[AES_BLOCK_SIZE - 1] = (byte) (num & 0xFF);
+        CryptSupport.XOR(tmp, tmp, delta);
+
+        final byte[] pad = mEncryptCipher.doFinal(tmp);
+        CryptSupport.ZERO(tmp);
+        System.arraycopy(encrypted, offset, tmp, 0, len);
+
+        CryptSupport.XOR(tmp, tmp, pad);
+        CryptSupport.XOR(checksum, checksum, tmp);
+
+        System.arraycopy(tmp, 0, plain, offset, len);
+
+        CryptSupport.S3(delta);
+        CryptSupport.XOR(tmp, delta, checksum);
+
+        mEncryptCipher.doFinal(tmp, 0, AES_BLOCK_SIZE, tag);
+    }
+
+    public byte[] encrypt(final byte[] source, final int length) {
+        final byte[] tag = new byte[AES_BLOCK_SIZE];
+
+        // First, increase our IV.
+        for (int i = 0; i < AES_BLOCK_SIZE; i++) {
+            if ((++mEncryptIV[i]) != 0) {
+                break;
+            }
+        }
+
+        final byte[] dst = new byte[length + 4];
+        try {
+            ocbEncrypt(source, dst, length, mEncryptIV, tag);
+        } catch (final IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (final BadPaddingException e) {
+            e.printStackTrace();
+        } catch (final ShortBufferException e) {
+            e.printStackTrace();
+        }
+
+        System.arraycopy(dst, 0, dst, 4, length);
+        dst[0] = mEncryptIV[0];
+        dst[1] = tag[0];
+        dst[2] = tag[1];
+        dst[3] = tag[2];
+
+        return dst;
+    }
+
+    public void ocbEncrypt(byte[] plain, byte[] encrypted, int plainLength, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
+        final byte[] checksum = new byte[AES_BLOCK_SIZE];
+        final byte[] tmp = new byte[AES_BLOCK_SIZE];
+
+        final byte[] delta = mEncryptCipher.doFinal(nonce);
+
+        int offset = 0;
+        int len = plainLength;
+        while (len > AES_BLOCK_SIZE) {
+            final byte[] buffer = new byte[AES_BLOCK_SIZE];
+            CryptSupport.S2(delta);
+            System.arraycopy(plain, offset, buffer, 0, AES_BLOCK_SIZE);
+            CryptSupport.XOR(checksum, checksum, buffer);
+            CryptSupport.XOR(tmp, delta, buffer);
+
+            mEncryptCipher.doFinal(tmp, 0, AES_BLOCK_SIZE, tmp);
+
+            CryptSupport.XOR(buffer, delta, tmp);
+            System.arraycopy(buffer, 0, encrypted, offset, AES_BLOCK_SIZE);
+            len -= AES_BLOCK_SIZE;
+            offset += AES_BLOCK_SIZE;
+        }
+
+        CryptSupport.S2(delta);
+        CryptSupport.ZERO(tmp);
+        final long num = len * 8;
+        tmp[AES_BLOCK_SIZE - 2] = (byte) ((num >> 8) & 0xFF);
+        tmp[AES_BLOCK_SIZE - 1] = (byte) (num & 0xFF);
+        CryptSupport.XOR(tmp, tmp, delta);
+
+        final byte[] pad = mEncryptCipher.doFinal(tmp);
+
+        System.arraycopy(plain, offset, tmp, 0, len);
+        System.arraycopy(pad, len, tmp, len, AES_BLOCK_SIZE - len);
+        CryptSupport.XOR(checksum, checksum, tmp);
+        CryptSupport.XOR(tmp, pad, tmp);
+
+        System.arraycopy(tmp, 0, encrypted, offset, len);
+        CryptSupport.S3(delta);
+        CryptSupport.XOR(tmp, delta, checksum);
+        mEncryptCipher.doFinal(tmp, 0, AES_BLOCK_SIZE, tag);
+    }
 
     /**
      * Some functions that provide helpful cryptographic support, like being able to XOR a byte array.
@@ -73,305 +376,5 @@ public class CryptState {
         public static void ZERO(final byte[] block) {
             Arrays.fill(block, (byte) 0);
         }
-    }
-
-    private static final String AES_TRANSFORMATION = "AES/ECB/NoPadding";
-    public static final int AES_BLOCK_SIZE = 16;
-
-    byte[] mRawKey = new byte[AES_BLOCK_SIZE];
-    byte[] mEncryptIV = new byte[AES_BLOCK_SIZE];
-    byte[] mDecryptIV = new byte[AES_BLOCK_SIZE];
-    byte[] mDecryptHistory = new byte[0x100];
-
-    int mUiGood = 0;
-    int mUiLate = 0;
-    int mUiLost = 0;
-    int mUiResync = 0;
-
-    int mUiRemoteGood = 0;
-    int mUiRemoteLate = 0;
-    int mUiRemoteLost = 0;
-    int mUiRemoteResync = 0;
-
-    Cipher mEncryptKey;
-    Cipher mDecryptKey;
-    long mLastGoodStart;
-    long mLastRequestStart;
-    boolean mInit = false;
-
-    public boolean isValid() {
-        return mInit;
-    }
-
-    /**
-     * @return The time since the last good decrypt in microseconds.
-     */
-    public long getLastGoodElapsed() {
-        return (System.nanoTime() - mLastGoodStart) / 1000;
-    }
-
-    /**
-     * @return The time since the last request in microseconds.
-     */
-    public long getLastRequestElapsed() {
-        return (System.nanoTime() - mLastRequestStart) / 1000;
-    }
-
-    /* No need to create a shared secret, no server implementation.
-    public void genKey() {
-        mInit = true;
-    }
-     */
-
-    public void setKey(byte[] rkey, byte[] eiv, byte[] div) throws InvalidKeyException {
-        mRawKey = rkey;
-        mEncryptIV = eiv;
-        mDecryptIV = div;
-        SecretKey secretKey = new SecretKeySpec(rkey, "AES");
-        try {
-            mEncryptKey = Cipher.getInstance(AES_TRANSFORMATION);
-            mEncryptKey.init(Cipher.ENCRYPT_MODE, secretKey);
-            mDecryptKey = Cipher.getInstance(AES_TRANSFORMATION);
-            mDecryptKey.init(Cipher.DECRYPT_MODE, secretKey);
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            throw new RuntimeException("We use Spongy Castle, this cipher is guaranteed to be here!", e);
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
-        }
-        mInit = true;
-    }
-
-    public byte[] getEncryptIV() {
-        return mEncryptIV;
-    }
-
-    public byte[] getDecryptIV() {
-        return mDecryptIV;
-    }
-
-    public void ocbEncrypt(byte[] plain, byte[] encrypted, int plainLength, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
-        final byte[] checksum = new byte[AES_BLOCK_SIZE],
-                          tmp = new byte[AES_BLOCK_SIZE],
-                          pad = new byte[AES_BLOCK_SIZE],
-                          delta = mEncryptKey.doFinal(nonce);
-
-        final ByteBuffer plainBuffer = ByteBuffer.wrap(plain);
-        final ByteBuffer encryptedBuffer = ByteBuffer.wrap(encrypted);
-        final byte[] buffer = new byte[AES_BLOCK_SIZE];
-
-        int len = plainLength;
-        while(len > AES_BLOCK_SIZE) {
-            CryptSupport.S2(delta);
-            plainBuffer.get(buffer, 0, AES_BLOCK_SIZE);
-            CryptSupport.XOR(checksum, checksum, buffer);
-            CryptSupport.XOR(tmp, delta, buffer);
-            mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, tmp);
-
-            CryptSupport.XOR(buffer, delta, tmp);
-            encryptedBuffer.get(buffer, 0, AES_BLOCK_SIZE);
-            len -= AES_BLOCK_SIZE;
-        }
-
-        CryptSupport.S2(delta);
-        CryptSupport.ZERO(tmp);
-        long num = len * 8;
-        tmp[AES_BLOCK_SIZE-2] = (byte) ((num >> 8) & 0xFF);
-        tmp[AES_BLOCK_SIZE-1] = (byte) (num & 0xFF);
-        CryptSupport.XOR(tmp, tmp, delta);
-        mEncryptKey.doFinal(tmp, 0, tmp.length, pad);
-        System.arraycopy(plain, plainBuffer.position(), tmp, 0, len);
-        System.arraycopy(pad, len, tmp, len, AES_BLOCK_SIZE - len);
-        CryptSupport.XOR(checksum, checksum, tmp);
-        CryptSupport.XOR(tmp, pad, tmp);
-        System.arraycopy(tmp, 0, encrypted, encryptedBuffer.position(), len);
-
-        CryptSupport.S3(delta);
-        CryptSupport.XOR(tmp, delta, checksum);
-        mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, tag);
-    }
-
-    public void ocbDecrypt(byte[] encrypted, byte[] plain, int encryptedLen, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
-        final byte[] checksum = new byte[AES_BLOCK_SIZE],
-                delta = new byte[AES_BLOCK_SIZE],
-                tmp = new byte[AES_BLOCK_SIZE],
-                pad = new byte[AES_BLOCK_SIZE];
-
-        System.arraycopy(mEncryptKey.doFinal(nonce), 0, delta, 0, AES_BLOCK_SIZE);
-
-        final ByteBuffer plainBuffer = ByteBuffer.wrap(plain);
-        final ByteBuffer encryptedBuffer = ByteBuffer.wrap(encrypted);
-        final byte[] plainRegion = new byte[AES_BLOCK_SIZE];
-        final byte[] encryptedRegion = new byte[AES_BLOCK_SIZE];
-
-        int len = encryptedLen;
-        while (len > AES_BLOCK_SIZE) {
-            plainBuffer.get(plainRegion);
-            encryptedBuffer.get(encryptedRegion);
-
-            CryptSupport.S2(delta);
-            CryptSupport.XOR(tmp, delta, encryptedRegion);
-            mDecryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, tmp);
-            CryptSupport.XOR(plainRegion, delta, tmp);
-            CryptSupport.XOR(checksum, checksum, plainRegion);
-            len -= AES_BLOCK_SIZE;
-        }
-
-        CryptSupport.S2(delta);
-        CryptSupport.ZERO(tmp);
-        long num = len * 8;
-        tmp[AES_BLOCK_SIZE - 2] = (byte) ((num >> 8) & 0xFF);
-        tmp[AES_BLOCK_SIZE - 1] = (byte) (num & 0xFF);
-        CryptSupport.XOR(tmp, tmp, delta);
-        mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, pad);
-        System.arraycopy(encrypted, encryptedBuffer.position(), tmp, 0, len);
-        CryptSupport.XOR(tmp, tmp, pad);
-        CryptSupport.XOR(checksum, checksum, tmp);
-        System.arraycopy(tmp, 0, plain, plainBuffer.position(), len);
-
-        CryptSupport.S3(delta);
-        CryptSupport.XOR(tmp, delta, checksum);
-        mEncryptKey.doFinal(tmp, 0, AES_BLOCK_SIZE, tag);
-
-    }
-
-    public synchronized byte[] decrypt(byte[] source, int cryptedLength) {
-        if (cryptedLength < 4)
-            return null;
-
-        int plainLength = cryptedLength - 4;
-        final byte[] dst = new byte[plainLength];
-        byte[] saveiv = new byte[AES_BLOCK_SIZE];
-        byte ivbyte = source[0];
-        boolean restore = false;
-        byte[] tag = new byte[AES_BLOCK_SIZE];
-
-        int lost = 0;
-        int late = 0;
-
-        System.arraycopy(mDecryptIV, 0, saveiv, 0, AES_BLOCK_SIZE);
-
-        if (((mDecryptIV[0] + 1) & 0xFF) == ivbyte) {
-            // In order as expected.
-            if (ivbyte > mDecryptIV[0]) {
-                mDecryptIV[0] = ivbyte;
-            } else if (ivbyte < mDecryptIV[0]) {
-                mDecryptIV[0] = ivbyte;
-                for (int i = 1; i < AES_BLOCK_SIZE; i++)
-                    if (++mDecryptIV[i] != 0)
-                        break;
-            } else {
-                return null;
-            }
-        } else {
-            // This is either out of order or a repeat.
-
-            int diff = ivbyte - mDecryptIV[0];
-            if (diff > 128)
-                diff = diff - 256;
-            else if (diff < -128)
-                diff = diff + 256;
-
-            if ((ivbyte < mDecryptIV[0]) && (diff > -30) && (diff < 0)) {
-                // Late packet, but no wraparound.
-                late = 1;
-                lost = -1;
-                mDecryptIV[0] = ivbyte;
-                restore = true;
-            } else if ((ivbyte > mDecryptIV[0]) && (diff > -30) && (diff < 0)) {
-                // Last was 0x02, here comes 0xff from last round
-                late = 1;
-                lost = -1;
-                mDecryptIV[0] = ivbyte;
-                for (int i = 1; i < AES_BLOCK_SIZE; i++)
-                    if (mDecryptIV[i]-- != 0)
-                        break;
-                restore = true;
-            } else if ((ivbyte > mDecryptIV[0]) && (diff > 0)) {
-                // Lost a few packets, but beyond that we're good.
-                lost = ivbyte - mDecryptIV[0] - 1;
-                mDecryptIV[0] = ivbyte;
-            } else if ((ivbyte < mDecryptIV[0]) && (diff > 0)) {
-                // Lost a few packets, and wrapped around
-                lost = 256 - mDecryptIV[0] + ivbyte - 1;
-                mDecryptIV[0] = ivbyte;
-                for (int i = 1; i < AES_BLOCK_SIZE; i++)
-                    if (++mDecryptIV[i] != 0)
-                        break;
-            } else {
-                return null;
-            }
-
-            if (mDecryptHistory[mDecryptIV[0]] == mDecryptIV[1]) {
-                System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
-                return null;
-            }
-        }
-
-        byte[] tagShiftedDst = new byte[plainLength];
-        System.arraycopy(source, 4, tagShiftedDst, 0, plainLength);
-        try {
-            ocbDecrypt(tagShiftedDst, dst, plainLength, mDecryptIV, tag);
-        } catch (BadPaddingException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalBlockSizeException e) {
-            // Should never occur. We use a constant, reasonable block size.
-            throw new RuntimeException(e);
-        } catch (ShortBufferException e) {
-            // Should never occur. We use a constant, reasonable block size.
-            throw new RuntimeException(e);
-        }
-
-        // Validate using first 3 bytes of the tag and bytes 1-3 of the source
-        byte[] shiftedSource = new byte[3];
-        System.arraycopy(source, 1, shiftedSource, 0, 3);
-        byte[] threeTag = new byte[3];
-        System.arraycopy(tag, 0, threeTag, 0, 3);
-
-        if (Arrays.equals(shiftedSource, threeTag)) {
-            System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
-            return null;
-        }
-        mDecryptHistory[mDecryptIV[0]] = mDecryptIV[1];
-
-        if (restore)
-            System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
-
-        mUiGood++;
-        mUiLate += late;
-        mUiLost += lost;
-
-        mLastGoodStart = System.nanoTime();
-        return dst;
-    }
-
-    public synchronized byte[] encrypt(byte[] source, int plainLength) {
-        final byte[] tag = new byte[AES_BLOCK_SIZE];
-        final byte[] dst = new byte[plainLength+4];
-
-        // First, increase our IV.
-        for (int i = 0; i < AES_BLOCK_SIZE; i++)
-            if ((++mEncryptIV[i]) > 0)
-                break;
-
-        try {
-            ocbEncrypt(source, dst, plainLength, mEncryptIV, tag);
-        } catch (BadPaddingException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalBlockSizeException e) {
-            // Should never occur. We use a constant, reasonable block size.
-            throw new RuntimeException(e);
-        } catch (ShortBufferException e) {
-            // Should never occur. We use a constant, reasonable block size.
-            throw new RuntimeException(e);
-        }
-
-        // First 4 bytes are header data.
-        System.arraycopy(dst, 0, dst, 4, plainLength);
-        dst[0] = mEncryptIV[0];
-        dst[1] = tag[0];
-        dst[2] = tag[1];
-        dst[3] = tag[2];
-        return dst;
     }
 }
