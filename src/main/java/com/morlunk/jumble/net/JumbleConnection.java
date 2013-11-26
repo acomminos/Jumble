@@ -214,7 +214,7 @@ public class JumbleConnection {
         public void messageUDPPing(byte[] data) {
             Log.v(Constants.TAG, "IN: UDP Ping");
             byte[] timedata = new byte[8];
-            System.arraycopy(data, 1, timedata, 0, 8);
+            System.arraycopy(data, 0, timedata, 0, 8);
             ByteBuffer buffer = ByteBuffer.allocate(8);
             buffer.put(timedata);
             buffer.flip();
