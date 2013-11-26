@@ -118,6 +118,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 }
             });
         }
+
+        @Override
+        public void onVADStateUpdate(float prob) {
+
+        }
     };
 
     // Logging

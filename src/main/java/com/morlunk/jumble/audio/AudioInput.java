@@ -57,6 +57,14 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         public void onFrameEncoded(byte[] data, int length, JumbleUDPMessageType messageType);
 
         public void onTalkStateChanged(boolean talking);
+
+        // Debug methods
+
+        /**
+         * Called after a frame is passed into the speex preprocessor.
+         * @param prob The probability of speech, from 0 to 1.
+         */
+        public void onVADStateUpdate(float prob);
     }
 
     private static final int[] SAMPLE_RATES = { 48000, 44100, 22050, 160000, 11025, 8000 };
@@ -81,6 +89,10 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     private int mFrameSize = Audio.FRAME_SIZE;
     private int mMicFrameSize = Audio.FRAME_SIZE;
     private int mFramesPerPacket = 6;
+
+    // Energy-based VAD
+    private int mMinAmplitude = -1;
+    private int mMaxAmplitude = -1;
 
     // Temporary encoder state
     private final short[] mOpusBuffer = new short[mFrameSize*mFramesPerPacket];
@@ -271,11 +283,15 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                 boolean talking = true;
 
                 if(mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY) {
-                    // Check if audio input registered as probable speech.
-                    IntPointer prob = new IntPointer(1);
-                    mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_GET_PROB, prob);
-                    float speechProbablilty = (float)prob.get() / 100.0f;
-                    talking = speechProbablilty >= mVADThreshold;
+                    // Use a logarithmic energy-based scale for VAD.
+                    float sum = 1.0f;
+                    for (int i = 0; i < mFrameSize; i++) {
+                        sum += audioData[i] * audioData[i];
+                    }
+                    float micLevel = (float) Math.sqrt(sum / (float)mFrameSize);
+                    float peakSignal = (float) (20.0f*Math.log10(micLevel / 32768.0f))/96.0f;
+                    talking = (peakSignal+1) >= mVADThreshold;
+//                    Log.v(Constants.TAG, String.format("Signal: %2f, Threshold: %2f", peakSignal+1, mVADThreshold));
 
                     if(talking ^ mVADLastDetected) // Update the service with the new talking state if we detected voice.
                         mListener.onTalkStateChanged(talking);
@@ -383,8 +399,8 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
     @Override
     public void messageCodecVersion(Mumble.CodecVersion msg) {
-//        if(msg.getOpus())
-//            switchCodec(JumbleUDPMessageType.UDPVoiceOpus);
+        if(msg.getOpus())
+            switchCodec(JumbleUDPMessageType.UDPVoiceOpus);
 //        else if(msg.getPreferAlpha())
 //            switchCodec(JumbleUDPMessageType.UDPVoiceCELTAlpha);
 //        else
