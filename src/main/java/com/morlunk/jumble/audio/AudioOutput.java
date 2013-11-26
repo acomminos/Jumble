@@ -97,7 +97,8 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
             boolean play = mix(mix, mix.length);
             if(play) {
                 mAudioTrack.write(mix, 0, mix.length);
-            } else if(System.nanoTime()-mLastPacket > SLEEP_THRESHOLD) {
+            }
+            else if(System.nanoTime()-mLastPacket > SLEEP_THRESHOLD) {
                 Log.v(Constants.TAG, "Pausing audio output thread.");
                 synchronized (mInactiveLock) {
                     try {

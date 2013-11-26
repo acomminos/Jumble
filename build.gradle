@@ -48,7 +48,7 @@ android {
     defaultConfig {
         testPackageName "com.morlunk.jumble.test"
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
-        minSdkVersion 8
+        minSdkVersion 9
         targetSdkVersion 18
     }
 }

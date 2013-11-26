@@ -38,10 +38,12 @@ interface IJumbleService {
     List getLogHistory();
     int getPermissions();
 
-    // Audio actions
-    int getTransmitMode();
+    // Audio actions and settings
     boolean isTalking();
     void setTalkingState(boolean talking);
+    int getTransmitMode();
+    void setTransmitMode(int transmitMode);
+    void setVADThreshold(float threshold);
 
     // Bluetooth
     boolean isBluetoothAvailable();

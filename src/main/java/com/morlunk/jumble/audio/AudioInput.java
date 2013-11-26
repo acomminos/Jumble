@@ -57,12 +57,6 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         public void onFrameEncoded(byte[] data, int length, JumbleUDPMessageType messageType);
 
         public void onTalkStateChanged(boolean talking);
-
-        /**
-         * Called after a frame is passed into the speex preprocessor.
-         * @param prob The probability of speech, from 0 to 1.
-         */
-        public void onVADStateUpdate(float prob);
     }
 
     private static final int[] SAMPLE_RATES = { 48000, 44100, 22050, 160000, 11025, 8000 };
@@ -138,6 +132,14 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         int reportedMinBufferSize = AudioRecord.getMinBufferSize(mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         mMinBufferSize = Math.max(reportedMinBufferSize, mFrameSize);
         mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
+    }
+
+    public void setVADThreshold(float threshold) {
+        mVADThreshold = threshold;
+    }
+
+    public void setTransmitMode(int transmitMode) {
+        mTransmitMode = transmitMode;
     }
 
     /**

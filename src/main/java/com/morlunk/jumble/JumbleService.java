@@ -56,6 +56,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
     }
 
+    /** Intent to connect to a Mumble server. See extras. **/
     public static final String ACTION_CONNECT = "com.morlunk.jumble.CONNECT";
     public static final String EXTRAS_SERVER = "server";
     public static final String EXTRAS_SHOW_CHAT_NOTIFICATION = "show_chat_notifications";
@@ -101,27 +102,28 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void onTalkStateChanged(final boolean talking) {
-            if(!isConnected())
-                return;
 
-            new Handler(getMainLooper()).post(new Runnable() {
-                @Override
-                public void run() {
-                    final User currentUser = getUserHandler().getUser(getSession());
-                    currentUser.setTalkState(talking ? User.TalkState.TALKING : User.TalkState.PASSIVE);
-                    notifyObservers(new ObserverRunnable() {
-                        @Override
-                        public void run(IJumbleObserver observer) throws RemoteException {
-                            observer.onUserTalkStateUpdated(currentUser);
-                        }
-                    });
-                }
-            });
-        }
+            try {
+                if(!isConnected())
+                    return;
 
-        @Override
-        public void onVADStateUpdate(float prob) {
+                final User currentUser = getBinder().getSessionUser();
 
+                new Handler(getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        currentUser.setTalkState(talking ? User.TalkState.TALKING : User.TalkState.PASSIVE);
+                        notifyObservers(new ObserverRunnable() {
+                            @Override
+                            public void run(IJumbleObserver observer) throws RemoteException {
+                                observer.onUserTalkStateUpdated(currentUser);
+                            }
+                        });
+                    }
+                });
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
     };
 
@@ -213,6 +215,26 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public int getTransmitMode() throws RemoteException {
             return mTransmitMode;
+        }
+
+        @Override
+        public void setTransmitMode(int transmitMode) throws RemoteException {
+            mTransmitMode = transmitMode;
+            mAudioInput.setTransmitMode(mTransmitMode);
+
+            // Reconfigure audio input/output to accommodate for change in transmit mode.
+            if(mConnection != null && mConnection.isConnected()) {
+                if(transmitMode == Constants.TRANSMIT_CONTINUOUS || transmitMode == Constants.TRANSMIT_VOICE_ACTIVITY)
+                    mAudioInput.startRecording();
+                else
+                    mAudioInput.stopRecording();
+            }
+        }
+
+        @Override
+        public void setVADThreshold(float threshold) throws RemoteException {
+            if(mAudioInput != null)
+                mAudioInput.setVADThreshold(threshold);
         }
 
         @Override
@@ -384,6 +406,10 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
             usb.setSelfMute(mute);
             usb.setSelfDeaf(deaf);
+            if(!mute && (mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY))
+                mAudioInput.startRecording(); // Resume recording when unmuted for PTT.
+            else
+                mAudioInput.stopRecording(); // Stop recording when muted.
             mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
         }
 

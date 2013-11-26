@@ -53,6 +53,7 @@ public class AudioOutputSpeech {
 
     // State-specific
     private float[] mBuffer;
+    private float[] mOut;
     private float[] mFadeOut;
     private float[] mFadeIn;
     private Queue<byte[]> mFrames = new ConcurrentLinkedQueue<byte[]>();
@@ -90,7 +91,8 @@ public class AudioOutputSpeech {
                 break;
         }
 
-        mBuffer = new float[mAudioBufferSize*2]; // Leave room for an extra frame in the buffer, this saves buffer resize operations at runtime normally.
+        mBuffer = new float[mAudioBufferSize*2]; // Make initial buffer size larger so we can save performance by not resizing at runtime.
+        mOut = new float[mAudioBufferSize];
         mFadeIn = new float[Audio.FRAME_SIZE];
         mFadeOut = new float[Audio.FRAME_SIZE];
 
@@ -152,7 +154,6 @@ public class AudioOutputSpeech {
         if(mBufferFilled >= num)
             return mLastAlive;
 
-        float[] out = new float[mAudioBufferSize];
         boolean nextAlive = mLastAlive;
 
         while(mBufferFilled < num) {
@@ -160,7 +161,7 @@ public class AudioOutputSpeech {
             resizeBuffer(mBufferFilled + mAudioBufferSize);
 
             if(!mLastAlive)
-                Arrays.fill(out, 0);
+                Arrays.fill(mOut, 0);
             else {
                 IntPointer avail = new IntPointer(1);
                 avail.put(0);
@@ -244,18 +245,18 @@ public class AudioOutputSpeech {
                         CELT7.celt_decode_float(mCELTAlphaDecoder,
                                 data,
                                 data.length,
-                                out);
+                                mOut);
                     } else if(mCodec == JumbleUDPMessageType.UDPVoiceCELTBeta) {
                         CELT11.celt_decode_float(mCELTBetaDecoder,
                                 data,
                                 data.length,
-                                out,
+                                mOut,
                                 Audio.FRAME_SIZE);
                     } else if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
                         decodedSamples = Opus.opus_decode_float(mOpusDecoder,
                                 data,
                                 data.length,
-                                out,
+                                mOut,
                                 mAudioBufferSize,
                                 0);
                     } else { // Speex
@@ -266,7 +267,7 @@ public class AudioOutputSpeech {
 //                            Speex.speex_decode(mSpeexDecoder, mSpeexBits, out);
 //                        }
                         for(int i = 0; i < Audio.FRAME_SIZE; i++)
-                            out[i] *= (1.0f / 32767.f);
+                            mOut[i] *= (1.0f / 32767.f);
                     }
 
                     if(mFrames.isEmpty())
@@ -278,11 +279,11 @@ public class AudioOutputSpeech {
                         nextAlive = false;
                 } else {
                     if(mCodec == JumbleUDPMessageType.UDPVoiceCELTAlpha)
-                        CELT7.celt_decode_float(mCELTAlphaDecoder, null, 0, out);
+                        CELT7.celt_decode_float(mCELTAlphaDecoder, null, 0, mOut);
                     else if(mCodec == JumbleUDPMessageType.UDPVoiceCELTBeta)
-                        CELT11.celt_decode_float(mCELTBetaDecoder, null, 0, out, Audio.FRAME_SIZE);
+                        CELT11.celt_decode_float(mCELTBetaDecoder, null, 0, mOut, Audio.FRAME_SIZE);
                     else if(mCodec == JumbleUDPMessageType.UDPVoiceOpus)
-                        decodedSamples = Opus.opus_decode_float(mOpusDecoder, null, 0, out, Audio.FRAME_SIZE, 0);
+                        decodedSamples = Opus.opus_decode_float(mOpusDecoder, null, 0, mOut, Audio.FRAME_SIZE, 0);
 //                    else {
 //                        Speex.speex_decode(mSpeexDecoder, null, out);
 //                        for(int i = 0; i < Audio.FRAME_SIZE; i++)
@@ -292,11 +293,11 @@ public class AudioOutputSpeech {
 
                 if (!nextAlive) {
                     for (int i = 0; i < Audio.FRAME_SIZE; i++) {
-                        out[i] *= mFadeOut[i];
+                        mOut[i] *= mFadeOut[i];
                     }
                 } else if (ts == 0) {
                     for (int i = 0; i < Audio.FRAME_SIZE; i++) {
-                        out[i] *= mFadeIn[i];
+                        mOut[i] *= mFadeIn[i];
                     }
                 }
 
@@ -306,7 +307,7 @@ public class AudioOutputSpeech {
                 }
             }
 
-            System.arraycopy(out, 0, mBuffer, mBufferFilled, decodedSamples);
+            System.arraycopy(mOut, 0, mBuffer, mBufferFilled, decodedSamples);
             mBufferFilled += decodedSamples;
         }
 
@@ -338,12 +339,8 @@ public class AudioOutputSpeech {
     }
 
     public void resizeBuffer(int newSize) {
-        if(newSize > mBuffer.length) {
-            float[] n = new float[newSize];
-            if(mBuffer != null)
-                System.arraycopy(mBuffer, 0, n, 0, mBuffer.length);
-            mBuffer = n;
-        }
+        if(newSize > mBuffer.length)
+            mBuffer = Arrays.copyOf(mBuffer, newSize);
     }
 
     public float[] getBuffer() {
