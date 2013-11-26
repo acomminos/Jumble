@@ -52,6 +52,8 @@ public class AudioOutputSpeech {
 
     // State-specific
     private float[] mBuffer;
+    private float[] mFadeOut;
+    private float[] mFadeIn;
     private Queue<BytePointer> mFrames = new ConcurrentLinkedQueue<BytePointer>();
     private int mMissCount = 0;
     private float mAverageAvailable = 0;
@@ -88,6 +90,14 @@ public class AudioOutputSpeech {
         }
 
         mBuffer = new float[mAudioBufferSize*2]; // Leave room for an extra frame in the buffer, this saves buffer resize operations at runtime normally.
+        mFadeIn = new float[Audio.FRAME_SIZE];
+        mFadeOut = new float[Audio.FRAME_SIZE];
+
+        // Sine function to represent fade in/out. Period is FRAME_SIZE.
+        float mul = (float)(Math.PI / (2.0 * (float)Audio.FRAME_SIZE));
+        for (int i = 0; i < Audio.FRAME_SIZE; i++)
+            mFadeIn[i] = mFadeOut[Audio.FRAME_SIZE-i-1] = (float) Math.sin((float) i * mul);
+
         mJitterBuffer = new Speex.JitterBuffer(Audio.FRAME_SIZE);
         IntPointer margin = new IntPointer(1);
         margin.put(10 * Audio.FRAME_SIZE);
@@ -161,18 +171,18 @@ public class AudioOutputSpeech {
                     mJitterBuffer.control(Speex.JitterBuffer.JITTER_BUFFER_GET_AVAILABLE_COUNT, avail);
                 }
 
-                if(ts != 0) {
-                    int want = (int) mAverageAvailable;
-                    if (avail.get() < want) {
-                        mMissCount++;
-                        if(mMissCount < 20) {
-                            out.fill(0);
-                            out.get(mBuffer, mBufferFilled, decodedSamples);
-                            mBufferFilled += decodedSamples;
-                            continue;
-                        }
-                    }
-                }
+//                if(ts != 0) {
+//                    int want = (int) mAverageAvailable;
+//                    if (avail.get() < want) {
+//                        mMissCount++;
+//                        if(mMissCount < 20) {
+//                            out.fill(0);
+//                            out.get(mBuffer, mBufferFilled, decodedSamples);
+//                            mBufferFilled += decodedSamples;
+//                            continue;
+//                        }
+//                    }
+//                }
 
                 if(mFrames.isEmpty()) {
                     Speex.JitterBufferPacket jbp = new Speex.JitterBufferPacket(null, 4096, 0, 0, 0);
@@ -210,11 +220,11 @@ public class AudioOutputSpeech {
                             } while ((header & 0x80) > 0 && pds.isValid());
                         }
 
-//                        float a = (float) avail.get();
-//                        if(a >= mAverageAvailable)
-//                            mAverageAvailable = a;
-//                        else
-//                            mAverageAvailable *= 0.99f;
+                        float a = (float) avail.get();
+                        if(a >= mAverageAvailable)
+                            mAverageAvailable = a;
+                        else
+                            mAverageAvailable *= 0.99f;
 
                     } else {
                         synchronized (mJitterBuffer) {
@@ -281,6 +291,16 @@ public class AudioOutputSpeech {
 //                        for(int i = 0; i < Audio.FRAME_SIZE; i++)
 //                            out[i] *= (1.0f / 32767.f);
 //                    }
+                }
+
+                if (!nextAlive) {
+                    for (int i = 0; i < Audio.FRAME_SIZE; i++) {
+                        out.put(i, out.get(i) * mFadeOut[i]);
+                    }
+                } else if (ts == 0) {
+                    for (int i = 0; i < Audio.FRAME_SIZE; i++) {
+                        out.put(i, out.get(i) * mFadeIn[i]);
+                    }
                 }
 
                 synchronized (mJitterBuffer) {
