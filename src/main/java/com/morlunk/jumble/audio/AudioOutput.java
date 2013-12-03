@@ -50,11 +50,12 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
 
     private ConcurrentHashMap<Integer, AudioOutputSpeech> mAudioOutputs = new ConcurrentHashMap<Integer, AudioOutputSpeech>();
     private AudioTrack mAudioTrack;
-
     private Thread mThread;
     private Object mInactiveLock = new Object(); // Lock that the audio thread waits on when there's no audio to play. Wake when we get a frame.
     private boolean mRunning = false;
     private long mLastPacket; // Time that the last packet was received, in nanoseconds
+    private List<AudioOutputSpeech> mMixBuffer = new ArrayList<AudioOutputSpeech>();
+    private List<AudioOutputSpeech> mDelBuffer = new ArrayList<AudioOutputSpeech>();
 
     public AudioOutput(JumbleService service) {
         super(service);
@@ -116,33 +117,32 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
     }
 
     private boolean mix(short[] outBuffer, int bufferSize) {
-        List<AudioOutputSpeech> mix = new ArrayList<AudioOutputSpeech>();
-        List<AudioOutputSpeech> del = new ArrayList<AudioOutputSpeech>();
-
+        mMixBuffer.clear();
+        mDelBuffer.clear();
         // TODO add priority speaker support
 
         for(AudioOutputSpeech speech : mAudioOutputs.values()) {
             if(!speech.needSamples(bufferSize))
-                del.add(speech);
+                mDelBuffer.add(speech);
             else
-                mix.add(speech);
+                mMixBuffer.add(speech);
         }
 
-        if(!mix.isEmpty()) {
-            for(AudioOutputSpeech speech : mix) {
+        if(!mMixBuffer.isEmpty()) {
+            for(AudioOutputSpeech speech : mMixBuffer) {
                 float[] buffer = speech.getBuffer();
                 for(int i = 0; i < bufferSize; i++) {
                     short pcm = (short) (buffer[i]*Short.MAX_VALUE); // Convert float to short
-                    pcm = (short) Math.max(Math.min(pcm, Short.MAX_VALUE), Short.MIN_VALUE); // Clip audio
+                    pcm = pcm <= Short.MAX_VALUE ? (pcm >= Short.MIN_VALUE ? pcm : Short.MIN_VALUE) : Short.MIN_VALUE; // Clip audio
                     outBuffer[i] += pcm;
                 }
             }
         }
 
-        for(AudioOutputSpeech speech : del)
+        for(AudioOutputSpeech speech : mDelBuffer)
             mAudioOutputs.remove(speech.getSession());
 
-        return !mix.isEmpty();
+        return !mMixBuffer.isEmpty();
     }
 
     @Override
@@ -152,10 +152,8 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
 
         JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[data[0] >> 5 & 0x7];
         int msgFlags = data[0] & 0x1f;
-        byte[] voiceData = new byte[data.length-1];
-        System.arraycopy(data, 1, voiceData, 0, voiceData.length);
-
-        PacketDataStream pds = new PacketDataStream(voiceData, voiceData.length);
+        PacketDataStream pds = new PacketDataStream(data, data.length);
+        pds.skip(1);
         int session = (int) pds.readLong();
         User user = getService().getUserHandler().getUser(session);
         if(user != null && !user.isLocalMuted()) {

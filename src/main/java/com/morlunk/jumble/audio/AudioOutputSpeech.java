@@ -339,8 +339,10 @@ public class AudioOutputSpeech {
     }
 
     public void resizeBuffer(int newSize) {
-        if(newSize > mBuffer.length)
-            mBuffer = Arrays.copyOf(mBuffer, newSize);
+        if(newSize > mBuffer.length) {
+            float[] newBuffer = Arrays.copyOf(mBuffer, newSize);
+            mBuffer = newBuffer;
+        }
     }
 
     public float[] getBuffer() {

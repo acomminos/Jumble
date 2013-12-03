@@ -22,9 +22,24 @@ import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.IJumbleObserver;
 
 interface IJumbleService {
+    // Network
     void disconnect();
     boolean isConnected();
     boolean isConnecting();
+    /**
+     * Gets the TCP latency, in nanoseconds.
+     */
+    long getTCPLatency();
+    /**
+     * Gets the UDP latency, in nanoseconds.
+     */
+    long getUDPLatency();
+
+    // Server information
+    int getServerVersion();
+    String getServerRelease();
+    String getServerOSName();
+    String getServerOSVersion();
 
     // Session and users
     int getSession();
@@ -53,7 +68,6 @@ interface IJumbleService {
     void joinChannel(int channel);
     void createChannel(int parent, String name, String description, int position, boolean temporary);
     void sendAccessTokens(in List tokens);
-    List getAccessTokens();
     //void setTexture(byte[] texture);
     void requestBanList();
     void requestUserList();

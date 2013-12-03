@@ -37,6 +37,8 @@ import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.protocol.ProtocolHandler;
 
 import java.util.Arrays;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Created by andrew on 23/08/13.
@@ -82,12 +84,12 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     private int mMicFrameSize = Audio.FRAME_SIZE;
     private int mFramesPerPacket = 6;
 
-    // Energy-based VAD
-    private int mMinAmplitude = -1;
-    private int mMaxAmplitude = -1;
-
     // Temporary encoder state
     private final short[] mOpusBuffer = new short[mFrameSize*mFramesPerPacket];
+
+    // CELT encoded frame buffer
+    private final byte[][] mCELTBuffer = new byte[mFramesPerPacket][1024];
+
     private final byte[] mEncodedBuffer = new byte[OPUS_MAX_BYTES];
     private final byte[] mPacketBuffer = new byte[1024];
     private final PacketDataStream mPacketDataStream = new PacketDataStream(mPacketBuffer, 1024);
@@ -179,7 +181,14 @@ public class AudioInput extends ProtocolHandler implements Runnable {
             return;
         mCodec = codec;
 
-        destroy(); // Deallocate old native objects
+        if(mOpusEncoder != null)
+            Opus.opus_encoder_destroy(mOpusEncoder);
+        if(mCELTBetaEncoder != null)
+            CELT11.celt_encoder_destroy(mCELTBetaEncoder);
+        if(mCELTAlphaEncoder != null)
+            CELT7.celt_encoder_destroy(mCELTAlphaEncoder);
+        if(mCELTAlphaMode != null)
+            CELT7.celt_mode_destroy(mCELTAlphaMode);
 
         IntPointer error = new IntPointer(1);
         switch (codec) {
@@ -321,19 +330,25 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                         }
                         break;
                     case UDPVoiceCELTBeta:
-                        int betaResult = CELT11.celt_encode(mCELTBetaEncoder, audioData, mFrameSize, mEncodedBuffer, OPUS_MAX_BYTES);
-                        encoded = betaResult == 0;
+                        int betaResult = CELT11.celt_encode(mCELTBetaEncoder, audioData, mFrameSize, mCELTBuffer[mBufferedFrames], OPUS_MAX_BYTES);
+                        if(betaResult == 0) {
+                            mBufferedFrames++;
+                            encoded = mBufferedFrames >= mFramesPerPacket;
+                        }
                         break;
                     case UDPVoiceCELTAlpha:
-                        int alphaResult = CELT7.celt_encode(mCELTAlphaEncoder, audioData, null, mEncodedBuffer, OPUS_MAX_BYTES);
-                        encoded = alphaResult == 0;
+                        int alphaResult = CELT7.celt_encode(mCELTAlphaEncoder, audioData, null, mCELTBuffer[mBufferedFrames], OPUS_MAX_BYTES);
+                        if(alphaResult == 0) {
+                            mBufferedFrames++;
+                            encoded = mBufferedFrames >= mFramesPerPacket;
+                        }
                         break;
                     case UDPVoiceSpeex:
                         break;
                 }
 
                 if(encoded)
-                    sendFrame(mEncodedBuffer, !talking || !mRecording);
+                    sendFrame(!talking || !mRecording);
             } else {
                 Log.e(Constants.TAG, "Error fetching audio! AudioRecord error "+shortsRead);
                 mBufferedFrames = 0;
@@ -353,7 +368,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Sends the encoded frame to the server.
      * Volatile; depends on class state and must not be called concurrently.
      */
-    private void sendFrame(byte[] frame, boolean terminator) {
+    private void sendFrame(boolean terminator) {
         int frames = mBufferedFrames;
         mBufferedFrames = 0;
 
@@ -367,13 +382,21 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         mPacketDataStream.writeLong(mFrameCounter - frames);
 
         if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
+            byte[] frame = mEncodedBuffer;
             long size = frame.length;
             if(terminator)
                 size |= 1 << 13;
             mPacketDataStream.writeLong(size);
             mPacketDataStream.append(frame, frame.length);
         } else {
-
+            for (int x=0;x<frames;x++) {
+                byte[] frame = mCELTBuffer[x];
+                int head = frame.length;
+                if(x < frames-1)
+                   head |= 0x80;
+                mPacketDataStream.append(head);
+                mPacketDataStream.append(frame, frame.length);
+            }
         }
 
         mListener.onFrameEncoded(mPacketBuffer, mPacketDataStream.size(), mCodec);
@@ -403,8 +426,8 @@ public class AudioInput extends ProtocolHandler implements Runnable {
             switchCodec(JumbleUDPMessageType.UDPVoiceOpus);
 //        else if(msg.getPreferAlpha())
 //            switchCodec(JumbleUDPMessageType.UDPVoiceCELTAlpha);
-//        else
-//            switchCodec(JumbleUDPMessageType.UDPVoiceCELTBeta);
+        else
+            switchCodec(JumbleUDPMessageType.UDPVoiceCELTBeta);
 
     }
 }

@@ -37,7 +37,6 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -77,9 +76,9 @@ public class JumbleConnection {
     // Threading
     private ExecutorService mExecutorService;
     private ScheduledExecutorService mPingExecutorService;
-    private NetworkSendThread mNetworkThread;
+    private NetworkSendThread mNetworkSendThread;
     private Handler mMainHandler;
-    private Handler mNetworkHandler;
+    private Handler mNetworkSendHandler;
 
     // Networking and protocols
     private InetAddress mHost;
@@ -93,6 +92,9 @@ public class JumbleConnection {
     private boolean mSynchronized;
     private CryptState mCryptState = new CryptState();
     private long mStartTimestamp; // Time that the connection was initiated in nanoseconds
+
+    // Latency
+    private long mLastUDPPing;
 
     // Server
     private Server mServer;
@@ -214,12 +216,14 @@ public class JumbleConnection {
         public void messageUDPPing(byte[] data) {
             Log.v(Constants.TAG, "IN: UDP Ping");
             byte[] timedata = new byte[8];
-            System.arraycopy(data, 0, timedata, 0, 8);
+            System.arraycopy(data, 1, timedata, 0, 8);
             ByteBuffer buffer = ByteBuffer.allocate(8);
             buffer.put(timedata);
             buffer.flip();
 
-            long timestamp = buffer.getLong();
+            long timestamp = (long) (buffer.getLong() * Math.pow(10, 3)); // um -> nm
+            long now = System.nanoTime()-mStartTimestamp;
+            mLastUDPPing = now-timestamp;
             // TODO refresh UDP?
         }
     };
@@ -285,14 +289,14 @@ public class JumbleConnection {
         mUsingUDP = !mForceTCP;
         mStartTimestamp = System.nanoTime();
 
-        mExecutorService = Executors.newFixedThreadPool(mForceTCP ? 2 : 3); // One TCP thread, one UDP thread (if not forcing TCP), one network send thread.
+        mExecutorService = Executors.newFixedThreadPool(mForceTCP ? 2 : 3); // One TCP receive thread, one UDP receive thread (if not forcing TCP), one network send thread
         mPingExecutorService = Executors.newSingleThreadScheduledExecutor();
 
         mTCP = new JumbleTCP();
         if(!mForceTCP)
             mUDP = new JumbleUDP();
-        mNetworkThread = new NetworkSendThread();
-        mExecutorService.submit(mNetworkThread);
+        mNetworkSendThread = new NetworkSendThread();
+        mExecutorService.submit(mNetworkSendThread);
         mExecutorService.submit(mTCP);
         // We'll start UDP thread after TCP is established. FIXME?
     }
@@ -339,6 +343,14 @@ public class JumbleConnection {
         return mServerOSVersion;
     }
 
+    public long getTCPLatency() {
+        return 0;
+    }
+
+    public long getUDPLatency() {
+        return mLastUDPPing;
+    }
+
     public int getSession() {
         return mSession;
     }
@@ -349,12 +361,12 @@ public class JumbleConnection {
     public void disconnect() {
         mConnected = false;
         mSynchronized = false;
-        mNetworkHandler.postAtFrontOfQueue(new Runnable() {
+        mNetworkSendHandler.postAtFrontOfQueue(new Runnable() {
             @Override
             public void run() {
                 try {
                     mTCP.disconnect();
-                    if(mUDP != null) mUDP.disconnect();
+                    if (mUDP != null) mUDP.disconnect();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -447,7 +459,7 @@ public class JumbleConnection {
     }
 
     public void sendTCPMessage(final Message message, final JumbleTCPMessageType messageType) {
-        mNetworkHandler.post(new Runnable() {
+        mNetworkSendHandler.post(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -460,13 +472,13 @@ public class JumbleConnection {
     }
 
     public void sendUDPMessage(final byte[] data, final int length, final boolean force) {
-        mNetworkHandler.post(new Runnable() {
+        mNetworkSendHandler.post(new Runnable() {
             @Override
             public void run() {
                 try {
-                    if(!force && (mForceTCP || !mUsingUDP))
+                    if (!force && (mForceTCP || !mUsingUDP))
                         mTCP.sendMessage(data, length, JumbleTCPMessageType.UDPTunnel);
-                    else if(!mForceTCP)
+                    else if (!mForceTCP)
                         mUDP.sendMessage(data, length);
                 } catch (IOException e) {
                     e.printStackTrace(); // TODO handle me
@@ -830,8 +842,7 @@ public class JumbleConnection {
                 return;
             }
             mUDPSocket.connect(mHost, mServer.getPort());
-
-            DatagramPacket packet = new DatagramPacket(new byte[BUFFER_SIZE], BUFFER_SIZE);
+            final DatagramPacket packet = new DatagramPacket(new byte[BUFFER_SIZE], BUFFER_SIZE);
 
             Log.v(Constants.TAG, "Created UDP socket");
 
@@ -840,7 +851,8 @@ public class JumbleConnection {
                     mUDPSocket.receive(packet);
                     // Decrypt UDP packet using OCB-AES128
                     final byte[] decryptedData = mCryptState.decrypt(packet.getData(), packet.getLength());
-                    if(decryptedData == null &&
+                    /*
+                    if (decryptedData == null &&
                             mCryptState.getLastGoodElapsed() > 5000000 &&
                             mCryptState.getLastRequestElapsed() > 5000000) {
                         // If decryption fails, request resync
@@ -848,7 +860,14 @@ public class JumbleConnection {
                         Mumble.CryptSetup.Builder csb = Mumble.CryptSetup.newBuilder();
                         mTCP.sendMessage(csb.build(), JumbleTCPMessageType.CryptSetup);
                     }
-                    handleUDPMessage(decryptedData);
+                    */
+                    mMainHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if(decryptedData != null)
+                                handleUDPMessage(decryptedData);
+                        }
+                    });
                 } catch (IOException e) {
                     e.printStackTrace();
                     break;
@@ -875,7 +894,7 @@ public class JumbleConnection {
         @Override
         public void run() {
             Looper.prepare();
-            mNetworkHandler = new Handler();
+            mNetworkSendHandler = new Handler();
             Looper.loop();
         }
     }

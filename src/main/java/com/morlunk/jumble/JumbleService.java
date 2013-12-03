@@ -28,7 +28,6 @@ import android.util.Log;
 
 import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
-import com.morlunk.jumble.db.Database;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
@@ -69,6 +68,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_FORCE_TCP = "force_tcp";
     public static final String EXTRAS_USE_TOR = "use_tor";
     public static final String EXTRAS_CLIENT_NAME = "client_name";
+    public static final String EXTRAS_ACCESS_TOKENS = "access_tokens";
 
     public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
 
@@ -84,9 +84,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public boolean mForceTcp;
     public boolean mUseTor;
     public String mClientName;
+    public List<String> mAccessTokens;
 
     private JumbleConnection mConnection;
-    private Database mDatabase;
     private ChannelHandler mChannelHandler;
     private UserHandler mUserHandler;
     private TextMessageHandler mTextMessageHandler;
@@ -159,6 +159,36 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public boolean isConnecting() throws RemoteException {
             return mConnection != null && !mConnection.isConnected();
+        }
+
+        @Override
+        public long getTCPLatency() throws RemoteException {
+            return mConnection.getTCPLatency();
+        }
+
+        @Override
+        public long getUDPLatency() throws RemoteException {
+            return mConnection.getUDPLatency();
+        }
+
+        @Override
+        public int getServerVersion() throws RemoteException {
+            return mConnection.getServerVersion();
+        }
+
+        @Override
+        public String getServerRelease() throws RemoteException {
+            return mConnection.getServerRelease();
+        }
+
+        @Override
+        public String getServerOSName() throws RemoteException {
+            return mConnection.getServerOSName();
+        }
+
+        @Override
+        public String getServerOSVersion() throws RemoteException {
+            return mConnection.getServerOSVersion();
         }
 
         @Override
@@ -284,12 +314,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
             ab.addAllTokens(tokens);
             mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
-            mDatabase.setTokens(mServer.getId(), tokens);
-        }
-
-        @Override
-        public List getAccessTokens() throws RemoteException {
-            return mDatabase.getTokens(mServer.getId());
         }
 
         @Override
@@ -443,6 +467,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mUseTor = extras.getBoolean(EXTRAS_USE_TOR, false);
             mForceTcp = extras.getBoolean(EXTRAS_FORCE_TCP, false) || mUseTor; // Tor requires TCP connections to work- if it's on, force TCP.
             mClientName = extras.containsKey(EXTRAS_CLIENT_NAME) ? extras.getString(EXTRAS_CLIENT_NAME) : "Jumble";
+            mAccessTokens = extras.getStringArrayList(EXTRAS_ACCESS_TOKENS);
             connect();
         }
         return START_NOT_STICKY;
@@ -451,13 +476,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onCreate() {
         super.onCreate();
-        mDatabase = new Database(this);
     }
 
     @Override
     public void onDestroy() {
         mObservers.kill();
-        mDatabase.close();
         super.onDestroy();
     }
 
@@ -511,16 +534,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void onConnectionEstablished() {
         Log.v(Constants.TAG, "Connected");
 
+        // Send access tokens
+        Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
+        ab.addAllTokens(mAccessTokens);
+        mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
+
         mAudioOutput.startPlaying();
         if(mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY)
             mAudioInput.startRecording();
-
-        if(mServer.getId() != -1) {
-            // Send access tokens
-            Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
-            ab.addAllTokens(mDatabase.getTokens(mServer.getId()));
-            mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
-        }
 
         notifyObservers(new ObserverRunnable() {
             @Override
