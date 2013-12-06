@@ -12606,12 +12606,12 @@ public final class Mumble {
         getMessageBytes();
   }
   /**
-   * Protobuf type {@code MumbleProto.TextMessage}
+   * Protobuf type {@code MumbleProto.Message}
    */
   public static final class TextMessage extends
       com.google.protobuf.GeneratedMessage
       implements TextMessageOrBuilder {
-    // Use TextMessage.newBuilder() to construct.
+    // Use Message.newBuilder() to construct.
     private TextMessage(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
       this.unknownFields = builder.getUnknownFields();
@@ -13067,7 +13067,7 @@ public final class Mumble {
       return builder;
     }
     /**
-     * Protobuf type {@code MumbleProto.TextMessage}
+     * Protobuf type {@code MumbleProto.Message}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder>
@@ -13084,7 +13084,7 @@ public final class Mumble {
                 com.morlunk.jumble.protobuf.Mumble.TextMessage.class, com.morlunk.jumble.protobuf.Mumble.TextMessage.Builder.class);
       }
 
-      // Construct using com.morlunk.jumble.protobuf.Mumble.TextMessage.newBuilder()
+      // Construct using com.morlunk.jumble.protobuf.Mumble.Message.newBuilder()
       private Builder() {
         maybeForceBuilderInitialization();
       }
@@ -13555,7 +13555,7 @@ public final class Mumble {
         return this;
       }
 
-      // @@protoc_insertion_point(builder_scope:MumbleProto.TextMessage)
+      // @@protoc_insertion_point(builder_scope:MumbleProto.Message)
     }
 
     static {
@@ -13563,7 +13563,7 @@ public final class Mumble {
       defaultInstance.initFields();
     }
 
-    // @@protoc_insertion_point(class_scope:MumbleProto.TextMessage)
+    // @@protoc_insertion_point(class_scope:MumbleProto.Message)
   }
 
   public interface PermissionDeniedOrBuilder

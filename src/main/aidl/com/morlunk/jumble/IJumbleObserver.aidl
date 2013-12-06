@@ -18,6 +18,7 @@ package com.morlunk.jumble;
 
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.User;
+import com.morlunk.jumble.model.Message;
 
 interface IJumbleObserver {
     // Connection
@@ -40,7 +41,5 @@ interface IJumbleObserver {
     void onPermissionDenied(String reason);
 
     // Logging & Messaging
-    void onLogInfo(String message);
-    void onLogWarning(String message);
-    void onMessageReceived(in User user, String message);
+    void onMessageLogged(in Message message);
 }

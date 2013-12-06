@@ -50,7 +50,6 @@ interface IJumbleService {
     Channel getChannel(int id);
     List getUserList();
     List getChannelList();
-    List getLogHistory();
     int getPermissions();
 
     // Audio actions and settings

@@ -17,6 +17,7 @@
 package com.morlunk.jumble.protocol;
 
 import com.morlunk.jumble.JumbleService;
+import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.util.MessageFormatter;
@@ -33,21 +34,12 @@ public class TextMessageHandler extends ProtocolHandler {
 
     @Override
     public void messageTextMessage(Mumble.TextMessage msg) {
-        // TODO format user colors
         User sender = getService().getUserHandler().getUser(msg.getActor());
 
         if(sender != null && sender.isLocalIgnored())
             return;
 
-        // TODO use more localized strings here
-        String senderName = sender != null ? MessageFormatter.highlightString(sender.getName()) : "Server";
-        String senderTarget = "";
-
-        if(msg.getTreeIdCount() > 0)
-            senderTarget = "(Tree) ";
-        else if(msg.getChannelIdCount() > 0)
-            senderTarget = "(Channel) ";
-
-        getService().logMessage(sender, String.format("%s%s: %s", senderTarget, senderName, msg.getMessage()));
+        Message message = new Message(msg.getActor(), msg.getChannelIdList(), msg.getTreeIdList(), msg.getSessionList(), msg.getMessage());
+        getService().logMessage(message);
     }
 }

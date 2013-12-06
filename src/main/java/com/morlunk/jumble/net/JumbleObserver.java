@@ -20,6 +20,7 @@ import android.os.RemoteException;
 
 import com.morlunk.jumble.IJumbleObserver;
 import com.morlunk.jumble.model.Channel;
+import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.User;
 
 /**
@@ -93,17 +94,8 @@ public class JumbleObserver extends IJumbleObserver.Stub {
     }
 
     @Override
-    public void onLogInfo(String message) throws RemoteException {
+    public void onMessageLogged(Message message) throws RemoteException {
 
     }
 
-    @Override
-    public void onLogWarning(String message) throws RemoteException {
-
-    }
-
-    @Override
-    public void onMessageReceived(User user, String message) throws RemoteException {
-
-    }
 }

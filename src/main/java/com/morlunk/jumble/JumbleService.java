@@ -29,6 +29,7 @@ import android.util.Log;
 import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.model.Channel;
+import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.protocol.ChannelHandler;
@@ -126,10 +127,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             }
         }
     };
-
-    // Logging
-    private List<String> mLogHistory = new ArrayList<String>();
-    private SimpleDateFormat mChatDateFormat = new SimpleDateFormat("[h:mm a] ");
 
     private int mPermissions;
 
@@ -230,11 +227,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public List getChannelList() throws RemoteException {
             return mChannelHandler.getChannels();
-        }
-
-        @Override
-        public List getLogHistory() throws RemoteException {
-            return mLogHistory;
         }
 
         @Override
@@ -370,11 +362,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             tmb.addSession(session);
             tmb.setMessage(message);
             mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
-
-            // Log message to chat
-            User target = getUser(session);
-            String formattedMessage = getString(R.string.chat_message_to, MessageFormatter.highlightString(target.getName()), message);
-            logMessage(getSessionUser(), formattedMessage);
         }
 
         @Override
@@ -386,11 +373,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 tmb.addChannelId(channel);
             tmb.setMessage(message);
             mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
-
-            // Log message to chat
-            Channel target = getChannel(channel);
-            String formattedMessage = getString(R.string.chat_message_to, MessageFormatter.highlightString(target.getName()), message);
-            logMessage(getSessionUser(), formattedMessage);
         }
 
         @Override
@@ -508,7 +490,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             return;
         }
 
-        mLogHistory.clear();
         mPermissions = 0;
 
         mChannelHandler = new ChannelHandler(this);
@@ -614,15 +595,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     /**
      * Logs a warning message to the client.
-     * @param warning An HTML warning string to be messagxz ed to the client.
+     * @param warning An HTML warning string to be messaged to the client.
      */
     public void logWarning(final String warning) {
-        Log.w(Constants.TAG, warning);
-        mLogHistory.add(warning);
+        final Message message = new Message(Message.Type.WARNING, warning);
         notifyObservers(new ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
-                observer.onLogWarning(warning);
+                observer.onMessageLogged(message);
             }
         });
     }
@@ -635,29 +615,24 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         if(!mConnection.isSynchronized())
             return; // Don't log messages while synchronizing.
 
-        final String formatInfo = mChatDateFormat.format(new Date())+info;
-        Log.v(Constants.TAG, formatInfo);
-        mLogHistory.add(formatInfo);
+        final Message message = new Message(Message.Type.INFO, info);
         notifyObservers(new ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
-                observer.onLogInfo(formatInfo);
+                observer.onMessageLogged(message);
             }
         });
     }
 
     /**
-     * Logs a text message to the client.
-     * @param user The user that sent the message.
-     * @param message An HTML message to send to the client.
+     * Logs a message to the client.
+     * @param message A message to log to the client.
      */
-    public void logMessage(final User user, final String message) {
-        final String formatMessage = mChatDateFormat.format(new Date())+message;
-        mLogHistory.add(formatMessage);
+    public void logMessage(final Message message) {
         notifyObservers(new ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
-                observer.onMessageReceived(user, formatMessage);
+                observer.onMessageLogged(message);
             }
         });
     }
