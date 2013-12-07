@@ -231,6 +231,8 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Stops the record loop after the current iteration.
      */
     public void stopRecording() {
+        if(!mRecording) return;
+
         synchronized (mRecordLock) {
             mRecording = false;
             mRecordThread = null;
@@ -241,10 +243,17 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Stops the record loop and waits on it to finish.
      * @throws InterruptedException
      */
-    public void stopRecordingAndWait() throws InterruptedException {
-        stopRecording();
+    public void stopRecordingAndWait() {
+        if(!mRecording) return;
+
         synchronized (mRecordLock) {
-            mRecordLock.wait();
+            mRecording = false;
+            try {
+                mRecordThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            mRecordThread = null;
         }
     }
 
@@ -418,6 +427,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
             mPreprocessState.destroy();
         if(mResampler != null)
             mResampler.destroy();
+        mAudioRecord.release();
     }
 
     @Override

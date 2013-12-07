@@ -43,4 +43,6 @@
     <string name="chat_notify_self_recording_stopped">Recording stopped</string>
     <string name="chat_notify_user_recording_started">%s started recording.</string>
     <string name="chat_notify_user_recording_stopped">%s stopped recording.</string>
+    <string name="bluetooth_connected">Bluetooth connected</string>
+    <string name="bluetooth_disconnected">Bluetooth disconnected</string>
 </resources>

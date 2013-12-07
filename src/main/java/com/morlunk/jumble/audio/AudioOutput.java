@@ -16,6 +16,10 @@
 
 package com.morlunk.jumble.audio;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -59,29 +63,49 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
 
     public AudioOutput(JumbleService service) {
         super(service);
+    }
+
+    public void startPlaying(boolean scoEnabled) {
+        if(mRunning)
+            return;
+
         int bufferSize = AudioTrack.getMinBufferSize(Audio.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT) * 2;
 
-        mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
+        mAudioTrack = new AudioTrack(scoEnabled ? AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC,
                 Audio.SAMPLE_RATE,
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
                 bufferSize,
                 AudioTrack.MODE_STREAM);
-    }
-
-    public void startPlaying() {
-        if(mRunning)
-            return;
 
         mThread = new Thread(this);
         mThread.start();
     }
 
     public void stopPlaying() {
+        if(!mRunning)
+            return;
+
         mRunning = false;
+        synchronized (mInactiveLock) {
+            mInactiveLock.notify(); // Wake inactive lock if active
+        }
+        try {
+            mThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         mThread = null;
         for(AudioOutputSpeech s : mAudioOutputs.values())
             s.destroy();
+
+        mAudioOutputs.clear();
+        mAudioTrack.release();
+        mAudioTrack = null;
+    }
+
+    public boolean isPlaying() {
+        return mRunning;
     }
 
     @Override

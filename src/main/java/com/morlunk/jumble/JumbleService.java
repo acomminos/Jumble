@@ -17,14 +17,19 @@
 package com.morlunk.jumble;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
@@ -93,6 +98,43 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private TextMessageHandler mTextMessageHandler;
     private AudioOutput mAudioOutput;
     private AudioInput mAudioInput;
+
+    private AudioManager.OnAudioFocusChangeListener mAudioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+        @Override
+        public void onAudioFocusChange(int focusChange) {
+            switch (focusChange) {
+                case AudioManager.AUDIOFOCUS_GAIN:
+                    mAudioOutput.startPlaying(false);
+                    break;
+                case AudioManager.AUDIOFOCUS_LOSS:
+                    mAudioOutput.stopPlaying();
+                    break;
+            }
+        }
+    };
+
+    private BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int audioState = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, AudioManager.SCO_AUDIO_STATE_ERROR);
+            switch (audioState) {
+                case AudioManager.SCO_AUDIO_STATE_CONNECTED:
+                    Toast.makeText(JumbleService.this, R.string.bluetooth_connected, Toast.LENGTH_LONG).show();
+                    mAudioOutput.stopPlaying();
+                    if(isConnected())
+                        mAudioOutput.startPlaying(true);
+                    break;
+                case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
+                case AudioManager.SCO_AUDIO_STATE_ERROR:
+                    if(mAudioOutput.isPlaying())
+                        Toast.makeText(JumbleService.this, R.string.bluetooth_disconnected, Toast.LENGTH_LONG).show();
+                    mAudioOutput.stopPlaying();
+                    if(isConnected())
+                        mAudioOutput.startPlaying(false);
+                    break;
+            }
+        }
+    };
 
     private AudioInput.AudioInputListener mAudioInputListener = new AudioInput.AudioInputListener() {
         @Override
@@ -266,20 +308,21 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void setTalkingState(boolean talking) throws RemoteException {
-            if(talking)
-                mAudioInput.startRecording();
-            else
-                mAudioInput.stopRecording();
+            if(talking) mAudioInput.startRecording();
+            else mAudioInput.stopRecording();
         }
 
         @Override
         public boolean isBluetoothAvailable() throws RemoteException {
-            return false;
+            AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+            return audioManager.isBluetoothScoOn();
         }
 
         @Override
         public void setBluetoothEnabled(boolean enabled) throws RemoteException {
-
+            AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if(enabled) audioManager.startBluetoothSco();
+            else audioManager.stopBluetoothSco();
         }
 
         @Override
@@ -520,7 +563,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         ab.addAllTokens(mAccessTokens);
         mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
 
-        mAudioOutput.startPlaying();
+        // Configure audio manager
+        AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        int result = audioManager.requestAudioFocus(mAudioFocusChangeListener,
+                                                    AudioManager.STREAM_MUSIC,
+                                                    AudioManager.AUDIOFOCUS_GAIN);
+        // TODO handle result
+        // This sticky broadcast will initialize the audio output.
+        registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
         if(mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY)
             mAudioInput.startRecording();
 
@@ -535,9 +585,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onConnectionDisconnected() {
         Log.v(Constants.TAG, "Disconnected");
+        unregisterReceiver(mBluetoothReceiver);
 
         mAudioOutput.stopPlaying();
-        mAudioInput.stopRecording();
+        mAudioInput.stopRecordingAndWait();
+        mAudioInput.destroy();
+
+        // Restore audio manager mode
+        AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        audioManager.abandonAudioFocus(mAudioFocusChangeListener);
+        audioManager.stopBluetoothSco();
 
         notifyObservers(new ObserverRunnable() {
             @Override
