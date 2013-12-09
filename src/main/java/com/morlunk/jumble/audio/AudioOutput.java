@@ -210,7 +210,7 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
     @Override
     public void onTalkStateUpdated(int session, User.TalkState state) {
         final User user = getService().getUserHandler().getUser(session);
-        if(user.getTalkState() != state) {
+        if(user != null && user.getTalkState() != state) {
             user.setTalkState(state);
             Handler handler = new Handler(Looper.getMainLooper());
             handler.post(new Runnable() {

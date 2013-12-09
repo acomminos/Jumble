@@ -26,6 +26,8 @@ interface IJumbleService {
     void disconnect();
     boolean isConnected();
     boolean isConnecting();
+    boolean isReconnecting();
+    void cancelReconnect();
     /**
      * Gets the TCP latency, in nanoseconds.
      */

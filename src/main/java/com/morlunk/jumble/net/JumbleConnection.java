@@ -40,9 +40,12 @@ import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class JumbleConnection {
@@ -83,7 +86,9 @@ public class JumbleConnection {
     // Networking and protocols
     private InetAddress mHost;
     private JumbleTCP mTCP;
+    private Future mTCPTask;
     private JumbleUDP mUDP;
+    private ScheduledFuture mPingTask;
     private boolean mForceTCP;
     private boolean mUseOpus = true;
     private boolean mUseTor;
@@ -124,7 +129,7 @@ public class JumbleConnection {
             }
 
             // Start TCP/UDP ping thread. FIXME is this the right place?
-            mPingExecutorService.scheduleAtFixedRate(mPingRunnable, 0, 5, TimeUnit.SECONDS);
+            mPingTask = mPingExecutorService.scheduleAtFixedRate(mPingRunnable, 0, 5, TimeUnit.SECONDS);
 
             mSession = msg.getSession();
             mSynchronized = true;
@@ -297,7 +302,7 @@ public class JumbleConnection {
             mUDP = new JumbleUDP();
         mNetworkSendThread = new NetworkSendThread();
         mExecutorService.submit(mNetworkSendThread);
-        mExecutorService.submit(mTCP);
+        mTCPTask = mExecutorService.submit(mTCP);
         // We'll start UDP thread after TCP is established. FIXME?
     }
 
@@ -356,26 +361,35 @@ public class JumbleConnection {
     }
 
     /**
-     * Gracefully shuts down all networking.
+     * Gracefully shuts down all networking. Blocks until all network threads have stopped.
      */
     public void disconnect() {
         mConnected = false;
         mSynchronized = false;
-        mNetworkSendHandler.postAtFrontOfQueue(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    mTCP.disconnect();
-                    if (mUDP != null) mUDP.disconnect();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                mTCP = null;
-                mUDP = null;
-            }
-        });
-        mExecutorService.shutdown();
-        mPingExecutorService.shutdown();
+
+        // Stop running network resources
+        if(mPingTask != null) mPingTask.cancel(true);
+        try {
+            if(mTCP != null) mTCP.disconnect();
+            if(mUDP != null) mUDP.disconnect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Block until main listening thread has stopped
+        try {
+            if(mTCPTask != null) mTCPTask.get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        mTCP = null;
+        mTCPTask = null;
+        mUDP = null;
+        mPingTask = null;
+        mExecutorService.shutdownNow();
+        mPingExecutorService.shutdownNow();
     }
 
     /**
@@ -412,7 +426,7 @@ public class JumbleConnection {
                 }
             });
         }
-        forceDisconnect();
+        disconnect();
     }
 
     /**
@@ -831,6 +845,7 @@ public class JumbleConnection {
 
         public void disconnect() {
             mUDPSocket.disconnect();
+            mUDPSocket.close();
         }
 
         @Override

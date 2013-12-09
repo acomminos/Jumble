@@ -53,6 +53,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 public class JumbleService extends Service implements JumbleConnection.JumbleConnectionListener {
 
@@ -64,8 +65,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     /** Intent to connect to a Mumble server. See extras. **/
     public static final String ACTION_CONNECT = "com.morlunk.jumble.CONNECT";
     public static final String EXTRAS_SERVER = "server";
-    public static final String EXTRAS_SHOW_CHAT_NOTIFICATION = "show_chat_notifications";
     public static final String EXTRAS_AUTO_RECONNECT = "auto_reconnect";
+    public static final String EXTRAS_AUTO_RECONNECT_DELAY = "auto_reconnect_delay";
     public static final String EXTRAS_CERTIFICATE = "certificate";
     public static final String EXTRAS_CERTIFICATE_PASSWORD = "certificate_password";
     public static final String EXTRAS_DETECTION_THRESHOLD = "detection_threshold";
@@ -80,8 +81,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     // Service settings
     public Server mServer;
-    public boolean mShowChatNotifications;
     public boolean mAutoReconnect;
+    public int mAutoReconnectDelay;
     public byte[] mCertificate;
     public String mCertificatePassword;
     public float mDetectionThreshold;
@@ -171,6 +172,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     };
 
     private int mPermissions;
+    private boolean mReconnecting;
 
     private RemoteCallbackList<IJumbleObserver> mObservers = new RemoteCallbackList<IJumbleObserver>();
 
@@ -185,7 +187,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void disconnect() throws RemoteException {
-            JumbleService.this.disconnect();
+            if(isConnected())
+                JumbleService.this.disconnect();
         }
 
         @Override
@@ -198,6 +201,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public boolean isConnecting() throws RemoteException {
             return mConnection != null && !mConnection.isConnected();
+        }
+
+        @Override
+        public boolean isReconnecting() throws RemoteException {
+            return mReconnecting;
+        }
+
+        @Override
+        public void cancelReconnect() throws RemoteException {
+            mReconnecting = false;
         }
 
         @Override
@@ -482,8 +495,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             // Get connection parameters
             Bundle extras = intent.getExtras();
             mServer = extras.getParcelable(EXTRAS_SERVER);
-            mShowChatNotifications = extras.getBoolean(EXTRAS_SHOW_CHAT_NOTIFICATION, true);
             mAutoReconnect = extras.getBoolean(EXTRAS_AUTO_RECONNECT, true);
+            mAutoReconnectDelay = extras.getInt(EXTRAS_AUTO_RECONNECT_DELAY, 5000);
             mCertificate = extras.getByteArray(EXTRAS_CERTIFICATE);
             mCertificatePassword = extras.getString(EXTRAS_CERTIFICATE_PASSWORD);
             mDetectionThreshold = extras.getFloat(EXTRAS_DETECTION_THRESHOLD, 0.5f);
@@ -534,7 +547,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         mPermissions = 0;
-
+        mReconnecting = false;
         mChannelHandler = new ChannelHandler(this);
         mUserHandler = new UserHandler(this);
         mTextMessageHandler = new TextMessageHandler(this);
@@ -546,8 +559,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     }
 
     public void disconnect() {
-        mConnection.disconnect();
-        mConnection = null;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mConnection.disconnect();
+                mConnection = null;
+            }
+        }).start();
     }
 
     public boolean isConnected() {
@@ -585,7 +603,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onConnectionDisconnected() {
         Log.v(Constants.TAG, "Disconnected");
-        unregisterReceiver(mBluetoothReceiver);
+        try {
+            unregisterReceiver(mBluetoothReceiver);
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        }
 
         mAudioOutput.stopPlaying();
         mAudioInput.stopRecordingAndWait();
@@ -605,13 +627,21 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         mChannelHandler = null;
         mUserHandler = null;
-
-        stopSelf();
     }
 
     @Override
     public void onConnectionError(final JumbleConnectionException e) {
         Log.e(Constants.TAG, "Connection error: "+e.getMessage());
+        if(mAutoReconnect) {
+            mReconnecting = true;
+            Handler mainHandler = new Handler();
+            mainHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if(mReconnecting) connect();
+                }
+            }, mAutoReconnectDelay);
+        }
         notifyObservers(new ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {

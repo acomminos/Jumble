@@ -135,6 +135,13 @@ public class UserHandler extends ProtocolHandler {
                     getService().logInfo(getService().getString(R.string.chat_notify_now_muted, MessageFormatter.highlightString(user.getName())));
                 else
                     getService().logInfo(getService().getString(R.string.chat_notify_now_unmuted, MessageFormatter.highlightString(user.getName())));
+            } else if(self != null && user.getSession() == self.getSession()) {
+                if(user.isSelfMuted() && user.isSelfDeafened())
+                    getService().logInfo(getService().getString(R.string.chat_notify_muted_deafened, MessageFormatter.highlightString(user.getName())));
+                else if(user.isSelfMuted())
+                    getService().logInfo(getService().getString(R.string.chat_notify_muted, MessageFormatter.highlightString(user.getName())));
+                else
+                    getService().logInfo(getService().getString(R.string.chat_notify_unmuted, MessageFormatter.highlightString(user.getName())));
             }
         }
 
@@ -168,13 +175,13 @@ public class UserHandler extends ProtocolHandler {
             if(msg.hasPrioritySpeaker())
                 user.setPrioritySpeaker(msg.getPrioritySpeaker());
 
-/*            if(self != null && ((user.getChannelId() == self.getChannelId()) || (actor.getSession() == self.getSession()))) {
-                if(user.getSession() == self.getSession()) {
-                    if(msg.hasMute() && msg.hasDeaf() && user.isMuted() && user.isDeafened()) {
-                        getService().logInfo();
-                    }
-                }
-            }*/
+//            if(self != null && ((user.getChannelId() == self.getChannelId()) || (actor.getSession() == self.getSession()))) {
+//                if(user.getSession() == self.getSession()) {
+//                    if(msg.hasMute() && msg.hasDeaf() && user.isMuted() && user.isDeafened()) {
+//                        getService().logInfo();
+//                    }
+//                }
+//            }
 
             /*
              * TODO: logging

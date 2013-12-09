@@ -149,8 +149,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Based off of Mumble project's AudioInput method resetAudioProcessor().
      */
     private void configurePreprocessState() {
-        if(mPreprocessState != null)
-            mPreprocessState.destroy();
+        if(mPreprocessState != null) mPreprocessState.destroy();
 
         mPreprocessState = new Speex.SpeexPreprocessState(mFrameSize, Audio.SAMPLE_RATE);
 
@@ -181,14 +180,22 @@ public class AudioInput extends ProtocolHandler implements Runnable {
             return;
         mCodec = codec;
 
-        if(mOpusEncoder != null)
+        if(mOpusEncoder != null) {
             Opus.opus_encoder_destroy(mOpusEncoder);
-        if(mCELTBetaEncoder != null)
+            mOpusEncoder = null;
+        }
+        if(mCELTBetaEncoder != null) {
             CELT11.celt_encoder_destroy(mCELTBetaEncoder);
-        if(mCELTAlphaEncoder != null)
+            mCELTBetaEncoder = null;
+        }
+        if(mCELTAlphaEncoder != null) {
             CELT7.celt_encoder_destroy(mCELTAlphaEncoder);
-        if(mCELTAlphaMode != null)
+            mCELTAlphaEncoder = null;
+        }
+        if(mCELTAlphaMode != null) {
             CELT7.celt_mode_destroy(mCELTAlphaMode);
+            mCELTAlphaMode = null;
+        }
 
         IntPointer error = new IntPointer(1);
         switch (codec) {
