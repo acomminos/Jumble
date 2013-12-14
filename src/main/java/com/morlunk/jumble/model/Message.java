@@ -51,9 +51,9 @@ public class Message implements Parcelable {
 
     private Message.Type mType;
     private int mActor = -1;
-    private List<Integer> mChannelIds;
-    private List<Integer> mTreeIds;
-    private List<Integer> mUserIds;
+    private List<Channel> mChannels;
+    private List<Channel> mTrees;
+    private List<User> mUsers;
     private String mMessage;
     private Time mReceivedTime;
 
@@ -68,12 +68,12 @@ public class Message implements Parcelable {
         mReceivedTime.setToNow();
     }
 
-    public Message(int actor, List<Integer> channelIds, List<Integer> treeIds, List<Integer> userIds, String message) {
+    public Message(int actor, List<Channel> channels, List<Channel> trees, List<User> users, String message) {
         this(Type.TEXT_MESSAGE, message);
         mActor = actor;
-        mChannelIds = channelIds;
-        mTreeIds = treeIds;
-        mUserIds = userIds;
+        mChannels = channels;
+        mTrees = trees;
+        mUsers = users;
     }
 
     public Message(Parcel parcel) {
@@ -83,9 +83,9 @@ public class Message implements Parcelable {
     public void readFromParcel(Parcel in) {
         mType = Type.values()[in.readInt()];
         mActor = in.readInt();
-        mChannelIds = in.readArrayList(null);
-        mTreeIds = in.readArrayList(null);
-        mUserIds = in.readArrayList(null);
+        mChannels = in.readArrayList(null);
+        mTrees = in.readArrayList(null);
+        mUsers = in.readArrayList(null);
         mMessage = in.readString();
         mReceivedTime = new Time();
         mReceivedTime.set(in.readLong());
@@ -95,16 +95,16 @@ public class Message implements Parcelable {
         return mActor;
     }
 
-    public List<Integer> getChannelIds() {
-        return mChannelIds;
+    public List<Channel> getChannels() {
+        return mChannels;
     }
 
-    public List<Integer> getTreeIds() {
-        return mTreeIds;
+    public List<Channel> getTrees() {
+        return mTrees;
     }
 
-    public List<Integer> getUserIds() {
-        return mUserIds;
+    public List<User> getUsers() {
+        return mUsers;
     }
 
     public String getMessage() {
@@ -128,9 +128,9 @@ public class Message implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(mType.ordinal());
         dest.writeInt(mActor);
-        dest.writeList(mChannelIds);
-        dest.writeList(mTreeIds);
-        dest.writeList(mUserIds);
+        dest.writeList(mChannels);
+        dest.writeList(mTrees);
+        dest.writeList(mUsers);
         dest.writeString(mMessage);
         dest.writeLong(mReceivedTime.toMillis(false));
     }

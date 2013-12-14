@@ -256,7 +256,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         synchronized (mRecordLock) {
             mRecording = false;
             try {
-                mRecordThread.join();
+                mRecordLock.wait();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

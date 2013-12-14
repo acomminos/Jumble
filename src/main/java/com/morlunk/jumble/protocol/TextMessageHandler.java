@@ -16,11 +16,17 @@
 
 package com.morlunk.jumble.protocol;
 
+import android.os.RemoteException;
+
 import com.morlunk.jumble.JumbleService;
+import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.util.MessageFormatter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Handles receiving text messages.
@@ -39,7 +45,18 @@ public class TextMessageHandler extends ProtocolHandler {
         if(sender != null && sender.isLocalIgnored())
             return;
 
-        Message message = new Message(msg.getActor(), msg.getChannelIdList(), msg.getTreeIdList(), msg.getSessionList(), msg.getMessage());
-        getService().logMessage(message);
+        try {
+            List<Channel> channels = new ArrayList<Channel>(msg.getChannelIdCount());
+            for(int channelId : msg.getChannelIdList()) channels.add(getService().getBinder().getChannel(channelId));
+            List<Channel> trees = new ArrayList<Channel>(msg.getTreeIdCount());
+            for(int treeId : msg.getTreeIdList()) trees.add(getService().getBinder().getChannel(treeId));
+            List<User> users = new ArrayList<User>(msg.getSessionCount());
+            for(int userId : msg.getSessionList()) users.add(getService().getBinder().getUser(userId));
+
+            Message message = new Message(msg.getActor(), channels, trees, users, msg.getMessage());
+            getService().logMessage(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 }

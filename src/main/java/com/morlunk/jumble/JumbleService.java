@@ -172,6 +172,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     };
 
     private int mPermissions;
+    private List<Message> mMessageLog = new ArrayList<Message>();
     private boolean mReconnecting;
 
     private RemoteCallbackList<IJumbleObserver> mObservers = new RemoteCallbackList<IJumbleObserver>();
@@ -287,6 +288,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public int getPermissions() throws RemoteException {
             return mPermissions;
+        }
+
+        @Override
+        public List getMessageLog() throws RemoteException {
+            return mMessageLog;
+        }
+
+        @Override
+        public void clearMessageLog() throws RemoteException {
+            mMessageLog.clear();
         }
 
         @Override
@@ -413,22 +424,34 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
-        public void sendUserTextMessage(int session, String message) throws RemoteException {
+        public Message sendUserTextMessage(int session, String message) throws RemoteException {
             Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
             tmb.addSession(session);
             tmb.setMessage(message);
             mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
+
+            User user = getUser(session);
+            List<User> users = new ArrayList<User>(1);
+            users.add(user);
+            Message logMessage = new Message(getSession(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
+            mMessageLog.add(logMessage);
+            return logMessage;
         }
 
         @Override
-        public void sendChannelTextMessage(int channel, String message, boolean tree) throws RemoteException {
+        public Message sendChannelTextMessage(int channel, String message, boolean tree) throws RemoteException {
             Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
-            if(tree)
-                tmb.addTreeId(channel);
-            else
-                tmb.addChannelId(channel);
+            if(tree) tmb.addTreeId(channel);
+            else tmb.addChannelId(channel);
             tmb.setMessage(message);
             mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
+
+            Channel targetChannel = getChannel(channel);
+            List<Channel> targetChannels = new ArrayList<Channel>();
+            targetChannels.add(targetChannel);
+            Message logMessage = new Message(getSession(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
+            mMessageLog.add(logMessage);
+            return logMessage;
         }
 
         @Override
@@ -627,6 +650,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         mChannelHandler = null;
         mUserHandler = null;
+        mMessageLog.clear();
     }
 
     @Override
@@ -686,12 +710,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      */
     public void logWarning(final String warning) {
         final Message message = new Message(Message.Type.WARNING, warning);
-        notifyObservers(new ObserverRunnable() {
-            @Override
-            public void run(IJumbleObserver observer) throws RemoteException {
-                observer.onMessageLogged(message);
-            }
-        });
+        logMessage(message);
     }
 
     /**
@@ -703,12 +722,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             return; // Don't log messages while synchronizing.
 
         final Message message = new Message(Message.Type.INFO, info);
-        notifyObservers(new ObserverRunnable() {
-            @Override
-            public void run(IJumbleObserver observer) throws RemoteException {
-                observer.onMessageLogged(message);
-            }
-        });
+        logMessage(message);
     }
 
     /**
@@ -716,6 +730,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * @param message A message to log to the client.
      */
     public void logMessage(final Message message) {
+        mMessageLog.add(message);
         notifyObservers(new ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {

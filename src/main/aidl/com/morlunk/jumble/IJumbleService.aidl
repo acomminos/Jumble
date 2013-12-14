@@ -19,6 +19,7 @@ package com.morlunk.jumble;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Server;
+import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.IJumbleObserver;
 
 interface IJumbleService {
@@ -53,6 +54,8 @@ interface IJumbleService {
     List getUserList();
     List getChannelList();
     int getPermissions();
+    List getMessageLog();
+    void clearMessageLog();
 
     // Audio actions and settings
     boolean isTalking();
@@ -78,8 +81,8 @@ interface IJumbleService {
     void requestChannelDescription(int channel);
     void registerUser(int session);
     void kickBanUser(int session, String reason, boolean ban);
-    void sendUserTextMessage(int session, String message);
-    void sendChannelTextMessage(int channel, String message, boolean tree);
+    Message sendUserTextMessage(int session, String message);
+    Message sendChannelTextMessage(int channel, String message, boolean tree);
     void setUserComment(int session, String comment);
     void setPrioritySpeaker(int session, boolean priority);
     void removeChannel(int channel);
