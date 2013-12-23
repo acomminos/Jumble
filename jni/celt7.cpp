@@ -1005,18 +1005,19 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_SizeTPointer_put(JNIEnv* e
     return rarg;
 }
 
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1mode_1info(JNIEnv* env, jclass cls, jobject arg0, jint arg1, jobject arg2) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
+JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT7_celt_1mode_1create(JNIEnv* env, jclass cls, jint arg0, jint arg1, jobject arg2) {
     int* ptr2 = arg2 == NULL ? NULL : (int*)jlong_to_ptr(env->GetLongField(arg2, JavaCPP_addressFID));
     jint position2 = arg2 == NULL ? 0 : env->GetIntField(arg2, JavaCPP_positionFID);
     ptr2 += position2;
-    jint rarg = 0;
+    jobject rarg = NULL;
+    void* rptr;
     jthrowable exc = NULL;
     try {
-        int rvalue = celt_mode_info((const CELTMode*)ptr0, arg1, ptr2);
-        rarg = (jint)rvalue;
+        rptr = celt_mode_create(arg0, arg1, ptr2);
+        if (rptr != NULL) {
+            rarg = env->AllocObject(JavaCPP_getClass(env, 1));
+            env->SetLongField(rarg, JavaCPP_addressFID, ptr_to_jlong(rptr));
+        }
     } catch (...) {
         exc = JavaCPP_handleException(env, 14);
     }
@@ -1026,7 +1027,80 @@ JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1mode_1
     }
     return rarg;
 }
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1decode_1float(JNIEnv* env, jclass cls, jobject arg0, jbyteArray arg1, jint arg2, jfloatArray arg3, jint arg4) {
+JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT7_celt_1decoder_1create(JNIEnv* env, jclass cls, jobject arg0, jint arg1, jobject arg2) {
+    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
+    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
+    ptr0 += position0;
+    int* ptr2 = arg2 == NULL ? NULL : (int*)jlong_to_ptr(env->GetLongField(arg2, JavaCPP_addressFID));
+    jint position2 = arg2 == NULL ? 0 : env->GetIntField(arg2, JavaCPP_positionFID);
+    ptr2 += position2;
+    jobject rarg = NULL;
+    void* rptr;
+    jthrowable exc = NULL;
+    try {
+        rptr = celt_decoder_create((CELTMode*)ptr0, arg1, ptr2);
+        if (rptr == (CELTMode*)ptr0) {
+            rarg = arg0;
+        } else if (rptr != NULL) {
+            rarg = env->AllocObject(JavaCPP_getClass(env, 1));
+            env->SetLongField(rarg, JavaCPP_addressFID, ptr_to_jlong(rptr));
+        }
+    } catch (...) {
+        exc = JavaCPP_handleException(env, 14);
+    }
+
+    if (exc != NULL) {
+        env->Throw(exc);
+    }
+    return rarg;
+}
+JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT7_celt_1decode(JNIEnv* env, jclass cls, jobject arg0, jbyteArray arg1, jint arg2, jshortArray arg3) {
+    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
+    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
+    ptr0 += position0;
+    signed char* ptr1 = arg1 == NULL ? NULL : env->GetByteArrayElements(arg1, NULL);
+    short* ptr3 = arg3 == NULL ? NULL : env->GetShortArrayElements(arg3, NULL);
+    jint rarg = 0;
+    jthrowable exc = NULL;
+    try {
+        int rvalue = celt_decode((CELTDecoder*)ptr0, (const unsigned char*)ptr1, arg2, ptr3);
+        rarg = (jint)rvalue;
+    } catch (...) {
+        exc = JavaCPP_handleException(env, 14);
+    }
+
+    if (arg1 != NULL) env->ReleaseByteArrayElements(arg1, (jbyte*)ptr1, 0);
+    if (arg3 != NULL) env->ReleaseShortArrayElements(arg3, (jshort*)ptr3, 0);
+    if (exc != NULL) {
+        env->Throw(exc);
+    }
+    return rarg;
+}
+JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT7_celt_1encode(JNIEnv* env, jclass cls, jobject arg0, jshortArray arg1, jshortArray arg2, jbyteArray arg3, jint arg4) {
+    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
+    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
+    ptr0 += position0;
+    short* ptr1 = arg1 == NULL ? NULL : env->GetShortArrayElements(arg1, NULL);
+    short* ptr2 = arg2 == NULL ? NULL : env->GetShortArrayElements(arg2, NULL);
+    signed char* ptr3 = arg3 == NULL ? NULL : env->GetByteArrayElements(arg3, NULL);
+    jint rarg = 0;
+    jthrowable exc = NULL;
+    try {
+        int rvalue = celt_encode((CELTEncoder *)ptr0, (const short *)ptr1, (short *)ptr2, (unsigned char *)ptr3, arg4);
+        rarg = (jint)rvalue;
+    } catch (...) {
+        exc = JavaCPP_handleException(env, 14);
+    }
+
+    if (arg1 != NULL) env->ReleaseShortArrayElements(arg1, (jshort*)ptr1, 0);
+    if (arg2 != NULL) env->ReleaseShortArrayElements(arg2, (jshort*)ptr2, 0);
+    if (arg3 != NULL) env->ReleaseByteArrayElements(arg3, (jbyte*)ptr3, 0);
+    if (exc != NULL) {
+        env->Throw(exc);
+    }
+    return rarg;
+}
+JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT7_celt_1decode_1float(JNIEnv* env, jclass cls, jobject arg0, jbyteArray arg1, jint arg2, jfloatArray arg3) {
     char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
     jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
     ptr0 += position0;
@@ -1035,7 +1109,7 @@ JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1decode
     jint rarg = 0;
     jthrowable exc = NULL;
     try {
-        int rvalue = celt_decode_float((CELTDecoder*)ptr0, (const unsigned char*)ptr1, arg2, ptr3, arg4);
+        int rvalue = celt_decode_float((CELTDecoder*)ptr0, (const unsigned char*)ptr1, arg2, ptr3);
         rarg = (jint)rvalue;
     } catch (...) {
         exc = JavaCPP_handleException(env, 14);
@@ -1048,7 +1122,7 @@ JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1decode
     }
     return rarg;
 }
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1decoder_1ctl(JNIEnv* env, jclass cls, jobject arg0, jint arg1, jobject arg2) {
+JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT7_celt_1decoder_1ctl(JNIEnv* env, jclass cls, jobject arg0, jint arg1, jobject arg2) {
     char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
     jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
     ptr0 += position0;
@@ -1069,7 +1143,7 @@ JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1decode
     }
     return rarg;
 }
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1decoder_1destroy(JNIEnv* env, jclass cls, jobject arg0) {
+JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT7_celt_1decoder_1destroy(JNIEnv* env, jclass cls, jobject arg0) {
     char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
     jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
     ptr0 += position0;
@@ -1084,7 +1158,10 @@ JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1decode
         env->Throw(exc);
     }
 }
-JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1encoder_1create(JNIEnv* env, jclass cls, jint arg0, jint arg1, jobject arg2) {
+JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT7_celt_1encoder_1create(JNIEnv* env, jclass cls, jobject arg0, jint arg1, jobject arg2) {
+    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
+    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
+    ptr0 += position0;
     int* ptr2 = arg2 == NULL ? NULL : (int*)jlong_to_ptr(env->GetLongField(arg2, JavaCPP_addressFID));
     jint position2 = arg2 == NULL ? 0 : env->GetIntField(arg2, JavaCPP_positionFID);
     ptr2 += position2;
@@ -1092,8 +1169,10 @@ JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1enc
     void* rptr;
     jthrowable exc = NULL;
     try {
-        rptr = celt_encoder_create(arg0, arg1, ptr2);
-        if (rptr != NULL) {
+        rptr = celt_encoder_create((const CELTMode *)ptr0, arg1, ptr2);
+        if (rptr == (const CELTMode *)ptr0) {
+            rarg = arg0;
+        } else if (rptr != NULL) {
             rarg = env->AllocObject(JavaCPP_getClass(env, 1));
             env->SetLongField(rarg, JavaCPP_addressFID, ptr_to_jlong(rptr));
         }
@@ -1106,35 +1185,13 @@ JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1enc
     }
     return rarg;
 }
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1encode(JNIEnv* env, jclass cls, jobject arg0, jshortArray arg1, jint arg2, jbyteArray arg3, jint arg4) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    short* ptr1 = arg1 == NULL ? NULL : env->GetShortArrayElements(arg1, NULL);
-    signed char* ptr3 = arg3 == NULL ? NULL : env->GetByteArrayElements(arg3, NULL);
-    jint rarg = 0;
-    jthrowable exc = NULL;
-    try {
-        int rvalue = celt_encode((CELTEncoder*)ptr0, (const short*)ptr1, arg2, (unsigned char*)ptr3, arg4);
-        rarg = (jint)rvalue;
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 14);
-    }
-
-    if (arg1 != NULL) env->ReleaseShortArrayElements(arg1, (jshort*)ptr1, 0);
-    if (arg3 != NULL) env->ReleaseByteArrayElements(arg3, (jbyte*)ptr3, 0);
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-    return rarg;
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1encoder_1destroy(JNIEnv* env, jclass cls, jobject arg0) {
+JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT7_celt_1encoder_1destroy(JNIEnv* env, jclass cls, jobject arg0) {
     char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
     jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
     ptr0 += position0;
     jthrowable exc = NULL;
     try {
-        celt_encoder_destroy((CELTEncoder*)ptr0);
+        celt_encoder_destroy((CELTEncoder *)ptr0);
     } catch (...) {
         exc = JavaCPP_handleException(env, 14);
     }
@@ -1143,7 +1200,7 @@ JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1encode
         env->Throw(exc);
     }
 }
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1mode_1destroy(JNIEnv* env, jclass cls, jobject arg0) {
+JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT7_celt_1mode_1destroy(JNIEnv* env, jclass cls, jobject arg0) {
     char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
     jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
     ptr0 += position0;
@@ -1158,63 +1215,18 @@ JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1mode_1
         env->Throw(exc);
     }
 }
-JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1decoder_1create(JNIEnv* env, jclass cls, jint arg0, jint arg1, jobject arg2) {
-    int* ptr2 = arg2 == NULL ? NULL : (int*)jlong_to_ptr(env->GetLongField(arg2, JavaCPP_addressFID));
-    jint position2 = arg2 == NULL ? 0 : env->GetIntField(arg2, JavaCPP_positionFID);
-    ptr2 += position2;
-    jobject rarg = NULL;
-    void* rptr;
-    jthrowable exc = NULL;
-    try {
-        rptr = celt_decoder_create(arg0, arg1, ptr2);
-        if (rptr != NULL) {
-            rarg = env->AllocObject(JavaCPP_getClass(env, 1));
-            env->SetLongField(rarg, JavaCPP_addressFID, ptr_to_jlong(rptr));
-        }
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 14);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-    return rarg;
-}
-JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1decode(JNIEnv* env, jclass cls, jobject arg0, jbyteArray arg1, jint arg2, jshortArray arg3, jint arg4) {
+JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT7_celt_1mode_1info(JNIEnv* env, jclass cls, jobject arg0, jint arg1, jobject arg2) {
     char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
     jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
     ptr0 += position0;
-    signed char* ptr1 = arg1 == NULL ? NULL : env->GetByteArrayElements(arg1, NULL);
-    short* ptr3 = arg3 == NULL ? NULL : env->GetShortArrayElements(arg3, NULL);
-    jint rarg = 0;
-    jthrowable exc = NULL;
-    try {
-        int rvalue = celt_decode((CELTDecoder*)ptr0, (const unsigned char*)ptr1, arg2, ptr3, arg4);
-        rarg = (jint)rvalue;
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 14);
-    }
-
-    if (arg1 != NULL) env->ReleaseByteArrayElements(arg1, (jbyte*)ptr1, 0);
-    if (arg3 != NULL) env->ReleaseShortArrayElements(arg3, (jshort*)ptr3, 0);
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-    return rarg;
-}
-JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_CELT11_celt_1mode_1create(JNIEnv* env, jclass cls, jint arg0, jint arg1, jobject arg2) {
     int* ptr2 = arg2 == NULL ? NULL : (int*)jlong_to_ptr(env->GetLongField(arg2, JavaCPP_addressFID));
     jint position2 = arg2 == NULL ? 0 : env->GetIntField(arg2, JavaCPP_positionFID);
     ptr2 += position2;
-    jobject rarg = NULL;
-    void* rptr;
+    jint rarg = 0;
     jthrowable exc = NULL;
     try {
-        rptr = celt_mode_create(arg0, arg1, ptr2);
-        if (rptr != NULL) {
-            rarg = env->AllocObject(JavaCPP_getClass(env, 1));
-            env->SetLongField(rarg, JavaCPP_addressFID, ptr_to_jlong(rptr));
-        }
+        int rvalue = celt_mode_info((const CELTMode*)ptr0, arg1, ptr2);
+        rarg = (jint)rvalue;
     } catch (...) {
         exc = JavaCPP_handleException(env, 14);
     }

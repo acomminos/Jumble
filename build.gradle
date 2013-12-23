@@ -14,16 +14,12 @@
  * limitations under the License.
  */
 
-
-
-
-
 buildscript {
     repositories {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.6.+'
+        classpath 'com.android.tools.build:gradle:0.7.+'
     }
 }
 apply plugin: 'android-library'
@@ -42,14 +38,14 @@ dependencies {
 }
 
 android {
-    compileSdkVersion 18
-    buildToolsVersion "18.0.1"
+    compileSdkVersion 19
+    buildToolsVersion "19.0.1"
 
     defaultConfig {
         testPackageName "com.morlunk.jumble.test"
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
         minSdkVersion 9
-        targetSdkVersion 18
+        targetSdkVersion 19
     }
 }
 
@@ -59,7 +55,7 @@ android {
  */
 
 task copyNativeLibs(type: Copy) {
-    from(new File('src/main/libs')) { include '**/*.so' }
+    from(new File('libs')) { include '**/*.so' }
     into new File(buildDir, 'native-libs')
 }
 
@@ -68,5 +64,6 @@ tasks.withType(Compile) { compileTask -> compileTask.dependsOn copyNativeLibs }
 clean.dependsOn 'cleanCopyNativeLibs'
 
 tasks.withType(com.android.build.gradle.tasks.PackageApplication) { pkgTask ->
-    pkgTask.jniDir new File(buildDir, 'native-libs')
+    pkgTask.jniFolders = new HashSet<File>()
+    pkgTask.jniFolders.add(new File(buildDir, 'native-libs'))
 }
