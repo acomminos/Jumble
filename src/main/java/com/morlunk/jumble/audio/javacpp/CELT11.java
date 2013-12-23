@@ -33,6 +33,8 @@ import com.googlecode.javacpp.annotation.Platform;
 public class CELT11 {
 
     public static final int CELT_GET_BITSTREAM_VERSION = 2000;
+    public static final int CELT_SET_BITRATE_REQUEST = 6;
+    public static final int CELT_SET_PREDICTION_REQUEST = 4;
 
     static {
         Loader.load();
@@ -49,6 +51,7 @@ public class CELT11 {
     public static native void celt_decoder_destroy(@Cast("CELTDecoder*") Pointer st);
 
     public static native @NoDeallocator Pointer celt_encoder_create(int sampleRate, int frameSize, IntPointer error);
+    public static native int celt_encoder_ctl(@Cast("CELTEncoder*")Pointer state, int request, Pointer val);
     public static native int celt_encode(@Cast("CELTEncoder*") Pointer state, @Cast("const short*") short[] pcm, int frameSize, @Cast("unsigned char*") byte[] compressed, int maxCompressedBytes);
     public static native void celt_encoder_destroy(@Cast("CELTEncoder*") Pointer state);
 }

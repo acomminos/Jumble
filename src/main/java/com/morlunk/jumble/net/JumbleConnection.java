@@ -95,6 +95,7 @@ public class JumbleConnection {
     private boolean mUsingUDP = true;
     private boolean mConnected;
     private boolean mSynchronized;
+    private boolean mExceptionHandled = false;
     private CryptState mCryptState = new CryptState();
     private long mStartTimestamp; // Time that the connection was initiated in nanoseconds
 
@@ -145,13 +146,16 @@ public class JumbleConnection {
 
         @Override
         public void messageReject(final Mumble.Reject msg) {
+            mConnected = false;
             handleFatalException(new JumbleConnectionException(msg));
         }
 
         @Override
         public void messageUserRemove(final Mumble.UserRemove msg) {
-            if(msg.getSession() == mSession)
+            if(msg.getSession() == mSession) {
+                mConnected = false;
                 handleFatalException(new JumbleConnectionException(msg));
+            }
         }
 
         @Override
@@ -291,6 +295,7 @@ public class JumbleConnection {
     public void connect() {
         mConnected = false;
         mSynchronized = false;
+        mExceptionHandled = false;
         mUsingUDP = !mForceTCP;
         mStartTimestamp = System.nanoTime();
 
@@ -417,6 +422,9 @@ public class JumbleConnection {
      * @param e The exception that caused termination.
      */
     private void handleFatalException(final JumbleConnectionException e) {
+        if(mExceptionHandled) return;
+        mExceptionHandled = true;
+
         e.printStackTrace();
         if(mListener != null) {
             mMainHandler.post(new Runnable() {
@@ -426,7 +434,12 @@ public class JumbleConnection {
                 }
             });
         }
-        disconnect();
+        mNetworkSendHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                disconnect();
+            }
+        });
     }
 
     /**
@@ -744,23 +757,6 @@ public class JumbleConnection {
 
                 mDataInput = new DataInputStream(mTCPSocket.getInputStream());
                 mDataOutput = new DataOutputStream(mTCPSocket.getOutputStream());
-
-                // Send version information and authenticate.
-                final Mumble.Version.Builder version = Mumble.Version.newBuilder();
-                version.setRelease(mClientName);
-                version.setVersion(Constants.PROTOCOL_VERSION);
-                version.setOs("Android");
-                version.setOsVersion(Build.VERSION.RELEASE);
-
-                final Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
-                auth.setUsername(mServer.getUsername());
-                auth.setPassword(mServer.getPassword());
-                auth.addCeltVersions(Constants.CELT_7_VERSION);
-                auth.addCeltVersions(Constants.CELT_11_VERSION);
-                auth.setOpus(mUseOpus);
-
-                sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
-                sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
             } catch (SocketException e) {
                 handleFatalException(new JumbleConnectionException("Could not open a connection to the host", e, false));
                 return;
@@ -776,6 +772,24 @@ public class JumbleConnection {
             if(!mForceTCP)
                 mExecutorService.submit(mUDP);
 
+
+            // Send version information and authenticate.
+            final Mumble.Version.Builder version = Mumble.Version.newBuilder();
+            version.setRelease(mClientName);
+            version.setVersion(Constants.PROTOCOL_VERSION);
+            version.setOs("Android");
+            version.setOsVersion(Build.VERSION.RELEASE);
+
+            final Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
+            auth.setUsername(mServer.getUsername());
+            auth.setPassword(mServer.getPassword());
+            auth.addCeltVersions(Constants.CELT_7_VERSION);
+            auth.addCeltVersions(Constants.CELT_11_VERSION);
+            auth.setOpus(mUseOpus);
+
+            sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
+            sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
+
             while(mConnected) {
                 try {
                     final short messageType = mDataInput.readShort();
@@ -784,12 +798,7 @@ public class JumbleConnection {
                     mDataInput.readFully(data);
 
                     final JumbleTCPMessageType tcpMessageType = JumbleTCPMessageType.values()[messageType];
-                    mMainHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            handleTCPMessage(data, messageLength, tcpMessageType);
-                        }
-                    });
+                    handleTCPMessage(data, messageLength, tcpMessageType);
                 } catch (IOException e) {
                     if(mConnected) // Only handle unexpected exceptions here. This could be the result of a clean disconnect like a Reject or UserRemove.
                         handleFatalException(new JumbleConnectionException("Lost connection to server", e, true));

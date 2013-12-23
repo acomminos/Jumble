@@ -1156,6 +1156,55 @@ JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_00024JitterBu
     ptr->timestamp = arg0;
 }
 
+JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_speex_1resampler_1destroy(JNIEnv* env, jclass cls, jobject arg0) {
+    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
+    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
+    ptr0 += position0;
+    jthrowable exc = NULL;
+    try {
+        speex_resampler_destroy((SpeexResamplerState*)ptr0);
+    } catch (...) {
+        exc = JavaCPP_handleException(env, 15);
+    }
+
+    if (exc != NULL) {
+        env->Throw(exc);
+    }
+}
+JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1init(JNIEnv* env, jclass cls, jint arg0) {
+    jobject rarg = NULL;
+    void* rptr;
+    jthrowable exc = NULL;
+    try {
+        rptr = jitter_buffer_init(arg0);
+        if (rptr != NULL) {
+            rarg = env->AllocObject(JavaCPP_getClass(env, 1));
+            env->SetLongField(rarg, JavaCPP_addressFID, ptr_to_jlong(rptr));
+        }
+    } catch (...) {
+        exc = JavaCPP_handleException(env, 15);
+    }
+
+    if (exc != NULL) {
+        env->Throw(exc);
+    }
+    return rarg;
+}
+JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1reset(JNIEnv* env, jclass cls, jobject arg0) {
+    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
+    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
+    ptr0 += position0;
+    jthrowable exc = NULL;
+    try {
+        jitter_buffer_reset((JitterBuffer*)ptr0);
+    } catch (...) {
+        exc = JavaCPP_handleException(env, 15);
+    }
+
+    if (exc != NULL) {
+        env->Throw(exc);
+    }
+}
 JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1destroy(JNIEnv* env, jclass cls, jobject arg0) {
     char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
     jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
@@ -1452,55 +1501,6 @@ JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_speex_1resamp
         env->Throw(exc);
     }
     return rarg;
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_speex_1resampler_1destroy(JNIEnv* env, jclass cls, jobject arg0) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    jthrowable exc = NULL;
-    try {
-        speex_resampler_destroy((SpeexResamplerState*)ptr0);
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-}
-JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1init(JNIEnv* env, jclass cls, jint arg0) {
-    jobject rarg = NULL;
-    void* rptr;
-    jthrowable exc = NULL;
-    try {
-        rptr = jitter_buffer_init(arg0);
-        if (rptr != NULL) {
-            rarg = env->AllocObject(JavaCPP_getClass(env, 1));
-            env->SetLongField(rarg, JavaCPP_addressFID, ptr_to_jlong(rptr));
-        }
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
-    return rarg;
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_jitter_1buffer_1reset(JNIEnv* env, jclass cls, jobject arg0) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    jthrowable exc = NULL;
-    try {
-        jitter_buffer_reset((JitterBuffer*)ptr0);
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
 }
 
 }
