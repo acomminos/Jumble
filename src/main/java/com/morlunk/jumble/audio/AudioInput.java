@@ -88,7 +88,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     private final short[] mOpusBuffer = new short[mFrameSize*mFramesPerPacket];
 
     // CELT encoded frame buffer
-    private final byte[][] mCELTBuffer = new byte[mFramesPerPacket][127];
+    private final byte[][] mCELTBuffer = new byte[mFramesPerPacket][Audio.SAMPLE_RATE/800];
 
     private final byte[] mEncodedBuffer = new byte[OPUS_MAX_BYTES];
     private final byte[] mPacketBuffer = new byte[1024];
@@ -180,6 +180,8 @@ public class AudioInput extends ProtocolHandler implements Runnable {
             return;
         mCodec = codec;
 
+        Log.v(Constants.TAG, "Using codec "+codec.toString()+" for input");
+
         if(mOpusEncoder != null) {
             Opus.opus_encoder_destroy(mOpusEncoder);
             mOpusEncoder = null;
@@ -219,9 +221,9 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                 mCELTAlphaEncoder = CELT7.celt_encoder_create(mCELTAlphaMode, 1, error);
 
                 tmp.put(Audio.SAMPLE_RATE);
-                CELT7.celt_encoder_ctl(mCELTBetaEncoder, CELT11.CELT_SET_BITRATE_REQUEST, tmp);
+                CELT7.celt_encoder_ctl(mCELTAlphaEncoder, CELT11.CELT_SET_BITRATE_REQUEST, tmp);
                 tmp.put(0);
-                CELT7.celt_encoder_ctl(mCELTBetaEncoder, CELT11.CELT_SET_PREDICTION_REQUEST, tmp);
+                CELT7.celt_encoder_ctl(mCELTAlphaEncoder, CELT11.CELT_SET_PREDICTION_REQUEST, tmp);
                 break;
             case UDPVoiceSpeex:
                 // TODO
@@ -356,15 +358,16 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                         }
                         break;
                     case UDPVoiceCELTBeta:
-                        int betaResult = CELT11.celt_encode(mCELTBetaEncoder, audioData, mFrameSize, mCELTBuffer[mBufferedFrames], 127);
+                        // TODO add manual audio quality control
+                        int betaResult = CELT11.celt_encode(mCELTBetaEncoder, audioData, mFrameSize, mCELTBuffer[mBufferedFrames], Audio.SAMPLE_RATE/800);
                         if(betaResult == 0) {
                             mBufferedFrames++;
                             encoded = mBufferedFrames >= mFramesPerPacket;
                         }
                         break;
                     case UDPVoiceCELTAlpha:
-                        int alphaResult = CELT7.celt_encode(mCELTAlphaEncoder, audioData, null, mCELTBuffer[mBufferedFrames], 127);
-                        if(alphaResult == 0) {
+                        int alphaResult = CELT7.celt_encode(mCELTAlphaEncoder, audioData, null, mCELTBuffer[mBufferedFrames], Audio.SAMPLE_RATE/800);
+                        if(alphaResult > 0) {
                             mBufferedFrames++;
                             encoded = mBufferedFrames >= mFramesPerPacket;
                         }
@@ -449,12 +452,13 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
     @Override
     public void messageCodecVersion(Mumble.CodecVersion msg) {
-        if(msg.getOpus())
+        // FIXME: CELT 0.11.0 (beta) does not work.
+        if(msg.hasOpus() && msg.getOpus())
             switchCodec(JumbleUDPMessageType.UDPVoiceOpus);
-        else if(msg.getPreferAlpha())
+//        else if(msg.hasBeta() && msg.getBeta() == Constants.CELT_11_VERSION && !(msg.hasPreferAlpha() && msg.getPreferAlpha()))
+//            switchCodec(JumbleUDPMessageType.UDPVoiceCELTBeta);
+        else if(msg.hasAlpha() && msg.getAlpha() == Constants.CELT_7_VERSION)
             switchCodec(JumbleUDPMessageType.UDPVoiceCELTAlpha);
-        else
-            switchCodec(JumbleUDPMessageType.UDPVoiceCELTBeta);
 
     }
 }

@@ -59,4 +59,9 @@ public class TextMessageHandler extends ProtocolHandler {
             e.printStackTrace();
         }
     }
+
+    @Override
+    public void messageServerSync(Mumble.ServerSync msg) {
+        getService().logInfo(msg.getWelcomeText());
+    }
 }
