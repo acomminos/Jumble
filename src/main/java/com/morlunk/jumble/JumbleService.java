@@ -26,6 +26,7 @@ import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.util.Log;
@@ -99,6 +100,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private TextMessageHandler mTextMessageHandler;
     private AudioOutput mAudioOutput;
     private AudioInput mAudioInput;
+    private PowerManager.WakeLock mWakeLock;
 
     private AudioManager.OnAudioFocusChangeListener mAudioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
         @Override
@@ -537,6 +539,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onCreate() {
         super.onCreate();
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Jumble");
     }
 
     @Override
@@ -598,6 +602,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onConnectionEstablished() {
         Log.v(Constants.TAG, "Connected");
+        mWakeLock.acquire();
 
         // Send access tokens
         Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
@@ -626,6 +631,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onConnectionDisconnected() {
         Log.v(Constants.TAG, "Disconnected");
+        if(mWakeLock.isHeld()) mWakeLock.release();
+
         try {
             unregisterReceiver(mBluetoothReceiver);
         } catch (IllegalArgumentException e) {

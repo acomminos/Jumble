@@ -798,10 +798,20 @@ public class JumbleConnection {
                     mDataInput.readFully(data);
 
                     final JumbleTCPMessageType tcpMessageType = JumbleTCPMessageType.values()[messageType];
-                    handleTCPMessage(data, messageLength, tcpMessageType);
-                } catch (IOException e) {
-                    if(mConnected) // Only handle unexpected exceptions here. This could be the result of a clean disconnect like a Reject or UserRemove.
-                        handleFatalException(new JumbleConnectionException("Lost connection to server", e, true));
+                    mMainHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            handleTCPMessage(data, messageLength, tcpMessageType);
+                        }
+                    });
+                } catch (final IOException e) {
+                    mMainHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // We perform this action on the main thread so that any clean disconnects get handled first.
+                            if(mConnected) handleFatalException(new JumbleConnectionException("Lost connection to server", e, true));
+                        }
+                    });
                     break;
                 }
             }
