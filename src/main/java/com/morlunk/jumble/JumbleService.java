@@ -596,7 +596,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     }
 
     public boolean isConnected() {
-        return mConnection != null ? mConnection.isConnected() : false;
+        return mConnection != null && mConnection.isConnected();
     }
 
     @Override
@@ -655,16 +655,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             }
         });
 
-        mChannelHandler = null;
-        mUserHandler = null;
         mMessageLog.clear();
     }
 
     @Override
     public void onConnectionError(final JumbleConnectionException e) {
         Log.e(Constants.TAG, "Connection error: "+e.getMessage());
-        if(mAutoReconnect && e.isAutoReconnectAllowed()) {
-            mReconnecting = true;
+        mReconnecting = mAutoReconnect && e.isAutoReconnectAllowed();
+        if(mReconnecting) {
             Handler mainHandler = new Handler();
             mainHandler.postDelayed(new Runnable() {
                 @Override
@@ -676,7 +674,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         notifyObservers(new ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
-                observer.onConnectionError(e.getMessage(), e.isAutoReconnectAllowed());
+                observer.onConnectionError(e.getMessage(), mReconnecting);
             }
         });
     }
