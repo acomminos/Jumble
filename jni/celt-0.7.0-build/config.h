@@ -23,7 +23,7 @@
 #define CELT_VERSION "0.7.0"
 
 /* Compile as fixed-point */
-/* #undef DOUBLE_PRECISION */
+#define DOUBLE_PRECISION
 
 /* Assertions */
 /* #undef ENABLE_ASSERTIONS */
