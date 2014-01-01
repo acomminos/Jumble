@@ -221,7 +221,7 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
                         public void run(IJumbleObserver observer) throws RemoteException {
                             observer.onUserTalkStateUpdated(user);
                         }
-                    });;
+                    });
                 }
             });
         }

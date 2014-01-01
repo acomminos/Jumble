@@ -61,7 +61,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         public void onTalkStateChanged(boolean talking);
     }
 
-    private static final int[] SAMPLE_RATES = { 48000, 44100, 22050, 160000, 11025, 8000 };
+    public static final int[] SAMPLE_RATES = { 48000, 44100, 22050, 16000, 11025, 8000 };
     private static final int SPEEX_RESAMPLE_QUALITY = 3;
     private static final int OPUS_MAX_BYTES = 512; // Opus specifies 4000 bytes as a recommended value for encoding, but the official mumble project uses 512.
 
@@ -106,21 +106,15 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Creates a new audio input manager configured for the specified codec.
      * @param listener
      */
-    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int transmitMode, float voiceThreshold, AudioInputListener listener) {
+    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int sampleRate, int transmitMode, float voiceThreshold, AudioInputListener listener) {
         super(service);
         mListener = listener;
         mTransmitMode = transmitMode;
         mVADThreshold = voiceThreshold;
+        mInputSampleRate = getSupportedSampleRate(sampleRate);
         switchCodec(codec);
         configurePreprocessState();
 
-        // Use the highest sample rate we can get. TODO make this an option in settings.
-        for(int rate : SAMPLE_RATES) {
-            if(AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT) > 0) {
-                mInputSampleRate = rate;
-                break;
-            }
-        }
         if(mInputSampleRate != -1) {
             Log.d(Constants.TAG, "Initialized AudioInput with sample rate "+mInputSampleRate);
             if(mInputSampleRate != Audio.SAMPLE_RATE) {
@@ -134,6 +128,30 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         int reportedMinBufferSize = AudioRecord.getMinBufferSize(mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         mMinBufferSize = Math.max(reportedMinBufferSize, mFrameSize);
         mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
+    }
+
+    /**
+     * Checks if the preferred sample rate is supported, and use it if so. Otherwise, automatically find a supported rate.
+     * @param preferredSampleRate The preferred sample rate, or -1 if there is no preference.
+     * @return The preferred sample rate if supported, otherwise a default one.
+     *         If no rates are supported, return -1.
+     */
+    private int getSupportedSampleRate(int preferredSampleRate) {
+        // Attempt to use preferred rate first
+        if(preferredSampleRate != -1) {
+            int bufferSize = AudioRecord.getMinBufferSize(preferredSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+            if(bufferSize > 0) return preferredSampleRate;
+        }
+
+        // Use the highest sample rate we can get.
+        for(int rate : SAMPLE_RATES) {
+            if(AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT) > 0) {
+                if(preferredSampleRate != -1) getService().logWarning("Failed to use desired sample rate, falling back to "+rate+"Hz.");
+                return rate;
+            }
+        }
+
+        return -1;
     }
 
     public void setVADThreshold(float threshold) {
