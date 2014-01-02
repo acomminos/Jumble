@@ -101,6 +101,7 @@ public class JumbleConnection {
 
     // Latency
     private long mLastUDPPing;
+    private long mLastTCPPing;
 
     // Server
     private Server mServer;
@@ -108,6 +109,7 @@ public class JumbleConnection {
     private String mServerRelease;
     private String mServerOSName;
     private String mServerOSVersion;
+    private int mMaxBandwidth;
 
     // Session
     private int mSession;
@@ -133,6 +135,7 @@ public class JumbleConnection {
             mPingTask = mPingExecutorService.scheduleAtFixedRate(mPingRunnable, 0, 5, TimeUnit.SECONDS);
 
             mSession = msg.getSession();
+            mMaxBandwidth = msg.getMaxBandwidth();
             mSynchronized = true;
 
             mMainHandler.post(new Runnable() {
@@ -203,6 +206,7 @@ public class JumbleConnection {
 
             // In microseconds
             long elapsed = getElapsed();
+            mLastTCPPing = elapsed-msg.getTimestamp();
 
             if(((mCryptState.mUiRemoteGood == 0) || (mCryptState.mUiGood == 0)) && mUsingUDP && elapsed > 20000000) {
                 mUsingUDP = false;
@@ -230,8 +234,8 @@ public class JumbleConnection {
             buffer.put(timedata);
             buffer.flip();
 
-            long timestamp = (long) (buffer.getLong() * Math.pow(10, 3)); // um -> nm
-            long now = System.nanoTime()-mStartTimestamp;
+            long timestamp = buffer.getLong();
+            long now = getElapsed();
             mLastUDPPing = now-timestamp;
             // TODO refresh UDP?
         }
@@ -354,7 +358,7 @@ public class JumbleConnection {
     }
 
     public long getTCPLatency() {
-        return 0;
+        return mLastTCPPing;
     }
 
     public long getUDPLatency() {
@@ -363,6 +367,10 @@ public class JumbleConnection {
 
     public int getSession() {
         return mSession;
+    }
+
+    public int getMaxBandwidth() {
+        return mMaxBandwidth;
     }
 
     /**
