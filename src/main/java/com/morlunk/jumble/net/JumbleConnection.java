@@ -110,6 +110,7 @@ public class JumbleConnection {
     private String mServerOSName;
     private String mServerOSVersion;
     private int mMaxBandwidth;
+    private int mCodec;
 
     // Session
     private int mSession;
@@ -144,6 +145,19 @@ public class JumbleConnection {
                     mListener.onConnectionEstablished();
                 }
             });
+
+        }
+
+        @Override
+        public void messageCodecVersion(Mumble.CodecVersion msg) {
+            if(msg.hasOpus() && msg.getOpus())
+                mCodec = JumbleUDPMessageType.UDPVoiceOpus.ordinal();
+            else if(msg.hasBeta() && !(msg.hasPreferAlpha() && msg.getPreferAlpha()))
+                mCodec = JumbleUDPMessageType.UDPVoiceCELTBeta.ordinal();
+            else if(msg.hasAlpha() && msg.getAlpha() == Constants.CELT_7_VERSION)
+                mCodec = JumbleUDPMessageType.UDPVoiceCELTAlpha.ordinal();
+            else
+                mCodec = JumbleUDPMessageType.UDPVoiceSpeex.ordinal();
 
         }
 
@@ -371,6 +385,10 @@ public class JumbleConnection {
 
     public int getMaxBandwidth() {
         return mMaxBandwidth;
+    }
+
+    public int getCodec() {
+        return mCodec;
     }
 
     /**

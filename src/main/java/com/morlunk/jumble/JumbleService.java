@@ -230,6 +230,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
+        public int getMaxBandwidth() throws RemoteException {
+            return mConnection.getMaxBandwidth();
+        }
+
+        @Override
+        public int getCurrentBandwidth() throws RemoteException {
+            return 0;
+        }
+
+        @Override
         public int getServerVersion() throws RemoteException {
             return mConnection.getServerVersion();
         }
@@ -328,6 +338,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         public void setVADThreshold(float threshold) throws RemoteException {
             if(mAudioInput != null)
                 mAudioInput.setVADThreshold(threshold);
+        }
+
+        @Override
+        public int getCodec() throws RemoteException {
+            return mConnection.getCodec();
         }
 
         @Override

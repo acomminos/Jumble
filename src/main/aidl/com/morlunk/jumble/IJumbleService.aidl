@@ -37,6 +37,8 @@ interface IJumbleService {
      * Gets the UDP latency, in nanoseconds.
      */
     long getUDPLatency();
+    int getMaxBandwidth();
+    int getCurrentBandwidth();
 
     // Server information
     int getServerVersion();
@@ -63,6 +65,7 @@ interface IJumbleService {
     int getTransmitMode();
     void setTransmitMode(int transmitMode);
     void setVADThreshold(float threshold);
+    int getCodec();
 
     // Bluetooth
     boolean isBluetoothAvailable();
