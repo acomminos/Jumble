@@ -48,6 +48,8 @@ public class AudioOutputSpeech {
     private Pointer mCELTBetaDecoder;
     private Pointer mCELTAlphaMode;
     private Pointer mCELTAlphaDecoder;
+    private Speex.SpeexBits mSpeexBits;
+    private Pointer mSpeexDecoder;
     private Speex.JitterBuffer mJitterBuffer;
 
     private int mSession;
@@ -79,18 +81,19 @@ public class AudioOutputSpeech {
                 mAudioBufferSize *= 12;
                 mOpusDecoder = Opus.opus_decoder_create(Audio.SAMPLE_RATE, 1, null);
                 break;
-//            case UDPVoiceSpeex:
-//                mSpeexBits = new SpeexBits();
-//                Speex.speex_bits_init(mSpeexBits);
-//                mSpeexDecoder = Speex.speex_decoder_init(Speex.getSpeex_uwb_mode());
-//                Speex.speex_decoder_ctl(mSpeexDecoder, SpeexConstants.SPEEX_SET_ENH, new int[] { 1 });
-//                break;
             case UDPVoiceCELTBeta:
                 mCELTBetaDecoder = CELT11.celt_decoder_create(Audio.SAMPLE_RATE, 1, null);
                 break;
             case UDPVoiceCELTAlpha:
                 mCELTAlphaMode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, null);
                 mCELTAlphaDecoder = CELT7.celt_decoder_create(mCELTAlphaMode, 1, null);
+                break;
+            case UDPVoiceSpeex:
+                mSpeexBits = new Speex.SpeexBits();
+                mSpeexDecoder = Speex.speex_decoder_init(Speex.speex_lib_get_mode(Speex.SPEEX_MODEID_UWB));
+                IntPointer enh = new IntPointer();
+                enh.put(1);
+                Speex.speex_decoder_ctl(mSpeexDecoder, Speex.SPEEX_SET_ENH, enh);
                 break;
         }
 
@@ -262,13 +265,9 @@ public class AudioOutputSpeech {
                                 mOut,
                                 mAudioBufferSize,
                                 0);
-                    } else { // Speex
-//                        if(data.isEmpty())
-//                            Speex.speex_decode(mSpeexDecoder, null, out);
-//                        else {
-//                            Speex.speex_bits_read_from(mSpeexBits, data, data.length);
-//                            Speex.speex_decode(mSpeexDecoder, mSpeexBits, out);
-//                        }
+                    } else {
+                        mSpeexBits.read(data, data.length);
+                        Speex.speex_decode(mSpeexDecoder, mSpeexBits, mOut);
                         for(int i = 0; i < Audio.FRAME_SIZE; i++)
                             mOut[i] *= (1.0f / 32767.f);
                     }
@@ -287,11 +286,11 @@ public class AudioOutputSpeech {
                         CELT11.celt_decode_float(mCELTBetaDecoder, null, 0, mOut, Audio.FRAME_SIZE);
                     else if(mCodec == JumbleUDPMessageType.UDPVoiceOpus)
                         decodedSamples = Opus.opus_decode_float(mOpusDecoder, null, 0, mOut, Audio.FRAME_SIZE, 0);
-//                    else {
-//                        Speex.speex_decode(mSpeexDecoder, null, out);
-//                        for(int i = 0; i < Audio.FRAME_SIZE; i++)
-//                            out[i] *= (1.0f / 32767.f);
-//                    }
+                    else {
+                        Speex.speex_decode(mSpeexDecoder, null, mOut);
+                        for(int i = 0; i < Audio.FRAME_SIZE; i++)
+                            mOut[i] *= (1.0f / 32767.f);
+                    }
                 }
 
                 if (!nextAlive) {
@@ -373,10 +372,10 @@ public class AudioOutputSpeech {
             CELT7.celt_mode_destroy(mCELTAlphaMode);
         if(mCELTAlphaDecoder != null)
             CELT7.celt_decoder_destroy(mCELTAlphaDecoder);
-//        if(mSpeexBits != null)
-//            Speex.speex_bits_destroy(mSpeexBits);
-//        if(mSpeexDecoder != null)
-//            Speex.speex_decoder_destroy(mSpeexDecoder);
+        if(mSpeexBits != null)
+            mSpeexBits.destroy();
+        if(mSpeexDecoder != null)
+            Speex.speex_decoder_destroy(mSpeexDecoder);
         mJitterBuffer.destroy();
     }
 }
