@@ -30,6 +30,7 @@ import com.morlunk.jumble.audio.javacpp.CELT11;
 import com.morlunk.jumble.audio.javacpp.CELT7;
 import com.morlunk.jumble.audio.javacpp.Opus;
 import com.morlunk.jumble.audio.javacpp.Speex;
+import com.morlunk.jumble.net.JumbleConnectionException;
 import com.morlunk.jumble.protocol.JumbleMessageListener;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
@@ -98,7 +99,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
     private JumbleUDPMessageType mCodec = null;
 
-    private Object mRecordLock = new Object(); // Make sure we don't get calls to start and stop recording more than once at a time.
+    private final Object mRecordLock = new Object(); // Make sure we don't get calls to start and stop recording more than once at a time.
     private Thread mRecordThread;
     private boolean mRecording;
 
@@ -127,7 +128,6 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
         int reportedMinBufferSize = AudioRecord.getMinBufferSize(mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         mMinBufferSize = Math.max(reportedMinBufferSize, mFrameSize);
-        mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
     }
 
     /**
@@ -259,6 +259,18 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                 return;
             }
 
+            if(mAudioRecord == null) {
+                mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
+                // If we're still uninitialized, we have a problem.
+                if(mAudioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
+                    getService().onConnectionError(new JumbleConnectionException("Failed to initialize audio input!", false));
+                    getService().disconnect();
+                    return;
+                }
+            }
+
+            mRecording = true;
+
             mRecordThread = new Thread(this);
             mRecordThread.start();
         }
@@ -304,7 +316,6 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     public void run() {
         android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
 
-        mRecording = true;
         mBufferedFrames = 0;
         mFrameCounter = 0;
         mVADLastDetected = false;
