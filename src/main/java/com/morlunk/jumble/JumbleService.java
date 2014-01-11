@@ -105,6 +105,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private AudioInput mAudioInput;
     private PowerManager.WakeLock mWakeLock;
 
+    /* FIXME
     private AudioManager.OnAudioFocusChangeListener mAudioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
         @Override
         public void onAudioFocusChange(int focusChange) {
@@ -118,6 +119,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             }
         }
     };
+    */
 
     private BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
         @Override
@@ -628,11 +630,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         ab.addAllTokens(mAccessTokens);
         mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
 
-        // Configure audio manager
-        AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-        int result = audioManager.requestAudioFocus(mAudioFocusChangeListener,
-                                                    AudioManager.STREAM_MUSIC,
-                                                    AudioManager.AUDIOFOCUS_GAIN);
+        mAudioOutput.startPlaying(false);
+
+        // Configure audio manager FIXME audio focus
+//        AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+//        int result = audioManager.requestAudioFocus(mAudioFocusChangeListener,
+//                                                    AudioManager.STREAM_MUSIC,
+//                                                    AudioManager.AUDIOFOCUS_GAIN);
         // TODO handle result
         // This sticky broadcast will initialize the audio output.
         registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
@@ -664,7 +668,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         // Restore audio manager mode
         AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-        audioManager.abandonAudioFocus(mAudioFocusChangeListener);
+//        audioManager.abandonAudioFocus(mAudioFocusChangeListener);
         audioManager.stopBluetoothSco();
 
         notifyObservers(new ObserverRunnable() {
