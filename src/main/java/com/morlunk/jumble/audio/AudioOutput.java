@@ -60,16 +60,20 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
     private long mLastPacket; // Time that the last packet was received, in nanoseconds
     private List<AudioOutputSpeech> mMixBuffer = new ArrayList<AudioOutputSpeech>();
     private List<AudioOutputSpeech> mDelBuffer = new ArrayList<AudioOutputSpeech>();
+    private Handler mMainHandler;
 
     public AudioOutput(JumbleService service) {
         super(service);
+        mMainHandler = new Handler(Looper.getMainLooper());
     }
 
     public void startPlaying(boolean scoEnabled) {
         if(mRunning)
             return;
 
-        int bufferSize = AudioTrack.getMinBufferSize(Audio.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT) * 2;
+        int minBufferSize = AudioTrack.getMinBufferSize(Audio.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        int bufferSize = Math.max(minBufferSize, Audio.FRAME_SIZE * 12 * 2); // Make the buffer size a multiple of the largest possible frame.
+        Log.v(Constants.TAG, "Using buffer size "+bufferSize+", system's min buffer size: "+minBufferSize);
 
         mAudioTrack = new AudioTrack(scoEnabled ? AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC,
                 Audio.SAMPLE_RATE,
@@ -212,8 +216,7 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
         final User user = getService().getUserHandler().getUser(session);
         if(user != null && user.getTalkState() != state) {
             user.setTalkState(state);
-            Handler handler = new Handler(Looper.getMainLooper());
-            handler.post(new Runnable() {
+            mMainHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     getService().notifyObservers(new JumbleService.ObserverRunnable() {

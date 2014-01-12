@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -909,8 +910,6 @@ public class JumbleConnection {
             while(mConnected) {
                 try {
                     mUDPSocket.receive(packet);
-                    // Decrypt UDP packet using OCB-AES128
-                    final byte[] decryptedData = mCryptState.decrypt(packet.getData(), packet.getLength());
                     /*
                     if (decryptedData == null &&
                             mCryptState.getLastGoodElapsed() > 5000000 &&
@@ -921,11 +920,15 @@ public class JumbleConnection {
                         mTCP.sendMessage(csb.build(), JumbleTCPMessageType.CryptSetup);
                     }
                     */
+                    // Decrypt UDP packet using OCB-AES128
+                    final byte[] data = packet.getData();
+                    final int length = packet.getLength();
+                    final byte[] decryptedData = mCryptState.decrypt(data, length);
+
                     mMainHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            if(decryptedData != null)
-                                handleUDPMessage(decryptedData);
+                            if (decryptedData != null) handleUDPMessage(decryptedData);
                         }
                     });
                 } catch (IOException e) {

@@ -183,8 +183,8 @@ public class AudioOutputSpeech {
 //                    if (avail.get() < want) {
 //                        mMissCount++;
 //                        if(mMissCount < 20) {
-//                            out.fill(0);
-//                            out.get(mBuffer, mBufferFilled, decodedSamples);
+//                            Arrays.fill(mOut, 0);
+//                            System.arraycopy(mOut, 0, mBuffer, mBufferFilled, decodedSamples);
 //                            mBufferFilled += decodedSamples;
 //                            continue;
 //                        }
@@ -313,8 +313,7 @@ public class AudioOutputSpeech {
             mBufferFilled += decodedSamples;
         }
 
-        if(!nextAlive)
-            ucFlags = 0xFF;
+        if(!nextAlive) ucFlags = 0xFF;
 
         User.TalkState talkState;
         switch (ucFlags) {
