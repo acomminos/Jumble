@@ -177,19 +177,20 @@ public class AudioOutputSpeech {
                     ts = mJitterBuffer.getPointerTimestamp();
                     mJitterBuffer.control(Speex.JitterBuffer.JITTER_BUFFER_GET_AVAILABLE_COUNT, avail);
                 }
+                float availPackets = (float) avail.get();
 
-//                if(ts != 0) {
-//                    int want = (int) mAverageAvailable;
-//                    if (avail.get() < want) {
-//                        mMissCount++;
-//                        if(mMissCount < 20) {
-//                            Arrays.fill(mOut, 0);
-//                            System.arraycopy(mOut, 0, mBuffer, mBufferFilled, decodedSamples);
-//                            mBufferFilled += decodedSamples;
-//                            continue;
-//                        }
-//                    }
-//                }
+                if(ts == 0) {
+                    int want = (int) Math.floor(mAverageAvailable);
+                    if (availPackets < want) {
+                        mMissCount++;
+                        if(mMissCount < 20) {
+                            Arrays.fill(mOut, 0);
+                            System.arraycopy(mOut, 0, mBuffer, mBufferFilled, decodedSamples);
+                            mBufferFilled += decodedSamples;
+                            continue;
+                        }
+                    }
+                }
 
                 if(mFrames.isEmpty()) {
                     Speex.JitterBufferPacket jbp = new Speex.JitterBufferPacket(null, 4096, 0, 0, 0);
@@ -227,9 +228,8 @@ public class AudioOutputSpeech {
                             } while ((header & 0x80) > 0 && pds.isValid());
                         }
 
-                        float a = (float) avail.get();
-                        if(a >= mAverageAvailable)
-                            mAverageAvailable = a;
+                        if(availPackets >= mAverageAvailable)
+                            mAverageAvailable = availPackets;
                         else
                             mAverageAvailable *= 0.99f;
 

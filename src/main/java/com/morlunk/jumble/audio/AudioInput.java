@@ -371,6 +371,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                     mVADLastDetected = talking;
                 }
 
+                // If talking has terminated before we have filled the buffer, send anyway.
                 if(!talking && mBufferedFrames > 0) {
                     sendFrame(true);
                     continue;
