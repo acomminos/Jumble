@@ -65,6 +65,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     public static final int[] SAMPLE_RATES = { 48000, 44100, 22050, 16000, 11025, 8000 };
     private static final int SPEEX_RESAMPLE_QUALITY = 3;
     private static final int OPUS_MAX_BYTES = 512; // Opus specifies 4000 bytes as a recommended value for encoding, but the official mumble project uses 512.
+    private static final int SPEECH_DETECT_THRESHOLD = (int) (0.25 * Math.pow(10, 9)); // Continue speech for 250ms to prevent dropping
 
     private Pointer mOpusEncoder;
     private Pointer mCELTBetaEncoder;
@@ -77,6 +78,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     private int mTransmitMode = Constants.TRANSMIT_PUSH_TO_TALK;
     private float mVADThreshold = 0;
     private boolean mVADLastDetected = false;
+    private long mVADLastDetectedTime;
 
     private AudioRecord mAudioRecord;
     private int mMinBufferSize;
@@ -357,15 +359,22 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                     float micLevel = (float) Math.sqrt(sum / (float)mFrameSize);
                     float peakSignal = (float) (20.0f*Math.log10(micLevel / 32768.0f))/96.0f;
                     talking = (peakSignal+1) >= mVADThreshold;
+
+                    /* Record the last time where VAD was detected in order to prevent speech dropping. */
+                    if(talking) mVADLastDetectedTime = System.nanoTime();
+
 //                    Log.v(Constants.TAG, String.format("Signal: %2f, Threshold: %2f", peakSignal+1, mVADThreshold));
+                    talking |= (System.nanoTime() - mVADLastDetectedTime) < SPEECH_DETECT_THRESHOLD;
 
                     if(talking ^ mVADLastDetected) // Update the service with the new talking state if we detected voice.
                         mListener.onTalkStateChanged(talking);
                     mVADLastDetected = talking;
                 }
 
-                if(!talking)
+                if(!talking && mBufferedFrames > 0) {
+                    sendFrame(true);
                     continue;
+                }
 
                 switch (mCodec) {
                     case UDPVoiceOpus:
@@ -391,27 +400,28 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                         int betaResult = CELT11.celt_encode(mCELTBetaEncoder, audioData, mFrameSize, mCELTBuffer[mBufferedFrames], Audio.SAMPLE_RATE/800);
                         if(betaResult == 0) {
                             mBufferedFrames++;
-                            encoded = mBufferedFrames >= mFramesPerPacket;
+                            encoded = mBufferedFrames >= mFramesPerPacket || !talking;
                         }
                         break;
                     case UDPVoiceCELTAlpha:
                         int alphaResult = CELT7.celt_encode(mCELTAlphaEncoder, audioData, null, mCELTBuffer[mBufferedFrames], Audio.SAMPLE_RATE/800);
                         if(alphaResult > 0) {
                             mBufferedFrames++;
-                            encoded = mBufferedFrames >= mFramesPerPacket;
+                            encoded = mBufferedFrames >= mFramesPerPacket || !talking;
                         }
                         break;
                     case UDPVoiceSpeex:
                         break;
                 }
 
-                if(encoded)
-                    sendFrame(!talking || !mRecording);
+                if(encoded) sendFrame(!mRecording);
             } else {
                 Log.e(Constants.TAG, "Error fetching audio! AudioRecord error "+shortsRead);
                 mBufferedFrames = 0;
             }
         }
+
+        if(mBufferedFrames > 0) sendFrame(!mRecording);
 
         mAudioRecord.stop();
 
