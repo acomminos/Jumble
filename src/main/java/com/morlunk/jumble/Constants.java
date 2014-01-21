@@ -17,7 +17,6 @@
 package com.morlunk.jumble;
 
 import com.googlecode.javacpp.IntPointer;
-import com.googlecode.javacpp.Loader;
 import com.googlecode.javacpp.Pointer;
 import com.morlunk.jumble.audio.Audio;
 import com.morlunk.jumble.audio.javacpp.CELT11;

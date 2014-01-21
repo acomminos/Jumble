@@ -31,15 +31,12 @@ import com.morlunk.jumble.audio.javacpp.CELT7;
 import com.morlunk.jumble.audio.javacpp.Opus;
 import com.morlunk.jumble.audio.javacpp.Speex;
 import com.morlunk.jumble.net.JumbleConnectionException;
-import com.morlunk.jumble.protocol.JumbleMessageListener;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.protocol.ProtocolHandler;
 
 import java.util.Arrays;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Created by andrew on 23/08/13.

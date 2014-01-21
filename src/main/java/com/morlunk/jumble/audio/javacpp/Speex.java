@@ -20,8 +20,6 @@ import com.googlecode.javacpp.BytePointer;
 import com.googlecode.javacpp.IntPointer;
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacpp.Pointer;
-import com.googlecode.javacpp.annotation.ByPtr;
-import com.googlecode.javacpp.annotation.ByRef;
 import com.googlecode.javacpp.annotation.Cast;
 import com.googlecode.javacpp.annotation.MemberGetter;
 import com.googlecode.javacpp.annotation.MemberSetter;

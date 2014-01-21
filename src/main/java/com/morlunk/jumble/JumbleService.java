@@ -21,7 +21,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -39,23 +38,18 @@ import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
-import com.morlunk.jumble.protocol.ChannelHandler;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleConnectionException;
 import com.morlunk.jumble.net.JumbleTCPMessageType;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
-import com.morlunk.jumble.protocol.JumbleMessageListener;
+import com.morlunk.jumble.protobuf.Mumble;
+import com.morlunk.jumble.protocol.ChannelHandler;
 import com.morlunk.jumble.protocol.TextMessageHandler;
 import com.morlunk.jumble.protocol.UserHandler;
-import com.morlunk.jumble.protobuf.Mumble;
-import com.morlunk.jumble.util.MessageFormatter;
 
 import java.security.Security;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.concurrent.Executors;
 
 public class JumbleService extends Service implements JumbleConnection.JumbleConnectionListener {
 

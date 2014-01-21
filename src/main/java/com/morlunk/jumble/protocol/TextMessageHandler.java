@@ -23,7 +23,6 @@ import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.protobuf.Mumble;
-import com.morlunk.jumble.util.MessageFormatter;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -16,10 +16,6 @@
 
 package com.morlunk.jumble.audio;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -33,7 +29,6 @@ import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.IJumbleObserver;
 import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.User;
-import com.morlunk.jumble.protocol.JumbleMessageListener;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
 import com.morlunk.jumble.protocol.ProtocolHandler;
