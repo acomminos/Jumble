@@ -487,7 +487,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
             mPreprocessState.destroy();
         if(mResampler != null)
             mResampler.destroy();
-        mAudioRecord.release();
+        if(mAudioRecord != null) mAudioRecord.release();
     }
 
     @Override
