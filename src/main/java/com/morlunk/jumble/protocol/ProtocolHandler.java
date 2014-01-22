@@ -24,7 +24,7 @@ import com.morlunk.jumble.JumbleService;
  * server (i.e. audio, user state, channels) into their own classes.
  * Created by andrew on 21/11/13.
  */
-public class ProtocolHandler extends JumbleMessageListener.Stub {
+public class ProtocolHandler extends JumbleTCPMessageListener.Stub {
 
     private JumbleService mService;
 

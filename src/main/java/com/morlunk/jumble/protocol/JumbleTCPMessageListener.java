@@ -18,7 +18,7 @@ package com.morlunk.jumble.protocol;
 
 import com.morlunk.jumble.protobuf.Mumble;
 
-public interface JumbleMessageListener {
+public interface JumbleTCPMessageListener {
     public void messageAuthenticate(Mumble.Authenticate msg);
     public void messageBanList(Mumble.BanList msg);
     public void messageReject(Mumble.Reject msg);
@@ -47,15 +47,12 @@ public interface JumbleMessageListener {
     public void messageSuggestConfig(Mumble.SuggestConfig msg);
     public void messageVoiceTarget(Mumble.VoiceTarget msg);
 
-    public void messageUDPPing(byte[] data);
-    public void messageVoiceData(byte[] data);
-
     /**
      * Reads incoming protobuf TCP messages and performs the necessary action(s).
      * Designed to be subclassed at any level of the library, the default implementations do nothing.
      * Created by andrew on 24/06/13.
      */
-    public static class Stub implements JumbleMessageListener {
+    public static class Stub implements JumbleTCPMessageListener {
 
         public void messageAuthenticate(Mumble.Authenticate msg) {}
         public void messageBanList(Mumble.BanList msg) {}
@@ -84,7 +81,5 @@ public interface JumbleMessageListener {
         public void messageRequestBlob(Mumble.RequestBlob msg) {}
         public void messageSuggestConfig(Mumble.SuggestConfig msg) {}
         public void messageVoiceTarget(Mumble.VoiceTarget msg) {}
-        public void messageUDPPing(byte[] data) {}
-        public void messageVoiceData(byte[] data) {}
     }
 }

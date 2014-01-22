@@ -31,6 +31,8 @@ import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
+import com.morlunk.jumble.protocol.JumbleTCPMessageListener;
+import com.morlunk.jumble.protocol.JumbleUDPMessageListener;
 import com.morlunk.jumble.protocol.ProtocolHandler;
 
 import java.nio.ByteBuffer;
@@ -42,7 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Created by andrew on 16/07/13.
  */
-public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutputSpeech.TalkStateListener {
+public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutputSpeech.TalkStateListener, JumbleUDPMessageListener {
 
     /** Number of nanoseconds until sleeping audio output thread. */
     private static final long SLEEP_THRESHOLD = 3000000000L;
@@ -204,6 +206,11 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
             }
         }
 
+    }
+
+    @Override
+    public void messageUDPPing(byte[] data) {
+        // nothing
     }
 
     @Override

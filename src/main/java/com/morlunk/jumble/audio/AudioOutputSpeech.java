@@ -63,6 +63,7 @@ public class AudioOutputSpeech {
     private boolean mLastAlive = true;
     private int mBufferFilled, mLastConsume = 0;
     private int ucFlags;
+    private IntPointer avail = new IntPointer(1);
 
     private TalkStateListener mTalkStateListener;
 
@@ -164,7 +165,6 @@ public class AudioOutputSpeech {
             if(!mLastAlive)
                 Arrays.fill(mOut, 0);
             else {
-                IntPointer avail = new IntPointer(1);
                 avail.put(0);
 
                 int ts;
@@ -189,11 +189,10 @@ public class AudioOutputSpeech {
 
                 if(mFrames.isEmpty()) {
                     Speex.JitterBufferPacket jbp = new Speex.JitterBufferPacket(null, 4096, 0, 0, 0);
-                    IntPointer startofs = new IntPointer(1);
                     int result;
 
                     synchronized (mJitterBuffer) {
-                        result = mJitterBuffer.get(jbp, startofs);
+                        result = mJitterBuffer.get(jbp, null);
                     }
 
                     if(result == Speex.JitterBuffer.JITTER_BUFFER_OK) {

@@ -595,7 +595,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mTextMessageHandler = new TextMessageHandler(this);
         mAudioOutput = new AudioOutput(this);
         mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mInputQuality, mTransmitMode, mDetectionThreshold, mAudioInputListener);
-        mConnection.addMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioOutput, mAudioInput);
+        mConnection.addTCPMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioOutput, mAudioInput);
+        mConnection.addUDPMessageHandlers(mAudioOutput);
 
         mConnection.connect();
     }

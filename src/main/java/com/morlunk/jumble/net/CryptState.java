@@ -111,13 +111,16 @@ public class CryptState {
         mInit = true;
     }
 
-    public byte[] decrypt(final byte[] source, final int length) {
-        if (length < 4) {
-            return null;
-        }
+    /**
+     * Decrypts data using the OCB-AES128 standard.
+     * @param source The encoded audio data.
+     * @param length The length of the source array.
+     * @param dst A destination array of size length - 4.
+     */
+    public void decrypt(final byte[] source, final byte[] dst, final int length) {
+        if (length < 4) return;
 
         final int plainLength = length - 4;
-        final byte[] dst = new byte[plainLength];
 
         final byte[] saveiv = new byte[AES_BLOCK_SIZE];
         final short ivbyte = (short) (source[0] & 0xFF);
@@ -141,7 +144,7 @@ public class CryptState {
                     }
                 }
             } else {
-                return null;
+                return;
             }
         } else {
             // This is either out of order or a repeat.
@@ -184,12 +187,12 @@ public class CryptState {
                     }
                 }
             } else {
-                return null;
+                return;
             }
 
             if (mDecryptHistory[mDecryptIV[0] & 0xFF] == mEncryptIV[0]) {
                 System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
-                return null;
+                return;
             }
         }
 
@@ -209,7 +212,7 @@ public class CryptState {
 
         if (tag[0] != source[1] || tag[1] != source[2] || tag[2] != source[3]) {
             System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
-            return null;
+            return;
         }
         mDecryptHistory[mDecryptIV[0] & 0xff] = mDecryptIV[1];
 
@@ -221,7 +224,6 @@ public class CryptState {
         mUiLost += lost;
 
         mLastGoodStart = System.nanoTime();
-        return dst;
     }
 
     public void ocbDecrypt(byte[] encrypted, byte[] plain, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {

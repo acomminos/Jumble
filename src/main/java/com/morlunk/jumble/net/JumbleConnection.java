@@ -28,7 +28,8 @@ import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.protobuf.Mumble;
-import com.morlunk.jumble.protocol.JumbleMessageListener;
+import com.morlunk.jumble.protocol.JumbleTCPMessageListener;
+import com.morlunk.jumble.protocol.JumbleUDPMessageListener;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -129,12 +130,13 @@ public class JumbleConnection {
     private int mSession;
 
     // Message handlers
-    private ConcurrentLinkedQueue<JumbleMessageListener> mHandlers = new ConcurrentLinkedQueue<JumbleMessageListener>();
+    private ConcurrentLinkedQueue<JumbleTCPMessageListener> mTCPHandlers = new ConcurrentLinkedQueue<JumbleTCPMessageListener>();
+    private ConcurrentLinkedQueue<JumbleUDPMessageListener> mUDPHandlers = new ConcurrentLinkedQueue<JumbleUDPMessageListener>();
 
     /**
      * Handles packets received that are critical to the connection state.
      */
-    private JumbleMessageListener mConnectionMessageHandler = new JumbleMessageListener.Stub() {
+    private JumbleTCPMessageListener mConnectionMessageHandler = new JumbleTCPMessageListener.Stub() {
 
         @Override
         public void messageServerSync(Mumble.ServerSync msg) {
@@ -251,6 +253,9 @@ public class JumbleConnection {
                     mListener.onConnectionWarning("UDP packets can be sent to and received from the server. Switching back to UDP mode.");
             }
         }
+    };
+
+    private JumbleUDPMessageListener mUDPPingListener = new JumbleUDPMessageListener.Stub() {
 
         @Override
         public void messageUDPPing(byte[] data) {
@@ -319,7 +324,8 @@ public class JumbleConnection {
         mUseOpus = useOpus;
         mUseTor = useTor;
         mMainHandler = new Handler(context.getMainLooper());
-        mHandlers.add(mConnectionMessageHandler);
+        mTCPHandlers.add(mConnectionMessageHandler);
+        mUDPHandlers.add(mUDPPingListener);
         setupSocketFactory(certificate, certificatePassword);
     }
 
@@ -359,13 +365,21 @@ public class JumbleConnection {
         return (System.nanoTime()-mStartTimestamp)/1000;
     }
 
-    public void addMessageHandlers(JumbleMessageListener... handlers) {
-        for(JumbleMessageListener listener : handlers)
-            mHandlers.add(listener);
+    public void addTCPMessageHandlers(JumbleTCPMessageListener... handlers) {
+        for(JumbleTCPMessageListener listener : handlers)
+            mTCPHandlers.add(listener);
     }
 
-    public void removeMessageHandler(JumbleMessageListener handler) {
-        mHandlers.remove(handler);
+    public void removeTCPMessageHandler(JumbleTCPMessageListener handler) {
+        mTCPHandlers.remove(handler);
+    }
+    public void addUDPMessageHandlers(JumbleUDPMessageListener... handlers) {
+        for(JumbleUDPMessageListener listener : handlers)
+            mUDPHandlers.add(listener);
+    }
+
+    public void removeUDPMessageHandler(JumbleUDPMessageListener handler) {
+        mUDPHandlers.remove(handler);
     }
 
     public int getServerVersion() {
@@ -564,7 +578,7 @@ public class JumbleConnection {
 
         try {
             Message message = getProtobufMessage(data, messageType);
-            for(JumbleMessageListener handler : mHandlers) {
+            for(JumbleTCPMessageListener handler : mTCPHandlers) {
                 broadcastTCPMessage(handler, message, messageType);
             }
         } catch (InvalidProtocolBufferException e) {
@@ -574,7 +588,7 @@ public class JumbleConnection {
 
     private final void handleUDPMessage(byte[] data) {
         final JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[data[0] >> 5 & 0x7];
-        for(JumbleMessageListener handler : mHandlers) {
+        for(JumbleUDPMessageListener handler : mUDPHandlers) {
             broadcastUDPMessage(handler, data, dataType);
         }
     }
@@ -651,7 +665,7 @@ public class JumbleConnection {
      * @param msg Protobuf message.
      * @param messageType The type of the message.
      */
-    public final void broadcastTCPMessage(JumbleMessageListener handler, Message msg, JumbleTCPMessageType messageType) {
+    public final void broadcastTCPMessage(JumbleTCPMessageListener handler, Message msg, JumbleTCPMessageType messageType) {
         switch (messageType) {
             case Authenticate:
                 handler.messageAuthenticate((Mumble.Authenticate) msg);
@@ -744,7 +758,7 @@ public class JumbleConnection {
      * @param data Raw UDP data of the message.
      * @param messageType The type of the message.
      */
-    public final void broadcastUDPMessage(JumbleMessageListener handler, byte[] data, JumbleUDPMessageType messageType) {
+    public final void broadcastUDPMessage(JumbleUDPMessageListener handler, byte[] data, JumbleUDPMessageType messageType) {
         switch (messageType) {
             case UDPPing:
                 handler.messageUDPPing(data);
@@ -900,6 +914,7 @@ public class JumbleConnection {
     private class JumbleUDP implements Runnable {
         private static final int BUFFER_SIZE = 2048;
         private DatagramSocket mUDPSocket;
+        private byte[] mDecryptedBuffer = new byte[BUFFER_SIZE];
 
         public void disconnect() {
             mUDPSocket.disconnect();
@@ -935,14 +950,9 @@ public class JumbleConnection {
                     // Decrypt UDP packet using OCB-AES128
                     final byte[] data = packet.getData();
                     final int length = packet.getLength();
-                    final byte[] decryptedData = mCryptState.decrypt(data, length);
+                    mCryptState.decrypt(data, mDecryptedBuffer, length);
 
-                    mMainHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (decryptedData != null) handleUDPMessage(decryptedData);
-                        }
-                    });
+                    handleUDPMessage(mDecryptedBuffer);
                 } catch (IOException e) {
                     e.printStackTrace();
                     break;
