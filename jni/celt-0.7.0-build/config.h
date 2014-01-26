@@ -32,10 +32,10 @@
 /* #undef FIXED_DEBUG */
 
 /* Compile as fixed-point */
-#define FIXED_POINT
+/* #define FIXED_POINT */
 
 /* Compile as floating-point */
-/* #define FLOATING_POINT */
+#define FLOATING_POINT
 
 /* Define to 1 if you have the <alloca.h> header file. */
 #define HAVE_ALLOCA_H 1

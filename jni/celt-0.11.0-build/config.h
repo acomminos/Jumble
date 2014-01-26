@@ -35,10 +35,10 @@
 /* #undef FIXED_DEBUG */
 
 /* Compile as fixed-point */
-#define FIXED_POINT
+/* #define FIXED_POINT */
 
 /* Compile as floating-point */
-/* #define FLOATING_POINT */
+#define FLOATING_POINT
 
 /* Float approximations */
 /* #undef FLOAT_APPROX */

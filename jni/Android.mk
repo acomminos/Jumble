@@ -32,7 +32,7 @@ LOCAL_SRC_FILES		:= cb_search.c		exc_10_32_table.c 	exc_8_128_table.c 	filters.c
 					   mdf.c            kiss_fft.c          kiss_fftr.c         fftwrap.c \
 					   filterbank.c     scal.c \
 					   $(ROOT)/speex.cpp
-LOCAL_CFLAGS		:= -D__EMX__ -DUSE_KISS_FFT -DFIXED_POINT -DEXPORT=''
+LOCAL_CFLAGS		:= -D__EMX__ -DUSE_KISS_FFT -DFLOATING_POINT -DEXPORT=''
 LOCAL_CPP_FEATURES := exceptions
 LOCAL_LDLIBS := -llog
 include $(BUILD_SHARED_LIBRARY)
@@ -60,13 +60,16 @@ include $(BUILD_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_PATH			:= $(ROOT)/opus
 LOCAL_MODULE		:= libopus
-LOCAL_C_INCLUDES	:= $(ROOT)/opus/include $(ROOT)/opus/celt $(ROOT)/opus/silk $(ROOT)/opus/silk/fixed
+LOCAL_C_INCLUDES	:= $(ROOT)/opus/include $(ROOT)/opus/celt $(ROOT)/opus/silk $(ROOT)/opus/silk/float
 LOCAL_SRC_FILES		:= src/opus.c \
 src/opus_decoder.c \
 src/opus_encoder.c \
 src/opus_multistream.c \
 src/opus_multistream_encoder.c \
 src/opus_multistream_decoder.c \
+src/analysis.c \
+src/mlp.c \
+src/mlp_data.c \
 celt/bands.c \
 celt/celt.c \
 celt/celt_encoder.c \
@@ -161,34 +164,40 @@ silk/stereo_decode_pred.c \
 silk/stereo_encode_pred.c \
 silk/stereo_find_predictor.c \
 silk/stereo_quant_pred.c \
-silk/fixed/LTP_analysis_filter_FIX.c \
-silk/fixed/LTP_scale_ctrl_FIX.c \
-silk/fixed/corrMatrix_FIX.c \
-silk/fixed/encode_frame_FIX.c \
-silk/fixed/find_LPC_FIX.c \
-silk/fixed/find_LTP_FIX.c \
-silk/fixed/find_pitch_lags_FIX.c \
-silk/fixed/find_pred_coefs_FIX.c \
-silk/fixed/noise_shape_analysis_FIX.c \
-silk/fixed/prefilter_FIX.c \
-silk/fixed/process_gains_FIX.c \
-silk/fixed/regularize_correlations_FIX.c \
-silk/fixed/residual_energy16_FIX.c \
-silk/fixed/residual_energy_FIX.c \
-silk/fixed/solve_LS_FIX.c \
-silk/fixed/warped_autocorrelation_FIX.c \
-silk/fixed/apply_sine_window_FIX.c \
-silk/fixed/autocorr_FIX.c \
-silk/fixed/burg_modified_FIX.c \
-silk/fixed/k2a_FIX.c \
-silk/fixed/k2a_Q16_FIX.c \
-silk/fixed/pitch_analysis_core_FIX.c \
-silk/fixed/vector_ops_FIX.c \
-silk/fixed/schur64_FIX.c \
-silk/fixed/schur_FIX.c \
+silk/float/apply_sine_window_FLP.c \
+silk/float/corrMatrix_FLP.c \
+silk/float/encode_frame_FLP.c \
+silk/float/find_LPC_FLP.c \
+silk/float/find_LTP_FLP.c \
+silk/float/find_pitch_lags_FLP.c \
+silk/float/find_pred_coefs_FLP.c \
+silk/float/LPC_analysis_filter_FLP.c \
+silk/float/LTP_analysis_filter_FLP.c \
+silk/float/LTP_scale_ctrl_FLP.c \
+silk/float/noise_shape_analysis_FLP.c \
+silk/float/prefilter_FLP.c \
+silk/float/process_gains_FLP.c \
+silk/float/regularize_correlations_FLP.c \
+silk/float/residual_energy_FLP.c \
+silk/float/solve_LS_FLP.c \
+silk/float/warped_autocorrelation_FLP.c \
+silk/float/wrappers_FLP.c \
+silk/float/autocorrelation_FLP.c \
+silk/float/burg_modified_FLP.c \
+silk/float/bwexpander_FLP.c \
+silk/float/energy_FLP.c \
+silk/float/inner_product_FLP.c \
+silk/float/k2a_FLP.c \
+silk/float/levinsondurbin_FLP.c \
+silk/float/LPC_inv_pred_gain_FLP.c \
+silk/float/pitch_analysis_core_FLP.c \
+silk/float/scale_copy_vector_FLP.c \
+silk/float/scale_vector_FLP.c \
+silk/float/schur_FLP.c \
+silk/float/sort_FLP.c \
 src/repacketizer.c \
 $(ROOT)/opus.cpp
-LOCAL_CFLAGS		:= -DOPUS_BUILD -DVAR_ARRAYS -Wno-traditional -DFIXED_POINT
+LOCAL_CFLAGS		:= -DOPUS_BUILD -DVAR_ARRAYS -Wno-traditional -DFLOATING_POINT
 LOCAL_CPP_FEATURES := exceptions
 LOCAL_LDLIBS := -llog
 include $(BUILD_SHARED_LIBRARY)
