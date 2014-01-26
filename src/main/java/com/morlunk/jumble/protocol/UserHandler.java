@@ -274,10 +274,38 @@ public class UserHandler extends ProtocolHandler {
 
     @Override
     public void messagePermissionDenied(final Mumble.PermissionDenied msg) {
+        final String reason;
+        switch (msg.getType()) {
+            case ChannelName:
+                reason = getService().getString(R.string.deny_reason_channel_name);
+                break;
+            case TextTooLong:
+                reason = getService().getString(R.string.deny_reason_text_too_long);
+                break;
+            case TemporaryChannel:
+                reason = getService().getString(R.string.deny_reason_no_operation_temp);
+                break;
+            case MissingCertificate:
+                reason = getService().getString(R.string.deny_reason_no_certificate);
+                break;
+            case UserName:
+                reason = getService().getString(R.string.deny_reason_invalid_username);
+                break;
+            case ChannelFull:
+                reason = getService().getString(R.string.deny_reason_channel_full);
+                break;
+            case NestingLimit:
+                reason = getService().getString(R.string.deny_reason_channel_nesting);
+                break;
+            default:
+                if(msg.hasReason()) reason = getService().getString(R.string.deny_reason_other, msg.getReason());
+                else reason = getService().getString(R.string.perm_denied);
+
+        }
         getService().notifyObservers(new JumbleService.ObserverRunnable() {
             @Override
             public void run(IJumbleObserver observer) throws RemoteException {
-                observer.onPermissionDenied(msg.getReason());
+                observer.onPermissionDenied(reason);
             }
         });
     }

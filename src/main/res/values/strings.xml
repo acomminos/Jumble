@@ -45,4 +45,13 @@
     <string name="chat_notify_user_recording_stopped">%s stopped recording.</string>
     <string name="bluetooth_connected">Bluetooth connected</string>
     <string name="bluetooth_disconnected">Bluetooth disconnected</string>
+    <string name="deny_reason_channel_name">Denied: Invalid channel name.</string>
+    <string name="deny_reason_text_too_long">Denied: Text message too long.</string>
+    <string name="deny_reason_no_operation_temp">Denied: Operation not permitted in temporary channel.</string>
+    <string name="deny_reason_no_certificate">You need a certificate to perform this operation.</string>
+    <string name="deny_reason_invalid_username">Invalid username.</string>
+    <string name="deny_reason_channel_full">Channel is full.</string>
+    <string name="deny_reason_channel_nesting">Channel nesting limit reached.</string>
+    <string name="deny_reason_other">Reason: %s</string>
+    <string name="perm_denied">Permission denied.</string>
 </resources>
