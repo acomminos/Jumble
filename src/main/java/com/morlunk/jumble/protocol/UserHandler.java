@@ -91,6 +91,7 @@ public class UserHandler extends ProtocolHandler {
                 newUser = true;
                 // Add user to root channel by default. This works because for some reason, we don't get a channel ID when the user joins into root.
                 Channel root = getService().getChannelHandler().getChannel(0);
+                if(root == null) root = getService().getChannelHandler().createStubChannel(0);
                 user.setChannelId(0);
                 root.addUser(user.getSession());
                 root.setSubchannelUserCount(root.getSubchannelUserCount()+1);

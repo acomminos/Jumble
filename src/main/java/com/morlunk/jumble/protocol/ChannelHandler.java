@@ -56,6 +56,18 @@ public class ChannelHandler extends ProtocolHandler {
         return mChannels.get(id);
     }
 
+    /**
+     * Creates a stub channel with the given ID.
+     * Useful for keeping user references when we get a UserState message before a ChannelState.
+     * @param id The channel ID.
+     * @return The newly created stub channel.
+     */
+    public Channel createStubChannel(int id) {
+        Channel channel = new Channel(id, false);
+        mChannels.put(id, channel);
+        return channel;
+    }
+
     public List<Channel> getChannels() {
         return new ArrayList<Channel>(mChannels.values());
     }
