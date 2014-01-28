@@ -46,6 +46,7 @@ public class AudioOutputSpeech {
     private Speex.SpeexBits mSpeexBits;
     private Pointer mSpeexDecoder;
     private Speex.JitterBuffer mJitterBuffer;
+    private final Object mJitterLock = new Object();
 
     private int mSession;
     private JumbleUDPMessageType mCodec;
@@ -139,10 +140,9 @@ public class AudioOutputSpeech {
 
         if(pds.isValid()) {
             Speex.JitterBufferPacket packet = new Speex.JitterBufferPacket(data, data.length, Audio.FRAME_SIZE * seq, samples, 0);
-            synchronized (mJitterBuffer) {
+            synchronized (mJitterLock) {
                 mJitterBuffer.put(packet);
             }
-            packet.deallocate();
         }
     }
 
@@ -168,7 +168,7 @@ public class AudioOutputSpeech {
                 avail.put(0);
 
                 int ts;
-                synchronized (mJitterBuffer) {
+                synchronized (mJitterLock) {
                     ts = mJitterBuffer.getPointerTimestamp();
                     mJitterBuffer.control(Speex.JitterBuffer.JITTER_BUFFER_GET_AVAILABLE_COUNT, avail);
                 }
@@ -191,7 +191,7 @@ public class AudioOutputSpeech {
                     Speex.JitterBufferPacket jbp = new Speex.JitterBufferPacket(null, 4096, 0, 0, 0);
                     int result;
 
-                    synchronized (mJitterBuffer) {
+                    synchronized (mJitterLock) {
                         result = mJitterBuffer.get(jbp, null);
                     }
 
@@ -228,7 +228,7 @@ public class AudioOutputSpeech {
                             mAverageAvailable *= 0.99f;
 
                     } else {
-                        synchronized (mJitterBuffer) {
+                        synchronized (mJitterLock) {
                             mJitterBuffer.updateDelay(jbp, null);
                         }
 
@@ -267,7 +267,7 @@ public class AudioOutputSpeech {
                     }
 
                     if(mFrames.isEmpty())
-                        synchronized (mJitterBuffer) {
+                        synchronized (mJitterLock) {
                             mJitterBuffer.updateDelay(null, new IntPointer(1));
                         }
 
@@ -297,7 +297,7 @@ public class AudioOutputSpeech {
                     }
                 }
 
-                synchronized (mJitterBuffer) {
+                synchronized (mJitterLock) {
                     for(int i = decodedSamples / Audio.FRAME_SIZE; i > 0; i--)
                         mJitterBuffer.tick();
                 }

@@ -51,6 +51,7 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
 
     private ConcurrentHashMap<Integer, AudioOutputSpeech> mAudioOutputs = new ConcurrentHashMap<Integer, AudioOutputSpeech>();
     private AudioTrack mAudioTrack;
+    private int mBufferSize;
     private Thread mThread;
     private Object mInactiveLock = new Object(); // Lock that the audio thread waits on when there's no audio to play. Wake when we get a frame.
     private boolean mRunning = false;
@@ -69,14 +70,15 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
             return;
 
         int minBufferSize = AudioTrack.getMinBufferSize(Audio.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
-        int bufferSize = Math.max(minBufferSize, Audio.FRAME_SIZE * 12 * 2); // Make the buffer size a multiple of the largest possible frame.
-        Log.v(Constants.TAG, "Using buffer size "+bufferSize+", system's min buffer size: "+minBufferSize);
+        mBufferSize = minBufferSize;
+//        mBufferSize = Math.max(minBufferSize, Audio.FRAME_SIZE * 12); // Make the buffer size a multiple of the largest possible frame.
+        Log.v(Constants.TAG, "Using buffer size "+mBufferSize+", system's min buffer size: "+minBufferSize);
 
         mAudioTrack = new AudioTrack(scoEnabled ? AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC,
                 Audio.SAMPLE_RATE,
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
-                bufferSize,
+                mBufferSize,
                 AudioTrack.MODE_STREAM);
 
         mThread = new Thread(this);
@@ -116,7 +118,7 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
         mRunning = true;
         mAudioTrack.play();
 
-        final short[] mix = new short[Audio.FRAME_SIZE*12];
+        final short[] mix = new short[Audio.FRAME_SIZE];
 
         while(mRunning) {
             Arrays.fill(mix, (short)0);
