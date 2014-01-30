@@ -367,8 +367,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void joinChannel(int channel) throws RemoteException {
+            moveUserToChannel(getSession(), channel);
+        }
+
+        @Override
+        public void moveUserToChannel(int session, int channel) throws RemoteException {
             Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSession(mConnection.getSession());
+            usb.setSession(session);
             usb.setChannelId(channel);
             mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
         }
