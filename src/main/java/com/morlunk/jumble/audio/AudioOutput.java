@@ -24,6 +24,7 @@ import android.os.Looper;
 import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
+import android.util.SparseArray;
 
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.IJumbleObserver;
@@ -38,7 +39,9 @@ import com.morlunk.jumble.protocol.ProtocolHandler;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -49,7 +52,7 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
     /** Number of nanoseconds until sleeping audio output thread. */
     private static final long SLEEP_THRESHOLD = 3000000000L;
 
-    private ConcurrentHashMap<Integer, AudioOutputSpeech> mAudioOutputs = new ConcurrentHashMap<Integer, AudioOutputSpeech>();
+    private SparseArray<AudioOutputSpeech> mAudioOutputs = new SparseArray<AudioOutputSpeech>();
     private AudioTrack mAudioTrack;
     private int mBufferSize;
     private Thread mThread;
@@ -99,8 +102,9 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
             e.printStackTrace();
         }
         mThread = null;
-        for(AudioOutputSpeech s : mAudioOutputs.values())
-            s.destroy();
+        for(int i = 0; i < mAudioOutputs.size(); i++) {
+            mAudioOutputs.valueAt(i).destroy();
+        }
 
         mAudioOutputs.clear();
         mAudioTrack.release();
@@ -148,7 +152,8 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
         mDelBuffer.clear();
         // TODO add priority speaker support
 
-        for(AudioOutputSpeech speech : mAudioOutputs.values()) {
+        for(int i = 0; i < mAudioOutputs.size(); i++) {
+            AudioOutputSpeech speech = mAudioOutputs.valueAt(i);
             if(!speech.needSamples(bufferSize))
                 mDelBuffer.add(speech);
             else
