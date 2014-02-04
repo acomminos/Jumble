@@ -115,6 +115,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     };
     */
 
+    private boolean mBluetoothOn = false;
     private BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -123,16 +124,19 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 case AudioManager.SCO_AUDIO_STATE_CONNECTED:
                     Toast.makeText(JumbleService.this, R.string.bluetooth_connected, Toast.LENGTH_LONG).show();
                     mAudioOutput.stopPlaying();
-                    if(isConnected())
+                    if(isConnected()) {
+                        mBluetoothOn = true;
                         mAudioOutput.startPlaying(true);
+                    }
                     break;
                 case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
                 case AudioManager.SCO_AUDIO_STATE_ERROR:
-                    if(mAudioOutput.isPlaying())
+                    if(mAudioOutput.isPlaying() && mBluetoothOn)
                         Toast.makeText(JumbleService.this, R.string.bluetooth_disconnected, Toast.LENGTH_LONG).show();
                     mAudioOutput.stopPlaying();
                     if(isConnected())
                         mAudioOutput.startPlaying(false);
+                    mBluetoothOn = false;
                     break;
             }
         }
