@@ -95,10 +95,15 @@ public class PacketDataStream {
     }
 
     public byte[] dataBlock(int size) {
-        byte[] block = new byte[size];
-        System.arraycopy(mData, mOffset, block, 0, size);
-        mOffset += size;
-        return block;
+        if(left() >= size) {
+            byte[] block = new byte[size];
+            System.arraycopy(mData, mOffset, block, 0, size);
+            mOffset += size;
+            return block;
+        } else {
+            mOk = false;
+            return new byte[0];
+        }
     }
 
     public boolean readBool() {

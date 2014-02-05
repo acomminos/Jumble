@@ -124,10 +124,14 @@ public class AudioOutputSpeech {
 
             if(size > 0) {
                 byte[] packet = pds.dataBlock(size);
+                if(!pds.isValid() || packet.length != size) return;
+
                 BytePointer packetPointer = new BytePointer(packet);
                 int frames = Opus.opus_packet_get_nb_frames(packetPointer, size);
                 samples = frames * Opus.opus_packet_get_samples_per_frame(packetPointer, Audio.SAMPLE_RATE);
                 packetPointer.deallocate();
+            } else {
+                return;
             }
         } else {
             int header;
@@ -259,6 +263,7 @@ public class AudioOutputSpeech {
                                 mOut,
                                 mAudioBufferSize,
                                 0);
+                        if(decodedSamples < 0) decodedSamples = Audio.FRAME_SIZE;
                     } else {
                         mSpeexBits.read(data, data.length);
                         Speex.speex_decode(mSpeexDecoder, mSpeexBits, mOut);
@@ -274,13 +279,14 @@ public class AudioOutputSpeech {
                     if(mFrames.isEmpty() && mHasTerminator)
                         nextAlive = false;
                 } else {
-                    if(mCodec == JumbleUDPMessageType.UDPVoiceCELTAlpha)
+                    if(mCodec == JumbleUDPMessageType.UDPVoiceCELTAlpha) {
                         CELT7.celt_decode_float(mCELTAlphaDecoder, null, 0, mOut);
-                    else if(mCodec == JumbleUDPMessageType.UDPVoiceCELTBeta)
+                    } else if(mCodec == JumbleUDPMessageType.UDPVoiceCELTBeta) {
                         CELT11.celt_decode_float(mCELTBetaDecoder, null, 0, mOut, Audio.FRAME_SIZE);
-                    else if(mCodec == JumbleUDPMessageType.UDPVoiceOpus)
+                    } else if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
                         decodedSamples = Opus.opus_decode_float(mOpusDecoder, null, 0, mOut, Audio.FRAME_SIZE, 0);
-                    else {
+                        if(decodedSamples < 0) decodedSamples = Audio.FRAME_SIZE;
+                    } else {
                         Speex.speex_decode(mSpeexDecoder, null, mOut);
                         for(int i = 0; i < Audio.FRAME_SIZE; i++)
                             mOut[i] *= (1.0f / 32767.f);
