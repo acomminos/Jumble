@@ -16,9 +16,12 @@
 
 package com.morlunk.jumble.audio;
 
+import android.util.Log;
+
 import com.googlecode.javacpp.BytePointer;
 import com.googlecode.javacpp.IntPointer;
 import com.googlecode.javacpp.Pointer;
+import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.audio.javacpp.CELT11;
 import com.morlunk.jumble.audio.javacpp.CELT7;
 import com.morlunk.jumble.audio.javacpp.Opus;
@@ -48,7 +51,7 @@ public class AudioOutputSpeech {
     private Speex.JitterBuffer mJitterBuffer;
     private final Object mJitterLock = new Object();
 
-    private int mSession;
+    private User mUser;
     private JumbleUDPMessageType mCodec;
     private int mAudioBufferSize = Audio.FRAME_SIZE;
 
@@ -59,7 +62,6 @@ public class AudioOutputSpeech {
     private float[] mFadeIn;
     private Queue<byte[]> mFrames = new ConcurrentLinkedQueue<byte[]>();
     private int mMissCount = 0;
-    private float mAverageAvailable = 0;
     private boolean mHasTerminator = false;
     private boolean mLastAlive = true;
     private int mBufferFilled, mLastConsume = 0;
@@ -68,9 +70,9 @@ public class AudioOutputSpeech {
 
     private TalkStateListener mTalkStateListener;
 
-    public AudioOutputSpeech(int session, JumbleUDPMessageType codec, TalkStateListener listener) {
+    public AudioOutputSpeech(User user, JumbleUDPMessageType codec, TalkStateListener listener) {
         // TODO: consider implementing resampling if some Android devices not support 48kHz?
-        mSession = session;
+        mUser = user;
         mCodec = codec;
         mTalkStateListener = listener;
         switch (codec) {
@@ -114,37 +116,37 @@ public class AudioOutputSpeech {
         if(data.length < 2)
             return;
 
-        PacketDataStream pds = new PacketDataStream(data, data.length);
-        pds.next(); // skip flags
+        synchronized (mJitterLock) {
+            PacketDataStream pds = new PacketDataStream(data, data.length);
+            pds.next(); // skip flags
 
-        int samples = 0;
-        if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
-            long header = pds.readLong();
-            int size = (int) (header & ((1 << 13) - 1));
+            int samples = 0;
+            if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
+                long header = pds.readLong();
+                int size = (int) (header & ((1 << 13) - 1));
 
-            if(size > 0) {
-                byte[] packet = pds.dataBlock(size);
-                if(!pds.isValid() || packet.length != size) return;
+                if(size > 0) {
+                    byte[] packet = pds.dataBlock(size);
+                    if(!pds.isValid() || packet.length != size) return;
 
-                BytePointer packetPointer = new BytePointer(packet);
-                int frames = Opus.opus_packet_get_nb_frames(packetPointer, size);
-                samples = frames * Opus.opus_packet_get_samples_per_frame(packetPointer, Audio.SAMPLE_RATE);
-                packetPointer.deallocate();
+                    BytePointer packetPointer = new BytePointer(packet);
+                    int frames = Opus.opus_packet_get_nb_frames(packetPointer, size);
+                    samples = frames * Opus.opus_packet_get_samples_per_frame(packetPointer, Audio.SAMPLE_RATE);
+                    packetPointer.deallocate();
+                } else {
+                    return;
+                }
             } else {
-                return;
+                int header;
+                do {
+                    header = pds.next();
+                    samples += Audio.FRAME_SIZE;
+                    pds.skip(header & 0x7f);
+                } while ((header & 0x80) > 0 && pds.isValid());
             }
-        } else {
-            int header;
-            do {
-                header = pds.next();
-                samples += Audio.FRAME_SIZE;
-                pds.skip(header & 0x7f);
-            } while ((header & 0x80) > 0 && pds.isValid());
-        }
 
-        if(pds.isValid()) {
-            Speex.JitterBufferPacket packet = new Speex.JitterBufferPacket(data, data.length, Audio.FRAME_SIZE * seq, samples, 0);
-            synchronized (mJitterLock) {
+            if(pds.isValid()) {
+                Speex.JitterBufferPacket packet = new Speex.JitterBufferPacket(data, data.length, Audio.FRAME_SIZE * seq, samples, 0);
                 mJitterBuffer.put(packet);
             }
         }
@@ -178,8 +180,12 @@ public class AudioOutputSpeech {
                 }
                 float availPackets = (float) avail.get();
 
+                // This bit of code here will make sure that we have enough packets in the jitter
+                // buffer before we even begin decoding, based on the average # of packets available.
+                // It's useful in preventing a metallic 'twang' when the user starts talking,
+                // caused by buffer underrun. The official Mumble project uses the same technique.
                 if(ts == 0) {
-                    int want = (int) Math.floor(mAverageAvailable);
+                    int want = (int) Math.ceil(mUser.getAverageAvailable());
                     if (availPackets < want) {
                         mMissCount++;
                         if(mMissCount < 20) {
@@ -226,10 +232,10 @@ public class AudioOutputSpeech {
                             } while ((header & 0x80) > 0 && pds.isValid());
                         }
 
-                        if(availPackets >= mAverageAvailable)
-                            mAverageAvailable = availPackets;
+                        if(availPackets >= mUser.getAverageAvailable())
+                            mUser.setAverageAvailable(availPackets);
                         else
-                            mAverageAvailable *= 0.99f;
+                            mUser.setAverageAvailable(mUser.getAverageAvailable() * 0.99f);
 
                     } else {
                         synchronized (mJitterLock) {
@@ -331,7 +337,7 @@ public class AudioOutputSpeech {
                 break;
         }
 
-        mTalkStateListener.onTalkStateUpdated(mSession, talkState);
+        mTalkStateListener.onTalkStateUpdated(mUser.getSession(), talkState);
 
         boolean tmp = mLastAlive;
         mLastAlive = nextAlive;
@@ -354,8 +360,12 @@ public class AudioOutputSpeech {
         return mCodec;
     }
 
+    public User getUser() {
+        return mUser;
+    }
+
     public int getSession() {
-        return mSession;
+        return mUser.getSession();
     }
 
     /**

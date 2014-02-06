@@ -171,8 +171,11 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
             }
         }
 
-        for(AudioOutputSpeech speech : mDelBuffer)
+        for(AudioOutputSpeech speech : mDelBuffer) {
+            Log.v(Constants.TAG, "Deleted audio user "+speech.getUser().getName());
             mAudioOutputs.remove(speech.getSession());
+            speech.destroy();
+        }
 
         return !mMixBuffer.isEmpty();
     }
@@ -201,7 +204,8 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
                 aop = null;
             }
             if(aop == null) {
-                aop = new AudioOutputSpeech(session, dataType, this);
+                aop = new AudioOutputSpeech(user, dataType, this);
+                Log.v(Constants.TAG, "Created audio user "+user.getName());
                 mAudioOutputs.put(session, aop);
             }
 

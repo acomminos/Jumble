@@ -55,6 +55,9 @@ public class User implements Parcelable {
     private boolean mLocalMuted;
     private boolean mLocalIgnored;
 
+    /** The number of samples normally available from the user. */
+    private float mAverageAvailable;
+
     public static final Parcelable.Creator<User> CREATOR = new Parcelable.Creator<User>() {
 
         @Override
@@ -99,6 +102,7 @@ public class User implements Parcelable {
         out.writeValue(mRecording);
         out.writeInt(mChannel);
         out.writeValue(mLocalMuted);
+        out.writeFloat(mAverageAvailable);
         out.writeString(mTalkState.toString());
     }
 
@@ -120,6 +124,7 @@ public class User implements Parcelable {
         mRecording = (Boolean)in.readValue(null);
         mChannel = in.readInt();
         mLocalMuted = (Boolean)in.readValue(null);
+        mAverageAvailable = in.readFloat();
         mTalkState = TalkState.valueOf(in.readString());
     }
 
@@ -258,5 +263,13 @@ public class User implements Parcelable {
 
     public void setTalkState(TalkState mTalkState) {
         this.mTalkState = mTalkState;
+    }
+
+    public float getAverageAvailable() {
+        return mAverageAvailable;
+    }
+
+    public void setAverageAvailable(float averageAvailable) {
+        mAverageAvailable = averageAvailable;
     }
 }
