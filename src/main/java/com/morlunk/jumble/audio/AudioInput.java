@@ -19,6 +19,8 @@ package com.morlunk.jumble.audio;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.media.audiofx.AutomaticGainControl;
+import android.os.Build;
 import android.util.Log;
 
 import com.googlecode.javacpp.IntPointer;
@@ -76,6 +78,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     private float mVADThreshold = 0;
     private boolean mVADLastDetected = false;
     private long mVADLastDetectedTime;
+    private float mAmplitudeBoost;
 
     private AudioRecord mAudioRecord;
     private int mMinBufferSize;
@@ -106,11 +109,12 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Creates a new audio input manager configured for the specified codec.
      * @param listener
      */
-    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int sampleRate, int transmitMode, float voiceThreshold, AudioInputListener listener) {
+    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int sampleRate, int transmitMode, float voiceThreshold, float amplitudeBoost, AudioInputListener listener) {
         super(service);
         mListener = listener;
         mTransmitMode = transmitMode;
         mVADThreshold = voiceThreshold;
+        mAmplitudeBoost = amplitudeBoost;
         mInputSampleRate = getSupportedSampleRate(sampleRate);
         switchCodec(codec);
         configurePreprocessState();
@@ -155,6 +159,10 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
     public void setVADThreshold(float threshold) {
         mVADThreshold = threshold;
+    }
+
+    public void setAmplitudeBoost(float boost) {
+        mAmplitudeBoost = boost;
     }
 
     public void setTransmitMode(int transmitMode) {
@@ -260,6 +268,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
             if(mAudioRecord == null) {
                 mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
+
                 // If we're still uninitialized, we have a problem.
                 if(mAudioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
                     getService().onConnectionError(new JumbleConnectionException("Failed to initialize audio input!", false));
@@ -344,6 +353,15 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
                 // Run preprocessor on audio data. TODO echo!
                 mPreprocessState.preprocess(audioData);
+
+                // Boost/reduce amplitude based on user preference
+                if(mAmplitudeBoost != 1.0f) {
+                    for(int i = 0; i < mFrameSize; i++) {
+                        audioData[i] *= mAmplitudeBoost;
+                        if(audioData[i] > Short.MAX_VALUE) audioData[i] = Short.MAX_VALUE;
+                        else if(audioData[i] < Short.MIN_VALUE) audioData[i] = Short.MIN_VALUE;
+                    }
+                }
 
                 boolean talking = true;
 

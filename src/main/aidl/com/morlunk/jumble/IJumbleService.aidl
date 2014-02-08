@@ -65,6 +65,7 @@ interface IJumbleService {
     int getTransmitMode();
     void setTransmitMode(int transmitMode);
     void setVADThreshold(float threshold);
+    void setAmplitudeBoost(float boost);
     int getCodec();
 
     // Bluetooth

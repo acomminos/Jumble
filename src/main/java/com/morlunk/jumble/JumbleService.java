@@ -66,6 +66,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_CERTIFICATE = "certificate";
     public static final String EXTRAS_CERTIFICATE_PASSWORD = "certificate_password";
     public static final String EXTRAS_DETECTION_THRESHOLD = "detection_threshold";
+    public static final String EXTRAS_AMPLITUDE_BOOST = "amplitude_boost";
     public static final String EXTRAS_TRANSMIT_MODE = "transmit_mode";
     public static final String EXTRAS_INPUT_QUALITY = "input_quality";
     public static final String EXTRAS_USE_OPUS = "use_opus";
@@ -83,6 +84,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public byte[] mCertificate;
     public String mCertificatePassword;
     public float mDetectionThreshold;
+    public float mAmplitudeBoost;
     public int mTransmitMode;
     public boolean mUseOpus;
     public int mInputQuality;
@@ -341,6 +343,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
+        public void setAmplitudeBoost(float boost) throws RemoteException {
+            mAmplitudeBoost = boost;
+            if(mAudioInput != null) mAudioInput.setAmplitudeBoost(boost);
+        }
+
+        @Override
         public int getCodec() throws RemoteException {
             return mConnection.getCodec();
         }
@@ -548,6 +556,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mCertificate = extras.getByteArray(EXTRAS_CERTIFICATE);
             mCertificatePassword = extras.getString(EXTRAS_CERTIFICATE_PASSWORD);
             mDetectionThreshold = extras.getFloat(EXTRAS_DETECTION_THRESHOLD, 0.5f);
+            mAmplitudeBoost = extras.getFloat(EXTRAS_AMPLITUDE_BOOST, 1.0f);
             mTransmitMode = extras.getInt(EXTRAS_TRANSMIT_MODE, Constants.TRANSMIT_VOICE_ACTIVITY);
             mInputQuality = extras.getInt(EXTRAS_INPUT_QUALITY, Audio.SAMPLE_RATE);
             mUseOpus = extras.getBoolean(EXTRAS_USE_OPUS, true);
@@ -603,7 +612,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mUserHandler = new UserHandler(this);
         mTextMessageHandler = new TextMessageHandler(this);
         mAudioOutput = new AudioOutput(this);
-        mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mInputQuality, mTransmitMode, mDetectionThreshold, mAudioInputListener);
+        mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mInputQuality, mTransmitMode, mDetectionThreshold, mAmplitudeBoost, mAudioInputListener);
         mConnection.addTCPMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioOutput, mAudioInput);
         mConnection.addUDPMessageHandlers(mAudioOutput);
 
