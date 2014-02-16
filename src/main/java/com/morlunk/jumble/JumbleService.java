@@ -22,6 +22,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
+import android.media.AudioRecord;
+import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -74,6 +76,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_USE_TOR = "use_tor";
     public static final String EXTRAS_CLIENT_NAME = "client_name";
     public static final String EXTRAS_ACCESS_TOKENS = "access_tokens";
+    public static final String EXTRAS_AUDIO_SOURCE = "audio_source";
+    public static final String EXTRAS_AUDIO_STREAM = "audio_stream";
 
     public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
 
@@ -92,6 +96,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public boolean mUseTor;
     public String mClientName;
     public List<String> mAccessTokens;
+    public int mAudioSource;
+    public int mAudioStream;
 
     private JumbleConnection mConnection;
     private ChannelHandler mChannelHandler;
@@ -564,6 +570,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mForceTcp = extras.getBoolean(EXTRAS_FORCE_TCP, false) || mUseTor; // Tor requires TCP connections to work- if it's on, force TCP.
             mClientName = extras.containsKey(EXTRAS_CLIENT_NAME) ? extras.getString(EXTRAS_CLIENT_NAME) : "Jumble";
             mAccessTokens = extras.getStringArrayList(EXTRAS_ACCESS_TOKENS);
+            mAudioSource = extras.getInt(EXTRAS_AUDIO_SOURCE, MediaRecorder.AudioSource.MIC);
+            mAudioStream = extras.getInt(EXTRAS_AUDIO_STREAM, AudioManager.STREAM_MUSIC);
             connect();
         }
         return START_NOT_STICKY;
@@ -611,8 +619,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mChannelHandler = new ChannelHandler(this);
         mUserHandler = new UserHandler(this);
         mTextMessageHandler = new TextMessageHandler(this);
-        mAudioOutput = new AudioOutput(this);
-        mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mInputQuality, mTransmitMode, mDetectionThreshold, mAmplitudeBoost, mAudioInputListener);
+        mAudioOutput = new AudioOutput(this, mAudioStream);
+        mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mAudioSource, mInputQuality, mTransmitMode, mDetectionThreshold, mAmplitudeBoost, mAudioInputListener);
         mConnection.addTCPMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioOutput, mAudioInput);
         mConnection.addUDPMessageHandlers(mAudioOutput);
 

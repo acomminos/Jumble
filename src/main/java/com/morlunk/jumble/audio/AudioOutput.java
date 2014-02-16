@@ -54,6 +54,7 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
 
     private SparseArray<AudioOutputSpeech> mAudioOutputs = new SparseArray<AudioOutputSpeech>();
     private AudioTrack mAudioTrack;
+    private int mAudioStream;
     private int mBufferSize;
     private Thread mThread;
     private Object mInactiveLock = new Object(); // Lock that the audio thread waits on when there's no audio to play. Wake when we get a frame.
@@ -63,9 +64,10 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
     private List<AudioOutputSpeech> mDelBuffer = new ArrayList<AudioOutputSpeech>();
     private Handler mMainHandler;
 
-    public AudioOutput(JumbleService service) {
+    public AudioOutput(JumbleService service, int audioStream) {
         super(service);
         mMainHandler = new Handler(Looper.getMainLooper());
+        mAudioStream = audioStream;
     }
 
     public void startPlaying(boolean scoEnabled) {
@@ -77,7 +79,8 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
 //        mBufferSize = Math.max(minBufferSize, Audio.FRAME_SIZE * 12); // Make the buffer size a multiple of the largest possible frame.
         Log.v(Constants.TAG, "Using buffer size "+mBufferSize+", system's min buffer size: "+minBufferSize);
 
-        mAudioTrack = new AudioTrack(scoEnabled ? AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC,
+        // Force STREAM_VOICE_CALL for Bluetooth, as it's all that will work.
+        mAudioTrack = new AudioTrack(scoEnabled ? AudioManager.STREAM_VOICE_CALL : mAudioStream,
                 Audio.SAMPLE_RATE,
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,

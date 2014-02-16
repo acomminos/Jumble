@@ -81,6 +81,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     private float mAmplitudeBoost;
 
     private AudioRecord mAudioRecord;
+    private int mAudioSource;
     private int mMinBufferSize;
     private int mInputSampleRate = -1;
     private int mFrameSize = Audio.FRAME_SIZE;
@@ -109,9 +110,10 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Creates a new audio input manager configured for the specified codec.
      * @param listener
      */
-    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int sampleRate, int transmitMode, float voiceThreshold, float amplitudeBoost, AudioInputListener listener) {
+    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int audioSource, int sampleRate, int transmitMode, float voiceThreshold, float amplitudeBoost, AudioInputListener listener) {
         super(service);
         mListener = listener;
+        mAudioSource = audioSource;
         mTransmitMode = transmitMode;
         mVADThreshold = voiceThreshold;
         mAmplitudeBoost = amplitudeBoost;
@@ -267,7 +269,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
             }
 
             if(mAudioRecord == null) {
-                mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
+                mAudioRecord = new AudioRecord(mAudioSource, mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
 
                 // If we're still uninitialized, we have a problem.
                 if(mAudioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
