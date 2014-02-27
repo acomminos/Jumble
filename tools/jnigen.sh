@@ -5,7 +5,7 @@ if [ "$1" == "--build" ]; then
     ./gradlew assembleDebug
 fi
 
-java -jar tools/javacpp-0.6.jar -cp build/classes/debug/ -d jni/ -nocompile com.morlunk.jumble.audio.javacpp.*
+java -jar tools/javacpp-0.7.jar -cp build/classes/debug/ -d jni/ -nocompile com.morlunk.jumble.audio.javacpp.*
 
 if [ "$1" == "--build" ]; then
     # Build native libs

@@ -34,7 +34,7 @@ dependencies {
     compile group:'com.madgag', name:'sc-light-jdk15on', version:'1.47.0.2'
     compile group:'com.madgag', name:'scprov-jdk15on', version:'1.47.0.2'
     compile group:'com.madgag', name:'scpkix-jdk15on', version:'1.47.0.2'
-    compile group:'com.googlecode.javacpp', name:'javacpp', version:'0.6'
+    compile group:'com.googlecode.javacpp', name:'javacpp', version:'0.7'
 }
 
 android {

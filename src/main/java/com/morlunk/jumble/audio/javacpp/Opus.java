@@ -21,6 +21,7 @@ import com.googlecode.javacpp.IntPointer;
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacpp.Pointer;
 import com.googlecode.javacpp.annotation.Cast;
+import com.googlecode.javacpp.annotation.Name;
 import com.googlecode.javacpp.annotation.NoDeallocator;
 import com.googlecode.javacpp.annotation.Platform;
 
@@ -63,4 +64,5 @@ public class Opus {
     public static native int opus_encode_float(@Cast("OpusEncoder*") Pointer st, @Cast("const float*") float[] pcm, int frameSize, @Cast("unsigned char*") byte[] data, int maxDataBytes);
     public static native void opus_encoder_destroy(@Cast("OpusEncoder*") Pointer st);
     public static native int opus_encoder_ctl(@Cast("OpusEncoder*") Pointer st, int request, Pointer value);
+    public static native int opus_encoder_ctl(@Cast("OpusEncoder*") Pointer st, int request, @Cast("opus_int32") int value);
 }
