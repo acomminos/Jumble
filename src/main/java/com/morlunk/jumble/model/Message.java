@@ -23,6 +23,9 @@ import android.text.format.Time;
 import java.util.List;
 
 /**
+ * A class encapsulating a text message from a Mumble server.
+ * NOTE: Always prefer using getActorName(). You CANNOT rely on getActor() to provide this info, as
+ * we might keep message history for a user that is no longer in the {@link UserManager}.
  * Created by andrew on 03/12/13.
  */
 public class Message implements Parcelable {
@@ -51,6 +54,7 @@ public class Message implements Parcelable {
 
     private Message.Type mType;
     private int mActor = -1;
+    private String mActorName;
     private List<Channel> mChannels;
     private List<Channel> mTrees;
     private List<User> mUsers;
@@ -68,9 +72,10 @@ public class Message implements Parcelable {
         mReceivedTime.setToNow();
     }
 
-    public Message(int actor, List<Channel> channels, List<Channel> trees, List<User> users, String message) {
+    public Message(int actor, String actorName, List<Channel> channels, List<Channel> trees, List<User> users, String message) {
         this(Type.TEXT_MESSAGE, message);
         mActor = actor;
+        mActorName = actorName;
         mChannels = channels;
         mTrees = trees;
         mUsers = users;
@@ -83,6 +88,7 @@ public class Message implements Parcelable {
     public void readFromParcel(Parcel in) {
         mType = Type.values()[in.readInt()];
         mActor = in.readInt();
+        mActorName = in.readString();
         mChannels = in.readArrayList(null);
         mTrees = in.readArrayList(null);
         mUsers = in.readArrayList(null);
@@ -93,6 +99,10 @@ public class Message implements Parcelable {
 
     public int getActor() {
         return mActor;
+    }
+
+    public String getActorName() {
+        return mActorName;
     }
 
     public List<Channel> getChannels() {
@@ -128,6 +138,7 @@ public class Message implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(mType.ordinal());
         dest.writeInt(mActor);
+        dest.writeString(mActorName);
         dest.writeList(mChannels);
         dest.writeList(mTrees);
         dest.writeList(mUsers);

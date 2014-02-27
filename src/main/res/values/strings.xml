@@ -54,4 +54,5 @@
     <string name="deny_reason_channel_nesting">Channel nesting limit reached.</string>
     <string name="deny_reason_other">Reason: %s</string>
     <string name="perm_denied">Permission denied.</string>
+    <string name="server">Server</string>
 </resources>

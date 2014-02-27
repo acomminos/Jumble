@@ -19,6 +19,7 @@ package com.morlunk.jumble.protocol;
 import android.os.RemoteException;
 
 import com.morlunk.jumble.JumbleService;
+import com.morlunk.jumble.R;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.User;
@@ -52,7 +53,9 @@ public class TextMessageHandler extends ProtocolHandler {
             List<User> users = new ArrayList<User>(msg.getSessionCount());
             for(int userId : msg.getSessionList()) users.add(getService().getBinder().getUser(userId));
 
-            Message message = new Message(msg.getActor(), channels, trees, users, msg.getMessage());
+            String actorName = sender != null ? sender.getName() : getService().getString(R.string.server);
+
+            Message message = new Message(msg.getActor(), actorName, channels, trees, users, msg.getMessage());
             getService().logMessage(message);
         } catch (RemoteException e) {
             e.printStackTrace();

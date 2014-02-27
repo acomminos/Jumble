@@ -469,10 +469,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             tmb.setMessage(message);
             mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
 
+            User self = getSessionUser();
             User user = getUser(session);
             List<User> users = new ArrayList<User>(1);
             users.add(user);
-            Message logMessage = new Message(getSession(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
+            Message logMessage = new Message(getSession(), self.getName(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
             mMessageLog.add(logMessage);
             return logMessage;
         }
@@ -485,10 +486,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             tmb.setMessage(message);
             mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
 
+            User self = getSessionUser();
             Channel targetChannel = getChannel(channel);
             List<Channel> targetChannels = new ArrayList<Channel>();
             targetChannels.add(targetChannel);
-            Message logMessage = new Message(getSession(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
+            Message logMessage = new Message(getSession(), self.getName(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
             mMessageLog.add(logMessage);
             return logMessage;
         }
