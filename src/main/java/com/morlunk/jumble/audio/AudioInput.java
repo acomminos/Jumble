@@ -234,25 +234,32 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         }
 
         IntPointer error = new IntPointer(1);
+        IntPointer tmp = new IntPointer(1);
         switch (codec) {
             case UDPVoiceOpus:
                 mOpusEncoder = Opus.opus_encoder_create(Audio.SAMPLE_RATE, 1, Opus.OPUS_APPLICATION_VOIP, error);
 
-                Opus.opus_encoder_ctl(mOpusEncoder, Opus.OPUS_SET_VBR_REQUEST, 0);
+                tmp.put(0);
+                Opus.opus_encoder_ctl(mOpusEncoder, Opus.OPUS_SET_VBR_REQUEST, tmp);
+
                 Opus.opus_encoder_ctl(mOpusEncoder, Opus.OPUS_SET_BITRATE_REQUEST, mQuality);
                 break;
             case UDPVoiceCELTBeta:
                 mCELTBetaEncoder = CELT11.celt_encoder_create(Audio.SAMPLE_RATE, mFrameSize, error);
 
+                tmp.put(0);
+                CELT11.celt_encoder_ctl(mCELTBetaEncoder, CELT11.CELT_SET_PREDICTION_REQUEST, tmp);
+
                 CELT11.celt_encoder_ctl(mCELTBetaEncoder, CELT11.CELT_SET_BITRATE_REQUEST, mQuality);
-                CELT11.celt_encoder_ctl(mCELTBetaEncoder, CELT11.CELT_SET_PREDICTION_REQUEST, 0);
                 break;
             case UDPVoiceCELTAlpha:
                 mCELTAlphaMode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, mFrameSize, error);
                 mCELTAlphaEncoder = CELT7.celt_encoder_create(mCELTAlphaMode, 1, error);
 
+                tmp.put(0);
+                CELT7.celt_encoder_ctl(mCELTAlphaEncoder, CELT11.CELT_SET_PREDICTION_REQUEST, tmp);
+
                 CELT7.celt_encoder_ctl(mCELTAlphaEncoder, CELT11.CELT_SET_BITRATE_REQUEST, mQuality);
-                CELT7.celt_encoder_ctl(mCELTAlphaEncoder, CELT11.CELT_SET_PREDICTION_REQUEST, 0);
                 break;
             case UDPVoiceSpeex:
                 // TODO
