@@ -78,6 +78,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_ACCESS_TOKENS = "access_tokens";
     public static final String EXTRAS_AUDIO_SOURCE = "audio_source";
     public static final String EXTRAS_AUDIO_STREAM = "audio_stream";
+    public static final String EXTRAS_FRAMES_PER_PACKET = "frames_per_packet";
 
     public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
 
@@ -98,6 +99,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public List<String> mAccessTokens;
     public int mAudioSource;
     public int mAudioStream;
+    public int mFramesPerPacket;
 
     private JumbleConnection mConnection;
     private ChannelHandler mChannelHandler;
@@ -574,6 +576,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mAccessTokens = extras.getStringArrayList(EXTRAS_ACCESS_TOKENS);
             mAudioSource = extras.getInt(EXTRAS_AUDIO_SOURCE, MediaRecorder.AudioSource.MIC);
             mAudioStream = extras.getInt(EXTRAS_AUDIO_STREAM, AudioManager.STREAM_MUSIC);
+            mFramesPerPacket = extras.getInt(EXTRAS_FRAMES_PER_PACKET, 2);
             connect();
         }
         return START_NOT_STICKY;
@@ -622,7 +625,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mUserHandler = new UserHandler(this);
         mTextMessageHandler = new TextMessageHandler(this);
         mAudioOutput = new AudioOutput(this, mAudioStream);
-        mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mAudioSource, mInputQuality, mTransmitMode, mDetectionThreshold, mAmplitudeBoost, mAudioInputListener);
+        mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mAudioSource, mInputQuality, mTransmitMode, mDetectionThreshold, mAmplitudeBoost, mFramesPerPacket, mAudioInputListener);
         mConnection.addTCPMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioOutput, mAudioInput);
         mConnection.addUDPMessageHandlers(mAudioOutput);
 

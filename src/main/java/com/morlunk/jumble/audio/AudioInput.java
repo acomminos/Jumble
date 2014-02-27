@@ -86,13 +86,13 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     private int mInputSampleRate = -1;
     private int mFrameSize = Audio.FRAME_SIZE;
     private int mMicFrameSize = Audio.FRAME_SIZE;
-    private int mFramesPerPacket = 6;
+    private int mFramesPerPacket;
 
     // Temporary encoder state
-    private final short[] mOpusBuffer = new short[mFrameSize*mFramesPerPacket];
+    private final short[] mOpusBuffer;
 
     // CELT encoded frame buffer
-    private final byte[][] mCELTBuffer = new byte[mFramesPerPacket][Audio.SAMPLE_RATE/800];
+    private final byte[][] mCELTBuffer;
 
     private final byte[] mEncodedBuffer = new byte[OPUS_MAX_BYTES];
     private final byte[] mPacketBuffer = new byte[1024];
@@ -110,16 +110,20 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Creates a new audio input manager configured for the specified codec.
      * @param listener
      */
-    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int audioSource, int sampleRate, int transmitMode, float voiceThreshold, float amplitudeBoost, AudioInputListener listener) {
+    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int audioSource, int sampleRate, int transmitMode, float voiceThreshold, float amplitudeBoost, int framesPerPacket, AudioInputListener listener) {
         super(service);
         mListener = listener;
         mAudioSource = audioSource;
         mTransmitMode = transmitMode;
         mVADThreshold = voiceThreshold;
         mAmplitudeBoost = amplitudeBoost;
+        mFramesPerPacket = framesPerPacket;
         mInputSampleRate = getSupportedSampleRate(sampleRate);
         switchCodec(codec);
         configurePreprocessState();
+
+        mCELTBuffer = new byte[mFramesPerPacket][Audio.SAMPLE_RATE/800];
+        mOpusBuffer = new short[mFrameSize*mFramesPerPacket];
 
         if(mInputSampleRate != -1) {
             Log.d(Constants.TAG, "Initialized AudioInput with sample rate "+mInputSampleRate);
