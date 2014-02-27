@@ -83,7 +83,8 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     private AudioRecord mAudioRecord;
     private int mAudioSource;
     private int mMinBufferSize;
-    private int mInputSampleRate = -1;
+    private int mSampleRate = -1;
+    private int mQuality;
     private int mFrameSize = Audio.FRAME_SIZE;
     private int mMicFrameSize = Audio.FRAME_SIZE;
     private int mFramesPerPacket;
@@ -110,7 +111,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Creates a new audio input manager configured for the specified codec.
      * @param listener
      */
-    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int audioSource, int sampleRate, int transmitMode, float voiceThreshold, float amplitudeBoost, int framesPerPacket, AudioInputListener listener) {
+    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int audioSource, int sampleRate, int quality, int transmitMode, float voiceThreshold, float amplitudeBoost, int framesPerPacket, AudioInputListener listener) {
         super(service);
         mListener = listener;
         mAudioSource = audioSource;
@@ -118,24 +119,25 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         mVADThreshold = voiceThreshold;
         mAmplitudeBoost = amplitudeBoost;
         mFramesPerPacket = framesPerPacket;
-        mInputSampleRate = getSupportedSampleRate(sampleRate);
+        mQuality = quality;
+        mSampleRate = getSupportedSampleRate(sampleRate);
         switchCodec(codec);
         configurePreprocessState();
 
         mCELTBuffer = new byte[mFramesPerPacket][Audio.SAMPLE_RATE/800];
         mOpusBuffer = new short[mFrameSize*mFramesPerPacket];
 
-        if(mInputSampleRate != -1) {
-            Log.d(Constants.TAG, "Initialized AudioInput with sample rate "+mInputSampleRate);
-            if(mInputSampleRate != Audio.SAMPLE_RATE) {
-                mResampler = new Speex.SpeexResampler(1, mInputSampleRate, Audio.SAMPLE_RATE, SPEEX_RESAMPLE_QUALITY);
-                mMicFrameSize = (mFrameSize * mInputSampleRate)/Audio.SAMPLE_RATE;
+        if(mSampleRate != -1) {
+            Log.d(Constants.TAG, "Initialized AudioInput with sample rate "+mSampleRate);
+            if(mSampleRate != Audio.SAMPLE_RATE) {
+                mResampler = new Speex.SpeexResampler(1, mSampleRate, Audio.SAMPLE_RATE, SPEEX_RESAMPLE_QUALITY);
+                mMicFrameSize = (mFrameSize * mSampleRate)/Audio.SAMPLE_RATE;
             }
         } else {
             throw new RuntimeException("Device does not support any compatible input sampling rates!");
         }
 
-        int reportedMinBufferSize = AudioRecord.getMinBufferSize(mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        int reportedMinBufferSize = AudioRecord.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         mMinBufferSize = Math.max(reportedMinBufferSize, mFrameSize);
     }
 
@@ -238,11 +240,13 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
                 tmp.put(0);
                 Opus.opus_encoder_ctl(mOpusEncoder, Opus.OPUS_SET_VBR_REQUEST, tmp);
+                tmp.put(mQuality);
+                Opus.opus_encoder_ctl(mOpusEncoder, Opus.OPUS_SET_BITRATE_REQUEST, tmp);
                 break;
             case UDPVoiceCELTBeta:
                 mCELTBetaEncoder = CELT11.celt_encoder_create(Audio.SAMPLE_RATE, mFrameSize, error);
 
-                tmp.put(Audio.SAMPLE_RATE);
+                tmp.put(mQuality);
                 CELT11.celt_encoder_ctl(mCELTBetaEncoder, CELT11.CELT_SET_BITRATE_REQUEST, tmp);
                 tmp.put(0);
                 CELT11.celt_encoder_ctl(mCELTBetaEncoder, CELT11.CELT_SET_PREDICTION_REQUEST, tmp);
@@ -273,7 +277,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
             }
 
             if(mAudioRecord == null) {
-                mAudioRecord = new AudioRecord(mAudioSource, mInputSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
+                mAudioRecord = new AudioRecord(mAudioSource, mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
 
                 // If we're still uninitialized, we have a problem.
                 if(mAudioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
@@ -345,6 +349,8 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         if(mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK)
             mListener.onTalkStateChanged(true);
 
+        IntPointer tmp = new IntPointer(1);
+
         // We loop when the 'recording' instance var is true instead of checking audio record state because we want to always cleanly shutdown.
         while(mRecording || mBufferedFrames > 0) { // Make sure we clear all buffered frames before stopping. FIXME- second 'or' condition is experimental, untested.
             int shortsRead = mAudioRecord.read(mResampler != null ? resampleBuffer : audioData, 0, mResampler != null ? mMicFrameSize : mFrameSize);
@@ -406,6 +412,9 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                         if(!mRecording || mBufferedFrames >= mFramesPerPacket) {
                             if(mBufferedFrames < mFramesPerPacket)
                                 mBufferedFrames = mFramesPerPacket; // If recording was stopped early, encode remaining empty frames too.
+
+                            tmp.put(mQuality);
+                            Opus.opus_encoder_ctl(mOpusEncoder, Opus.OPUS_SET_BITRATE_REQUEST, tmp);
 
                             len = Opus.opus_encode(mOpusEncoder, mOpusBuffer, mFrameSize * mBufferedFrames, mEncodedBuffer, OPUS_MAX_BYTES);
 

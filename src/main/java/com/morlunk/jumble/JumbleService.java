@@ -22,7 +22,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
-import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -70,6 +69,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_DETECTION_THRESHOLD = "detection_threshold";
     public static final String EXTRAS_AMPLITUDE_BOOST = "amplitude_boost";
     public static final String EXTRAS_TRANSMIT_MODE = "transmit_mode";
+    public static final String EXTRAS_INPUT_RATE = "input_frequency";
     public static final String EXTRAS_INPUT_QUALITY = "input_quality";
     public static final String EXTRAS_USE_OPUS = "use_opus";
     public static final String EXTRAS_FORCE_TCP = "force_tcp";
@@ -92,6 +92,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public float mAmplitudeBoost;
     public int mTransmitMode;
     public boolean mUseOpus;
+    public int mInputRate;
     public int mInputQuality;
     public boolean mForceTcp;
     public boolean mUseTor;
@@ -568,7 +569,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mDetectionThreshold = extras.getFloat(EXTRAS_DETECTION_THRESHOLD, 0.5f);
             mAmplitudeBoost = extras.getFloat(EXTRAS_AMPLITUDE_BOOST, 1.0f);
             mTransmitMode = extras.getInt(EXTRAS_TRANSMIT_MODE, Constants.TRANSMIT_VOICE_ACTIVITY);
-            mInputQuality = extras.getInt(EXTRAS_INPUT_QUALITY, Audio.SAMPLE_RATE);
+            mInputRate = extras.getInt(EXTRAS_INPUT_RATE, Audio.SAMPLE_RATE);
+            mInputQuality = extras.getInt(EXTRAS_INPUT_QUALITY, 40000);
             mUseOpus = extras.getBoolean(EXTRAS_USE_OPUS, true);
             mUseTor = extras.getBoolean(EXTRAS_USE_TOR, false);
             mForceTcp = extras.getBoolean(EXTRAS_FORCE_TCP, false) || mUseTor; // Tor requires TCP connections to work- if it's on, force TCP.
@@ -625,7 +627,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mUserHandler = new UserHandler(this);
         mTextMessageHandler = new TextMessageHandler(this);
         mAudioOutput = new AudioOutput(this, mAudioStream);
-        mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mAudioSource, mInputQuality, mTransmitMode, mDetectionThreshold, mAmplitudeBoost, mFramesPerPacket, mAudioInputListener);
+        mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mAudioSource, mInputRate, mInputQuality, mTransmitMode, mDetectionThreshold, mAmplitudeBoost, mFramesPerPacket, mAudioInputListener);
         mConnection.addTCPMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioOutput, mAudioInput);
         mConnection.addUDPMessageHandlers(mAudioOutput);
 
