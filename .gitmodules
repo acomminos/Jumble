@@ -1,12 +1,12 @@
-[submodule "jni/speex"]
-	path = jni/speex
-	url = git://git.xiph.org/speex.git
-[submodule "jni/opus"]
-	path = jni/opus
-	url = git://git.xiph.org/opus.git
-[submodule "jni/celt-0.11.0-src"]
-	path = jni/celt-0.11.0-src
-	url = git://git.xiph.org/celt.git
-[submodule "jni/celt-0.7.0-src"]
-	path = jni/celt-0.7.0-src
-	url = git://git.xiph.org/celt.git
+[submodule "speex"]
+        path = src/main/jni/speex
+        url = git://git.xiph.org/speex.git
+[submodule "opus"]
+        path = src/main/jni/opus
+        url = git://git.xiph.org/opus.git
+[submodule "celt-0.11.0-src"]
+        path = src/main/jni/celt-0.11.0-src
+        url = git://git.xiph.org/celt.git
+[submodule "celt-0.7.0-src"]
+        path = src/main/jni/celt-0.7.0-src
+        url = git://git.xiph.org/celt.git

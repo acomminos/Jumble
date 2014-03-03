@@ -16,8 +16,6 @@
 
 package com.morlunk.jumble.protocol;
 
-import com.morlunk.jumble.protobuf.Mumble;
-
 /**
  * Created by andrew on 21/01/14.
  */

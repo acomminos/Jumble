@@ -18,9 +18,6 @@ package com.morlunk.jumble.audio;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
-import android.media.MediaRecorder;
-import android.media.audiofx.AutomaticGainControl;
-import android.os.Build;
 import android.util.Log;
 
 import com.googlecode.javacpp.IntPointer;
