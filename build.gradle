@@ -41,10 +41,19 @@ android {
     compileSdkVersion 19
     buildToolsVersion "19.0.1"
 
+    sourceSets.main.jniLibs.srcDir 'src/main/libs/'
+    sourceSets.main.jni.srcDirs = [] // Disable NDK build support until it supports multiple modules.
+
     defaultConfig {
         testPackageName "com.morlunk.jumble.test"
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
         minSdkVersion 9
         targetSdkVersion 19
+
+//        ndk {
+//            abiFilters "armeabi", "armeabi-v7a", "x86"
+//            stl "gnustl_static"
+//            cFlags "-I\$(LOCAL_PATH)/speex/include/ -I\$(LOCAL_PATH)/celt-0.11.0-src/include/ -I\$(LOCAL_PATH)/celt-0.7.0-src/include/ -I\$(LOCAL_PATH)/opus/include -D__EMX__ -DUSE_KISS_FFT -DFIXED_POINT -DEXPORT='' -DHAVE_CONFIG_H -fvisibility=hidden -DOPUS_BUILD -DVAR_ARRAYS -Wno-traditional -DFIXED_POINT"
+//        }
     }
 }

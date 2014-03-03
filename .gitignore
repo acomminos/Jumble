@@ -5,8 +5,11 @@ build/
 *.iml
 
 # Android
-obj/
 local.properties
+
+# Native
+src/main/libs/
+src/main/obj/
 
 # Java
 *.class
