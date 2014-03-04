@@ -18,8 +18,10 @@ package com.morlunk.jumble.test;
 
 import android.test.AndroidTestCase;
 
+import com.googlecode.javacpp.IntPointer;
+import com.googlecode.javacpp.Loader;
+import com.googlecode.javacpp.Pointer;
 import com.morlunk.jumble.audio.javacpp.Opus;
-import com.morlunk.jumble.audio.opus.SWIGTYPE_p_OpusDecoder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,6 +32,10 @@ import java.io.InputStream;
  */
 public class OpusTest extends AndroidTestCase {
 
+    static {
+        Loader.load(Opus.class);
+    }
+
     public static final String PCM_48000_FILE = "speech_48000.wav";
     public static final String OPUS_48000_FILE = "speech_48000.opus";
 
@@ -37,9 +43,10 @@ public class OpusTest extends AndroidTestCase {
      * Tests the decoding of a 48000khz mono opus file into PCM data.
      */
     public void testDecode48000() throws IOException {
-        int[] error = new int[1];
-        SWIGTYPE_p_OpusDecoder decoder = Opus.opus_decoder_create(48000, 1, error);
-        assertEquals(error[0], 0);
+        IntPointer error = new IntPointer(1);
+        error.put(0);
+        Pointer decoder = Opus.opus_decoder_create(48000, 1, error);
+        assertEquals(error.get(), 0);
 
         InputStream opusInput = getContext().getAssets().open(OPUS_48000_FILE);
         ByteArrayOutputStream opusOutput = new ByteArrayOutputStream(1024);
@@ -53,6 +60,6 @@ public class OpusTest extends AndroidTestCase {
         byte[] opusData = opusOutput.toByteArray();
         short[] pcm = new short[2000000];
 
-        Opus.opus_decode(decoder, opusData, opusData.length, pcm, 120, 0);
+        int samplesDecoded = Opus.opus_decode(decoder, opusData, opusData.length, pcm, 120, 0);
     }
 }
