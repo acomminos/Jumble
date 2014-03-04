@@ -247,7 +247,8 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                 tmp.put(0);
                 CELT11.celt_encoder_ctl(mCELTBetaEncoder, CELT11.CELT_SET_PREDICTION_REQUEST, tmp);
 
-                CELT11.celt_encoder_ctl(mCELTBetaEncoder, CELT11.CELT_SET_BITRATE_REQUEST, mQuality);
+                // FIXME: bitrate causes great distortion on CELT.
+//                CELT11.celt_encoder_ctl(mCELTBetaEncoder, CELT11.CELT_SET_BITRATE_REQUEST, mQuality);
                 break;
             case UDPVoiceCELTAlpha:
                 mCELTAlphaMode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, mFrameSize, error);
@@ -256,7 +257,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                 tmp.put(0);
                 CELT7.celt_encoder_ctl(mCELTAlphaEncoder, CELT11.CELT_SET_PREDICTION_REQUEST, tmp);
 
-                CELT7.celt_encoder_ctl(mCELTAlphaEncoder, CELT11.CELT_SET_BITRATE_REQUEST, mQuality);
+//                CELT7.celt_encoder_ctl(mCELTAlphaEncoder, CELT7.CELT_SET_BITRATE_REQUEST, mQuality);
                 break;
             case UDPVoiceSpeex:
                 // TODO
@@ -347,8 +348,6 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         if(mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK)
             mListener.onTalkStateChanged(true);
 
-        IntPointer tmp = new IntPointer(1);
-
         // We loop when the 'recording' instance var is true instead of checking audio record state because we want to always cleanly shutdown.
         while(mRecording || mBufferedFrames > 0) { // Make sure we clear all buffered frames before stopping. FIXME- second 'or' condition is experimental, untested.
             int shortsRead = mAudioRecord.read(mResampler != null ? resampleBuffer : audioData, 0, mResampler != null ? mMicFrameSize : mFrameSize);
@@ -396,9 +395,9 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                     mVADLastDetected = talking;
                 }
 
-                // If talking has terminated before we have filled the buffer, send anyway.
-                if(!talking && mBufferedFrames > 0) {
-                    sendFrame(true);
+                if(!talking) {
+                    // If talking has terminated before we have filled the buffer, send anyway.
+                    if(mBufferedFrames > 0) sendFrame(true);
                     continue;
                 }
 
@@ -520,8 +519,8 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         // FIXME: CELT 0.11.0 (beta) does not work.
         if(msg.hasOpus() && msg.getOpus())
             switchCodec(JumbleUDPMessageType.UDPVoiceOpus);
-//        else if(msg.hasBeta() && msg.getBeta() == Constants.CELT_11_VERSION && !(msg.hasPreferAlpha() && msg.getPreferAlpha()))
-//            switchCodec(JumbleUDPMessageType.UDPVoiceCELTBeta);
+        else if(msg.hasBeta() && msg.getBeta() == Constants.CELT_11_VERSION && !(msg.hasPreferAlpha() && msg.getPreferAlpha()))
+            switchCodec(JumbleUDPMessageType.UDPVoiceCELTBeta);
         else if(msg.hasAlpha() && msg.getAlpha() == Constants.CELT_7_VERSION)
             switchCodec(JumbleUDPMessageType.UDPVoiceCELTAlpha);
 
