@@ -18,6 +18,7 @@ package com.morlunk.jumble.test;
 
 import android.test.AndroidTestCase;
 
+import com.googlecode.javacpp.BytePointer;
 import com.googlecode.javacpp.IntPointer;
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacpp.Pointer;
@@ -32,34 +33,26 @@ import java.io.InputStream;
  */
 public class OpusTest extends AndroidTestCase {
 
+    private static final int FRAME_SIZE = 480;
+
     static {
         Loader.load(Opus.class);
     }
 
-    public static final String PCM_48000_FILE = "speech_48000.wav";
-    public static final String OPUS_48000_FILE = "speech_48000.opus";
-
     /**
-     * Tests the decoding of a 48000khz mono opus file into PCM data.
+     * Tests the encoding of an empty 16 bit waveform of frame size 480 (mumble typical).
+     * This does not check the integrity of the encoding, it only tests the success
+     * of the operation.
      */
-    public void testDecode48000() throws IOException {
+    public void testEncodeFrame() throws IOException {
         IntPointer error = new IntPointer(1);
         error.put(0);
-        Pointer decoder = Opus.opus_decoder_create(48000, 1, error);
+        Pointer encoder = Opus.opus_encoder_create(48000, 1, Opus.OPUS_APPLICATION_VOIP, error);
         assertEquals(error.get(), 0);
 
-        InputStream opusInput = getContext().getAssets().open(OPUS_48000_FILE);
-        ByteArrayOutputStream opusOutput = new ByteArrayOutputStream(1024);
-
-        byte[] buffer = new byte[1024];
-        while(opusInput.read(buffer) != -1)
-            opusOutput.write(buffer);
-        opusInput.close();
-        opusOutput.close();
-
-        byte[] opusData = opusOutput.toByteArray();
-        short[] pcm = new short[2000000];
-
-        int samplesDecoded = Opus.opus_decode(decoder, opusData, opusData.length, pcm, 120, 0);
+        short[] pcm = new short[FRAME_SIZE];
+        byte[] output = new byte[1024];
+        int result = Opus.opus_encode(encoder, pcm, FRAME_SIZE, output, output.length);
+        assertTrue(result > 0);
     }
 }

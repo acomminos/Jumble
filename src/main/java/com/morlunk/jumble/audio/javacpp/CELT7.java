@@ -22,6 +22,8 @@ import com.googlecode.javacpp.Pointer;
 import com.googlecode.javacpp.annotation.Cast;
 import com.googlecode.javacpp.annotation.NoDeallocator;
 import com.googlecode.javacpp.annotation.Platform;
+import com.morlunk.jumble.audio.IEncoder;
+import com.morlunk.jumble.audio.NativeAudioException;
 
 /**
  * Created by andrew on 20/10/13.
@@ -33,6 +35,37 @@ public class CELT7 {
 
     static {
         Loader.load();
+    }
+
+    public static class CELT7Encoder implements IEncoder {
+
+        private Pointer mMode;
+        private Pointer mState;
+
+        public CELT7Encoder(int sampleRate, int frameSize, int channels) throws NativeAudioException {
+            IntPointer error = new IntPointer(1);
+            error.put(0);
+            mMode = celt_mode_create(sampleRate, frameSize, error);
+            if(error.get() < 0) throw new NativeAudioException("CELT 0.7.0 initialization failed with error: "+error.get());
+            mState = celt_encoder_create(mMode, channels, error);
+            if(error.get() < 0) throw new NativeAudioException("CELT 0.7.0 initialization failed with error: "+error.get());
+        }
+
+        @Override
+        public void encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException {
+            int result = celt_encode(mState, input, null, output, outputSize);
+            if(result < 0) throw new NativeAudioException("CELT 0.7.0 encoding failed with error: "+result);
+        }
+
+        @Override
+        public void setBitrate(int bitrate) {
+            // FIXME
+        }
+
+        @Override
+        public void destroy() {
+            celt_encoder_destroy(mState);
+        }
     }
 
     public static native @NoDeallocator Pointer celt_mode_create(int sampleRate, int frameSize, IntPointer error);

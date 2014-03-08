@@ -837,7 +837,7 @@ public class JumbleConnection {
             auth.setUsername(mServer.getUsername());
             auth.setPassword(mServer.getPassword());
             auth.addCeltVersions(Constants.CELT_7_VERSION);
-//            auth.addCeltVersions(Constants.CELT_11_VERSION); FIXME: get CELT11 working, right now encoding segfaults
+            auth.addCeltVersions(Constants.CELT_11_VERSION);
             auth.setOpus(mUseOpus);
 
             sendTCPMessage(version.build(), JumbleTCPMessageType.Version);

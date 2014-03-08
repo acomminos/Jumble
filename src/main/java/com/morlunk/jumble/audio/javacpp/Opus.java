@@ -21,9 +21,10 @@ import com.googlecode.javacpp.IntPointer;
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacpp.Pointer;
 import com.googlecode.javacpp.annotation.Cast;
-import com.googlecode.javacpp.annotation.Name;
 import com.googlecode.javacpp.annotation.NoDeallocator;
 import com.googlecode.javacpp.annotation.Platform;
+import com.morlunk.jumble.audio.IEncoder;
+import com.morlunk.jumble.audio.NativeAudioException;
 
 /**
  * Created by andrew on 18/10/13.
@@ -40,6 +41,35 @@ public class Opus {
 
     static {
         Loader.load();
+    }
+
+    public static class OpusEncoder implements IEncoder {
+
+        private Pointer mState;
+
+        public OpusEncoder(int sampleRate, int channels) throws NativeAudioException {
+            IntPointer error = new IntPointer(1);
+            error.put(0);
+            mState = opus_encoder_create(sampleRate, channels, OPUS_APPLICATION_VOIP, error);
+            if(error.get() < 0) throw new NativeAudioException("Opus initialization failed with error: "+error.get());
+//            Opus.opus_encoder_ctl(mState, Opus.OPUS_SET_VBR_REQUEST, 0);
+        }
+
+        @Override
+        public void encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException {
+            int result = Opus.opus_encode(mState, input, inputSize, output, outputSize);
+            if(result < 0) throw new NativeAudioException("Opus encoding failed with error: "+result);
+        }
+
+        @Override
+        public void setBitrate(int bitrate) {
+            Opus.opus_encoder_ctl(mState, Opus.OPUS_SET_BITRATE_REQUEST, bitrate);
+        }
+
+        @Override
+        public void destroy() {
+            Opus.opus_encoder_destroy(mState);
+        }
     }
 
     public static native int opus_decoder_get_size(int channels);

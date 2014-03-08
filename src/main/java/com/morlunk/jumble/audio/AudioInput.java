@@ -63,10 +63,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     private static final int OPUS_MAX_BYTES = 512; // Opus specifies 4000 bytes as a recommended value for encoding, but the official mumble project uses 512.
     private static final int SPEECH_DETECT_THRESHOLD = (int) (0.25 * Math.pow(10, 9)); // Continue speech for 250ms to prevent dropping
 
-    private Pointer mOpusEncoder;
-    private Pointer mCELTBetaEncoder;
-    private Pointer mCELTAlphaMode;
-    private Pointer mCELTAlphaEncoder;
+    private IEncoder mEncoder;
     private Speex.SpeexPreprocessState mPreprocessState;
     private Speex.SpeexResampler mResampler;
 
@@ -108,7 +105,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Creates a new audio input manager configured for the specified codec.
      * @param listener
      */
-    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int audioSource, int sampleRate, int quality, int transmitMode, float voiceThreshold, float amplitudeBoost, int framesPerPacket, AudioInputListener listener) {
+    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int audioSource, int sampleRate, int quality, int transmitMode, float voiceThreshold, float amplitudeBoost, int framesPerPacket, AudioInputListener listener) throws NativeAudioException {
         super(service);
         mListener = listener;
         mAudioSource = audioSource;
@@ -206,63 +203,30 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Switches to the specified codec, and deallocates old native encoders.
      * @param codec The codec to switch to.
      */
-    public void switchCodec(JumbleUDPMessageType codec) {
-        if(codec == mCodec)
-            return;
+    public void switchCodec(JumbleUDPMessageType codec) throws NativeAudioException {
+        if(codec == mCodec) return;
         mCodec = codec;
 
         Log.v(Constants.TAG, "Using codec "+codec.toString()+" for input");
 
-        if(mOpusEncoder != null) {
-            Opus.opus_encoder_destroy(mOpusEncoder);
-            mOpusEncoder = null;
-        }
-        if(mCELTBetaEncoder != null) {
-            CELT11.celt_encoder_destroy(mCELTBetaEncoder);
-            mCELTBetaEncoder = null;
-        }
-        if(mCELTAlphaEncoder != null) {
-            CELT7.celt_encoder_destroy(mCELTAlphaEncoder);
-            mCELTAlphaEncoder = null;
-        }
-        if(mCELTAlphaMode != null) {
-            CELT7.celt_mode_destroy(mCELTAlphaMode);
-            mCELTAlphaMode = null;
-        }
+        if(mEncoder != null) mEncoder.destroy();
 
-        IntPointer error = new IntPointer(1);
-        IntPointer tmp = new IntPointer(1);
         switch (codec) {
             case UDPVoiceOpus:
-                mOpusEncoder = Opus.opus_encoder_create(Audio.SAMPLE_RATE, 1, Opus.OPUS_APPLICATION_VOIP, error);
-
-                tmp.put(0);
-                Opus.opus_encoder_ctl(mOpusEncoder, Opus.OPUS_SET_VBR_REQUEST, tmp);
-
-                Opus.opus_encoder_ctl(mOpusEncoder, Opus.OPUS_SET_BITRATE_REQUEST, mQuality);
+                mEncoder = new Opus.OpusEncoder(Audio.SAMPLE_RATE, 1);
                 break;
             case UDPVoiceCELTBeta:
-                mCELTBetaEncoder = CELT11.celt_encoder_create(Audio.SAMPLE_RATE, mFrameSize, error);
-
-                tmp.put(0);
-                CELT11.celt_encoder_ctl(mCELTBetaEncoder, CELT11.CELT_SET_PREDICTION_REQUEST, tmp);
-
-                // FIXME: bitrate causes great distortion on CELT.
-//                CELT11.celt_encoder_ctl(mCELTBetaEncoder, CELT11.CELT_SET_BITRATE_REQUEST, mQuality);
+                mEncoder = new CELT11.CELT11Encoder(Audio.SAMPLE_RATE, 1);
                 break;
             case UDPVoiceCELTAlpha:
-                mCELTAlphaMode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, mFrameSize, error);
-                mCELTAlphaEncoder = CELT7.celt_encoder_create(mCELTAlphaMode, 1, error);
-
-                tmp.put(0);
-                CELT7.celt_encoder_ctl(mCELTAlphaEncoder, CELT11.CELT_SET_PREDICTION_REQUEST, tmp);
-
-//                CELT7.celt_encoder_ctl(mCELTAlphaEncoder, CELT7.CELT_SET_BITRATE_REQUEST, mQuality);
+                mEncoder = new CELT7.CELT7Encoder(Audio.SAMPLE_RATE, mFrameSize, 1);
                 break;
             case UDPVoiceSpeex:
                 // TODO
-                break;
+//                break;
+                return;
         }
+        mEncoder.setBitrate(mQuality);
     }
 
     /**
@@ -401,6 +365,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                     continue;
                 }
 
+                // TODO integrate this switch's behaviour into IEncoder implementations
                 switch (mCodec) {
                     case UDPVoiceOpus:
                         System.arraycopy(audioData, 0, mOpusBuffer, mFrameSize * mBufferedFrames, mFrameSize);
@@ -410,29 +375,24 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                             if(mBufferedFrames < mFramesPerPacket)
                                 mBufferedFrames = mFramesPerPacket; // If recording was stopped early, encode remaining empty frames too.
 
-                            len = Opus.opus_encode(mOpusEncoder, mOpusBuffer, mFrameSize * mBufferedFrames, mEncodedBuffer, OPUS_MAX_BYTES);
-
-                            if(len <= 0) {
+                            try {
+                                mEncoder.encode(mOpusBuffer, mFrameSize * mBufferedFrames, mEncodedBuffer, OPUS_MAX_BYTES);
+                                encoded = true;
+                            } catch (NativeAudioException e) {
                                 mBufferedFrames = 0;
                                 continue;
                             }
-
-                            encoded = true;
                         }
                         break;
                     case UDPVoiceCELTBeta:
-                        // TODO add manual audio quality control
-                        int betaResult = CELT11.celt_encode(mCELTBetaEncoder, audioData, mFrameSize, mCELTBuffer[mBufferedFrames], Audio.SAMPLE_RATE/800);
-                        if(betaResult == 0) {
-                            mBufferedFrames++;
-                            encoded = mBufferedFrames >= mFramesPerPacket || !talking;
-                        }
-                        break;
                     case UDPVoiceCELTAlpha:
-                        int alphaResult = CELT7.celt_encode(mCELTAlphaEncoder, audioData, null, mCELTBuffer[mBufferedFrames], Audio.SAMPLE_RATE/800);
-                        if(alphaResult > 0) {
+                        try {
+                            mEncoder.encode(audioData, mFrameSize, mCELTBuffer[mBufferedFrames], Audio.SAMPLE_RATE/800);
                             mBufferedFrames++;
                             encoded = mBufferedFrames >= mFramesPerPacket || !talking;
+                        } catch (NativeAudioException e) {
+                            mBufferedFrames = 0;
+                            continue;
                         }
                         break;
                     case UDPVoiceSpeex:
@@ -499,14 +459,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Deallocates native assets. Must be called on disconnect.
      */
     public void destroy() {
-        if(mOpusEncoder != null)
-            Opus.opus_encoder_destroy(mOpusEncoder);
-        if(mCELTBetaEncoder != null)
-            CELT11.celt_encoder_destroy(mCELTBetaEncoder);
-        if(mCELTAlphaEncoder != null)
-            CELT7.celt_encoder_destroy(mCELTAlphaEncoder);
-        if(mCELTAlphaMode != null)
-            CELT7.celt_mode_destroy(mCELTAlphaMode);
+        if(mEncoder != null) mEncoder.destroy();
         if(mPreprocessState != null)
             mPreprocessState.destroy();
         if(mResampler != null)
@@ -517,12 +470,17 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     @Override
     public void messageCodecVersion(Mumble.CodecVersion msg) {
         // FIXME: CELT 0.11.0 (beta) does not work.
-        if(msg.hasOpus() && msg.getOpus())
-            switchCodec(JumbleUDPMessageType.UDPVoiceOpus);
-        else if(msg.hasBeta() && msg.getBeta() == Constants.CELT_11_VERSION && !(msg.hasPreferAlpha() && msg.getPreferAlpha()))
-            switchCodec(JumbleUDPMessageType.UDPVoiceCELTBeta);
-        else if(msg.hasAlpha() && msg.getAlpha() == Constants.CELT_7_VERSION)
-            switchCodec(JumbleUDPMessageType.UDPVoiceCELTAlpha);
+        try {
+            if(msg.hasOpus() && msg.getOpus())
+                switchCodec(JumbleUDPMessageType.UDPVoiceOpus);
+            else if(msg.hasBeta() && msg.getBeta() == Constants.CELT_11_VERSION && !(msg.hasPreferAlpha() && msg.getPreferAlpha()))
+                switchCodec(JumbleUDPMessageType.UDPVoiceCELTBeta);
+            else if(msg.hasAlpha() && msg.getAlpha() == Constants.CELT_7_VERSION)
+                switchCodec(JumbleUDPMessageType.UDPVoiceCELTAlpha);
+        } catch (NativeAudioException e) {
+            e.printStackTrace();
+            // TODO handle native codec failure
+        }
 
     }
 }

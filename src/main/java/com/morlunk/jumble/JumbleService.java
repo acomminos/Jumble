@@ -35,6 +35,7 @@ import android.widget.Toast;
 import com.morlunk.jumble.audio.Audio;
 import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
+import com.morlunk.jumble.audio.NativeAudioException;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
@@ -608,6 +609,18 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void connect() {
         try {
             mConnection = new JumbleConnection(this, this, mServer, mClientName, mCertificate, mCertificatePassword, mForceTcp, mUseOpus, mUseTor);
+
+            mPermissions = 0;
+            mReconnecting = false;
+            mChannelHandler = new ChannelHandler(this);
+            mUserHandler = new UserHandler(this);
+            mTextMessageHandler = new TextMessageHandler(this);
+            mAudioOutput = new AudioOutput(this, mAudioStream);
+            mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mAudioSource, mInputRate, mInputQuality, mTransmitMode, mDetectionThreshold, mAmplitudeBoost, mFramesPerPacket, mAudioInputListener);
+            mConnection.addTCPMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioOutput, mAudioInput);
+            mConnection.addUDPMessageHandlers(mAudioOutput);
+
+            mConnection.connect();
         } catch (final JumbleConnectionException e) {
             e.printStackTrace();
 
@@ -617,21 +630,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                     observer.onConnectionError(e.getMessage(), e.isAutoReconnectAllowed());
                 }
             });
+        } catch (final NativeAudioException e) {
+            e.printStackTrace();
 
-            return;
+            notifyObservers(new ObserverRunnable() {
+                @Override
+                public void run(IJumbleObserver observer) throws RemoteException {
+                    observer.onConnectionError(e.getMessage(), false);
+                }
+            });
         }
-
-        mPermissions = 0;
-        mReconnecting = false;
-        mChannelHandler = new ChannelHandler(this);
-        mUserHandler = new UserHandler(this);
-        mTextMessageHandler = new TextMessageHandler(this);
-        mAudioOutput = new AudioOutput(this, mAudioStream);
-        mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mAudioSource, mInputRate, mInputQuality, mTransmitMode, mDetectionThreshold, mAmplitudeBoost, mFramesPerPacket, mAudioInputListener);
-        mConnection.addTCPMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioOutput, mAudioInput);
-        mConnection.addUDPMessageHandlers(mAudioOutput);
-
-        mConnection.connect();
     }
 
     public void disconnect() {
