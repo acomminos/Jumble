@@ -25,6 +25,8 @@ import com.googlecode.javacpp.annotation.MemberGetter;
 import com.googlecode.javacpp.annotation.MemberSetter;
 import com.googlecode.javacpp.annotation.Name;
 import com.googlecode.javacpp.annotation.Platform;
+import com.morlunk.jumble.audio.IDecoder;
+import com.morlunk.jumble.audio.NativeAudioException;
 
 /**
  * JavaCPP interface for Speex JNI.
@@ -403,6 +405,49 @@ public class Speex {
 
         public void destroy() {
             speex_bits_destroy(this);
+        }
+    }
+
+    public static class SpeexDecoder implements IDecoder {
+
+        private SpeexBits mBits;
+        private Pointer mState;
+
+        public SpeexDecoder() {
+            mBits = new Speex.SpeexBits();
+            mState = Speex.speex_decoder_init(Speex.speex_lib_get_mode(Speex.SPEEX_MODEID_UWB));
+            IntPointer enh = new IntPointer();
+            enh.put(1);
+            Speex.speex_decoder_ctl(mState, Speex.SPEEX_SET_ENH, enh);
+        }
+
+        @Override
+        public int decodeFloat(byte[] input, int inputSize, float[] output, int frameSize) throws NativeAudioException {
+            speex_bits_read_from(mBits, input, inputSize);
+            int result = speex_decode(mState, mBits, output);
+            if(result < 0) throw new NativeAudioException("Speex decoding failed with error: "+result);
+            for(int i=0; i < frameSize; i++) {
+                output[i] *= (1.0f / Short.MAX_VALUE);
+            }
+            return frameSize;
+        }
+
+        @Override
+        public int decodeShort(byte[] input, int inputSize, short[] output, int frameSize) throws NativeAudioException {
+            float[] foutput = new float[frameSize];
+            speex_bits_read_from(mBits, input, inputSize);
+            int result = speex_decode(mState, mBits, foutput);
+            if(result < 0) throw new NativeAudioException("Speex decoding failed with error: "+result);
+            for(int i=0; i < frameSize; i++) {
+                output[i] = (short) foutput[i];
+            }
+            return frameSize;
+        }
+
+        @Override
+        public void destroy() {
+            speex_decoder_destroy(mState);
+            speex_bits_destroy(mBits);
         }
     }
 

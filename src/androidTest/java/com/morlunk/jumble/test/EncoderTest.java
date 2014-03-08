@@ -55,6 +55,7 @@ public class EncoderTest extends AndroidTestCase {
         short[] pcm = new short[FRAME_SIZE];
         byte[] output = new byte[1024];
         encoder.encode(pcm, FRAME_SIZE, output, 1024);
+        encoder.destroy();
     }
 
     public void testCELT11Encode() throws NativeAudioException {
@@ -65,6 +66,7 @@ public class EncoderTest extends AndroidTestCase {
         short[] pcm = new short[FRAME_SIZE];
         byte[] output = new byte[1024];
         encoder.encode(pcm, FRAME_SIZE, output, 1024);
+        encoder.destroy();
     }
 
     public void testCELT7Encode() throws NativeAudioException {
@@ -75,5 +77,6 @@ public class EncoderTest extends AndroidTestCase {
         short[] pcm = new short[FRAME_SIZE];
         byte[] output = new byte[1024];
         encoder.encode(pcm, FRAME_SIZE, output, 1024);
+        encoder.destroy();
     }
 }

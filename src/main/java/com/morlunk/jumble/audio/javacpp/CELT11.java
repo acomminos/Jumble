@@ -23,6 +23,7 @@ import com.googlecode.javacpp.annotation.Cast;
 import com.googlecode.javacpp.annotation.NoDeallocator;
 import com.googlecode.javacpp.annotation.Platform;
 import com.morlunk.jumble.audio.Audio;
+import com.morlunk.jumble.audio.IDecoder;
 import com.morlunk.jumble.audio.IEncoder;
 import com.morlunk.jumble.audio.NativeAudioException;
 
@@ -48,7 +49,7 @@ public class CELT11 {
             IntPointer error = new IntPointer(1);
             error.put(0);
             mState = celt_encoder_create(sampleRate, channels, error);
-            if(error.get() < 0) throw new NativeAudioException("CELT 0.11.0 initialization failed with error: "+error.get());
+            if(error.get() < 0) throw new NativeAudioException("CELT 0.11.0 encoder initialization failed with error: "+error.get());
         }
 
         @Override
@@ -68,6 +69,37 @@ public class CELT11 {
         @Override
         public void destroy() {
             celt_encoder_destroy(mState);
+        }
+    }
+
+    public static class CELT11Decoder implements IDecoder {
+
+        private Pointer mState;
+
+        public CELT11Decoder(int sampleRate, int channels) throws NativeAudioException {
+            IntPointer error = new IntPointer(1);
+            error.put(0);
+            mState = celt_decoder_create(sampleRate, channels, error);
+            if(error.get() < 0) throw new NativeAudioException("CELT 0.11.0 decoder initialization failed with error: "+error.get());
+        }
+
+        @Override
+        public int decodeFloat(byte[] input, int inputSize, float[] output, int frameSize) throws NativeAudioException {
+            int result = celt_decode_float(mState, input, inputSize, output, frameSize);
+            if(result < 0) throw new NativeAudioException("CELT 0.11.0 decoding failed with error: "+result);
+            return frameSize;
+        }
+
+        @Override
+        public int decodeShort(byte[] input, int inputSize, short[] output, int frameSize) throws NativeAudioException {
+            int result = celt_decode(mState, input, inputSize, output, frameSize);
+            if(result < 0) throw new NativeAudioException("CELT 0.11.0 decoding failed with error: "+result);
+            return frameSize;
+        }
+
+        @Override
+        public void destroy() {
+            celt_decoder_destroy(mState);
         }
     }
 

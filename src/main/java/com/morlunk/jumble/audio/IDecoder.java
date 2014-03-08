@@ -21,4 +21,7 @@ package com.morlunk.jumble.audio;
  * Created by andrew on 07/03/14.
  */
 public interface IDecoder {
+    public int decodeFloat(byte[] input, int inputSize, float[] output, int frameSize) throws NativeAudioException;
+    public int decodeShort(byte[] input, int inputSize, short[] output, int frameSize) throws NativeAudioException;
+    public void destroy();
 }

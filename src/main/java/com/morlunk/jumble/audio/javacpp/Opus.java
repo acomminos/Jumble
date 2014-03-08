@@ -23,6 +23,7 @@ import com.googlecode.javacpp.Pointer;
 import com.googlecode.javacpp.annotation.Cast;
 import com.googlecode.javacpp.annotation.NoDeallocator;
 import com.googlecode.javacpp.annotation.Platform;
+import com.morlunk.jumble.audio.IDecoder;
 import com.morlunk.jumble.audio.IEncoder;
 import com.morlunk.jumble.audio.NativeAudioException;
 
@@ -51,7 +52,7 @@ public class Opus {
             IntPointer error = new IntPointer(1);
             error.put(0);
             mState = opus_encoder_create(sampleRate, channels, OPUS_APPLICATION_VOIP, error);
-            if(error.get() < 0) throw new NativeAudioException("Opus initialization failed with error: "+error.get());
+            if(error.get() < 0) throw new NativeAudioException("Opus encoder initialization failed with error: "+error.get());
 //            Opus.opus_encoder_ctl(mState, Opus.OPUS_SET_VBR_REQUEST, 0);
         }
 
@@ -75,6 +76,37 @@ public class Opus {
         @Override
         public void destroy() {
             Opus.opus_encoder_destroy(mState);
+        }
+    }
+
+    public static class OpusDecoder implements IDecoder {
+
+        private Pointer mState;
+
+        public OpusDecoder(int sampleRate, int channels) throws NativeAudioException {
+            IntPointer error = new IntPointer(1);
+            error.put(0);
+            mState = opus_decoder_create(sampleRate, channels, error);
+            if(error.get() < 0) throw new NativeAudioException("Opus decoder initialization failed with error: "+error.get());
+        }
+
+        @Override
+        public int decodeFloat(byte[] input, int inputSize, float[] output, int frameSize) throws NativeAudioException {
+            int result = opus_decode_float(mState, input, inputSize, output, frameSize, 0);
+            if(result < 0) throw new NativeAudioException("Opus decoding failed with error: "+result);
+            return result;
+        }
+
+        @Override
+        public int decodeShort(byte[] input, int inputSize, short[] output, int frameSize) throws NativeAudioException {
+            int result = opus_decode(mState, input, inputSize, output, frameSize, 0);
+            if(result < 0) throw new NativeAudioException("Opus decoding failed with error: "+result);
+            return result;
+        }
+
+        @Override
+        public void destroy() {
+            opus_decoder_destroy(mState);
         }
     }
 

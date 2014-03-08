@@ -203,7 +203,13 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
                 aop = null;
             }
             if(aop == null) {
-                aop = new AudioOutputSpeech(user, dataType, this);
+                try {
+                    aop = new AudioOutputSpeech(user, dataType, this);
+                } catch (NativeAudioException e) {
+                    Log.v(Constants.TAG, "Failed to create audio user "+user.getName());
+                    e.printStackTrace();
+                    return;
+                }
                 Log.v(Constants.TAG, "Created audio user "+user.getName());
                 mAudioOutputs.put(session, aop);
             }

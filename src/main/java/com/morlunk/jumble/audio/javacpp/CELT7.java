@@ -22,6 +22,7 @@ import com.googlecode.javacpp.Pointer;
 import com.googlecode.javacpp.annotation.Cast;
 import com.googlecode.javacpp.annotation.NoDeallocator;
 import com.googlecode.javacpp.annotation.Platform;
+import com.morlunk.jumble.audio.IDecoder;
 import com.morlunk.jumble.audio.IEncoder;
 import com.morlunk.jumble.audio.NativeAudioException;
 
@@ -46,9 +47,9 @@ public class CELT7 {
             IntPointer error = new IntPointer(1);
             error.put(0);
             mMode = celt_mode_create(sampleRate, frameSize, error);
-            if(error.get() < 0) throw new NativeAudioException("CELT 0.7.0 initialization failed with error: "+error.get());
+            if(error.get() < 0) throw new NativeAudioException("CELT 0.7.0 encoder initialization failed with error: "+error.get());
             mState = celt_encoder_create(mMode, channels, error);
-            if(error.get() < 0) throw new NativeAudioException("CELT 0.7.0 initialization failed with error: "+error.get());
+            if(error.get() < 0) throw new NativeAudioException("CELT 0.7.0 encoder initialization failed with error: "+error.get());
         }
 
         @Override
@@ -65,6 +66,41 @@ public class CELT7 {
         @Override
         public void destroy() {
             celt_encoder_destroy(mState);
+            celt_mode_destroy(mMode);
+        }
+    }
+
+    public static class CELT7Decoder implements IDecoder {
+
+        private Pointer mMode;
+        private Pointer mState;
+
+        public CELT7Decoder(int sampleRate, int frameSize, int channels) throws NativeAudioException {
+            IntPointer error = new IntPointer(1);
+            error.put(0);
+            mMode = celt_mode_create(sampleRate, frameSize, error);
+            if(error.get() < 0) throw new NativeAudioException("CELT 0.7.0 decoder initialization failed with error: "+error.get());
+            mState = celt_decoder_create(mMode, channels, error);
+            if(error.get() < 0) throw new NativeAudioException("CELT 0.7.0 decoder initialization failed with error: "+error.get());
+        }
+
+        @Override
+        public int decodeFloat(byte[] input, int inputSize, float[] output, int frameSize) throws NativeAudioException {
+            int result = celt_decode_float(mState, input, inputSize, output);
+            if(result < 0) throw new NativeAudioException("CELT 0.7.0 decoding failed with error: "+result);
+            return frameSize;
+        }
+
+        @Override
+        public int decodeShort(byte[] input, int inputSize, short[] output, int frameSize) throws NativeAudioException {
+            int result = celt_decode(mState, input, inputSize, output);
+            if(result < 0) throw new NativeAudioException("CELT 0.7.0 decoding failed with error: "+result);
+            return frameSize;
+        }
+
+        @Override
+        public void destroy() {
+            celt_decoder_destroy(mState);
             celt_mode_destroy(mMode);
         }
     }
