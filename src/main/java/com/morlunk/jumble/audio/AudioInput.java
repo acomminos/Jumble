@@ -209,7 +209,10 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
         Log.v(Constants.TAG, "Using codec "+codec.toString()+" for input");
 
-        if(mEncoder != null) mEncoder.destroy();
+        if(mEncoder != null) {
+            mEncoder.destroy();
+            mEncoder = null;
+        }
 
         switch (codec) {
             case UDPVoiceOpus:
@@ -221,9 +224,10 @@ public class AudioInput extends ProtocolHandler implements Runnable {
             case UDPVoiceCELTAlpha:
                 mEncoder = new CELT7.CELT7Encoder(Audio.SAMPLE_RATE, mFrameSize, 1);
                 break;
-            case UDPVoiceSpeex:
+//            case UDPVoiceSpeex:
                 // TODO
 //                break;
+            default:
                 return;
         }
         mEncoder.setBitrate(mQuality);
@@ -371,7 +375,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                         System.arraycopy(audioData, 0, mOpusBuffer, mFrameSize * mBufferedFrames, mFrameSize);
                         mBufferedFrames++;
 
-                        if(!mRecording || mBufferedFrames >= mFramesPerPacket) {
+                        if((!mRecording && mBufferedFrames > 0) || mBufferedFrames >= mFramesPerPacket) {
                             if(mBufferedFrames < mFramesPerPacket)
                                 mBufferedFrames = mFramesPerPacket; // If recording was stopped early, encode remaining empty frames too.
 
@@ -389,7 +393,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                         try {
                             mEncoder.encode(audioData, mFrameSize, mCELTBuffer[mBufferedFrames], Audio.SAMPLE_RATE/800);
                             mBufferedFrames++;
-                            encoded = mBufferedFrames >= mFramesPerPacket || !talking;
+                            encoded = mBufferedFrames >= mFramesPerPacket || (!mRecording && mBufferedFrames > 0);
                         } catch (NativeAudioException e) {
                             mBufferedFrames = 0;
                             continue;
