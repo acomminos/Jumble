@@ -65,6 +65,7 @@ public class CELT7 {
         @Override
         public void destroy() {
             celt_encoder_destroy(mState);
+            celt_mode_destroy(mMode);
         }
     }
 

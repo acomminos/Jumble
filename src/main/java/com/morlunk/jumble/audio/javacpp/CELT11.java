@@ -60,6 +60,9 @@ public class CELT11 {
         @Override
         public void setBitrate(int bitrate) {
             // FIXME
+//            IntPointer ptr = new IntPointer(1);
+//            ptr.put(bitrate);
+//            celt_encoder_ctl(mState, CELT_SET_BITRATE_REQUEST, ptr);
         }
 
         @Override

@@ -66,6 +66,12 @@ public class Opus {
             Opus.opus_encoder_ctl(mState, Opus.OPUS_SET_BITRATE_REQUEST, bitrate);
         }
 
+        public int getBitrate() {
+            IntPointer ptr = new IntPointer(1);
+            Opus.opus_encoder_ctl(mState, OPUS_GET_BITRATE_REQUEST, ptr);
+            return ptr.get();
+        }
+
         @Override
         public void destroy() {
             Opus.opus_encoder_destroy(mState);
