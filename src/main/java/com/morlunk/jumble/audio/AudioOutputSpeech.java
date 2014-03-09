@@ -194,7 +194,7 @@ public class AudioOutputSpeech {
 
                     if(result == Speex.JitterBuffer.JITTER_BUFFER_OK) {
                         byte[] data = new byte[jbp.getLength()];
-                        jbp.getData().get(data);
+                        jbp.getData(data, 0, jbp.getLength());
                         PacketDataStream pds = new PacketDataStream(data, jbp.getLength());
 
                         mMissCount = 0;

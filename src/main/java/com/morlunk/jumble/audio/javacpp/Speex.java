@@ -228,9 +228,9 @@ public class Speex {
         public JitterBufferPacket(byte[] data, int length, int timestamp, int span, int sequence) {
             allocate();
             if(data != null)
-                setData(new BytePointer(data));
+                setData(data);
             else
-                setData(new BytePointer(4096));
+                setData(new byte[length]);
             setLength(length);
             setTimestamp(timestamp);
             setSpan(span);
@@ -239,8 +239,8 @@ public class Speex {
 
         private native void allocate();
 
-        @MemberGetter @Name("data") public native @Cast("char *") BytePointer getData();
-        @MemberSetter @Name("data") public native void setData(@Cast("char *") BytePointer pointer);
+        @MemberGetter @Name("data") public native @Cast("char *") void getData(byte[] data, int offset, int length);
+        @MemberSetter @Name("data") public native void setData(@Cast("char *") byte[] pointer);
         @MemberGetter @Name("len") public native int getLength();
         @MemberSetter @Name("len") public native void setLength(int length);
         @MemberGetter @Name("timestamp") public native int getTimestamp();

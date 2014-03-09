@@ -45,17 +45,13 @@ import java.util.List;
  */
 public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutputSpeech.TalkStateListener, JumbleUDPMessageListener {
 
-    /** Number of nanoseconds until sleeping audio output thread. */
-    private static final long SLEEP_THRESHOLD = 3000000000L;
-
     private SparseArray<AudioOutputSpeech> mAudioOutputs = new SparseArray<AudioOutputSpeech>();
     private AudioTrack mAudioTrack;
     private int mAudioStream;
     private int mBufferSize;
     private Thread mThread;
-    private Object mInactiveLock = new Object(); // Lock that the audio thread waits on when there's no audio to play. Wake when we get a frame.
+    private final Object mInactiveLock = new Object(); // Lock that the audio thread waits on when there's no audio to play. Wake when we get a frame.
     private boolean mRunning = false;
-    private long mLastPacket; // Time that the last packet was received, in nanoseconds
     private List<AudioOutputSpeech> mMixBuffer = new ArrayList<AudioOutputSpeech>();
     private List<AudioOutputSpeech> mDelBuffer = new ArrayList<AudioOutputSpeech>();
     private Handler mMainHandler;
@@ -128,8 +124,7 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
             boolean play = mix(mix, mix.length);
             if(play) {
                 mAudioTrack.write(mix, 0, mix.length);
-            }
-            else if(System.nanoTime()-mLastPacket > SLEEP_THRESHOLD) {
+            } else {
                 Log.v(Constants.TAG, "Pausing audio output thread.");
                 synchronized (mInactiveLock) {
                     try {
@@ -216,7 +211,6 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
 
             aop.addFrameToBuffer(packet.array(), seq);
 
-            mLastPacket = System.nanoTime();
             synchronized (mInactiveLock) {
                 mInactiveLock.notify();
             }
