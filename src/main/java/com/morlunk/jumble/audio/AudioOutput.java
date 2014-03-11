@@ -175,11 +175,10 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
     }
 
     @Override
-    public void messageVoiceData(byte[] data) {
+    public void messageVoiceData(byte[] data, JumbleUDPMessageType messageType) {
         if(!mRunning)
             return;
 
-        JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[data[0] >> 5 & 0x7];
         int msgFlags = data[0] & 0x1f;
         PacketDataStream pds = new PacketDataStream(data, data.length);
         pds.skip(1);
@@ -193,13 +192,13 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
             packet.put(pds.dataBlock(pds.left()));
 
             AudioOutputSpeech aop = mAudioOutputs.get(session);
-            if(aop != null && aop.getCodec() != dataType) {
+            if(aop != null && aop.getCodec() != messageType) {
                 aop.destroy();
                 aop = null;
             }
             if(aop == null) {
                 try {
-                    aop = new AudioOutputSpeech(user, dataType, this);
+                    aop = new AudioOutputSpeech(user, messageType, this);
                 } catch (NativeAudioException e) {
                     Log.v(Constants.TAG, "Failed to create audio user "+user.getName());
                     e.printStackTrace();

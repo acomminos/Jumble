@@ -47,7 +47,7 @@ public class Constants {
 
     public static final int PROTOCOL_MAJOR = 1;
     public static final int PROTOCOL_MINOR = 2;
-    public static final int PROTOCOL_PATCH = 4;
+    public static final int PROTOCOL_PATCH = 5;
 
     public static final int TRANSMIT_VOICE_ACTIVITY = 0;
     public static final int TRANSMIT_PUSH_TO_TALK = 1;

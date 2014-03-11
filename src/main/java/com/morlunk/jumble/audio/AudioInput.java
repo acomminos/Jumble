@@ -433,6 +433,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
         int flags = 0;
         flags |= mCodec.ordinal() << 5;
+
         mPacketBuffer[0] = (byte) (flags & 0xFF);
         mPacketDataStream.rewind();
         mPacketDataStream.skip(1);
@@ -473,13 +474,12 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
     @Override
     public void messageCodecVersion(Mumble.CodecVersion msg) {
-        // FIXME: CELT 0.11.0 (beta) does not work.
         try {
             if(msg.hasOpus() && msg.getOpus())
                 switchCodec(JumbleUDPMessageType.UDPVoiceOpus);
-            else if(msg.hasBeta() && msg.getBeta() == Constants.CELT_11_VERSION && !(msg.hasPreferAlpha() && msg.getPreferAlpha()))
+            else if(msg.hasBeta() && !msg.getPreferAlpha())
                 switchCodec(JumbleUDPMessageType.UDPVoiceCELTBeta);
-            else if(msg.hasAlpha() && msg.getAlpha() == Constants.CELT_7_VERSION)
+            else
                 switchCodec(JumbleUDPMessageType.UDPVoiceCELTAlpha);
         } catch (NativeAudioException e) {
             e.printStackTrace();

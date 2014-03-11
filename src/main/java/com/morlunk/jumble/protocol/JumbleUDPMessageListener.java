@@ -16,6 +16,8 @@
 
 package com.morlunk.jumble.protocol;
 
+import com.morlunk.jumble.net.JumbleUDPMessageType;
+
 /**
  * Created by andrew on 21/01/14.
  */
@@ -23,11 +25,11 @@ package com.morlunk.jumble.protocol;
 public interface JumbleUDPMessageListener {
 
     public void messageUDPPing(byte[] data);
-    public void messageVoiceData(byte[] data);
+    public void messageVoiceData(byte[] data, JumbleUDPMessageType messageType);
 
     public static class Stub implements JumbleUDPMessageListener {
 
         public void messageUDPPing(byte[] data) {}
-        public void messageVoiceData(byte[] data) {}
+        public void messageVoiceData(byte[] data, JumbleUDPMessageType messageType) {}
     }
 }

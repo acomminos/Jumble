@@ -167,13 +167,10 @@ public class JumbleConnection {
         public void messageCodecVersion(Mumble.CodecVersion msg) {
             if(msg.hasOpus() && msg.getOpus())
                 mCodec = JumbleUDPMessageType.UDPVoiceOpus.ordinal();
-            else if(msg.hasBeta() && !(msg.hasPreferAlpha() && msg.getPreferAlpha()))
+            else if(msg.hasBeta() && !msg.getPreferAlpha())
                 mCodec = JumbleUDPMessageType.UDPVoiceCELTBeta.ordinal();
-            else if(msg.hasAlpha() && msg.getAlpha() == Constants.CELT_7_VERSION)
-                mCodec = JumbleUDPMessageType.UDPVoiceCELTAlpha.ordinal();
             else
-                mCodec = JumbleUDPMessageType.UDPVoiceSpeex.ordinal();
-
+                mCodec = JumbleUDPMessageType.UDPVoiceCELTAlpha.ordinal();
         }
 
         @Override
@@ -282,7 +279,7 @@ public class JumbleConnection {
 
             if(!mForceTCP) {
                 ByteBuffer buffer = ByteBuffer.allocate(16);
-                buffer.put((byte) (JumbleUDPMessageType.UDPPing.ordinal() << 5));
+                buffer.put((byte) ((JumbleUDPMessageType.UDPPing.ordinal() << 5) & 0xFF));
                 buffer.putLong(t);
 
                 sendUDPMessage(buffer.array(), 16, true);
@@ -552,6 +549,7 @@ public class JumbleConnection {
     }
 
     public void sendUDPMessage(final byte[] data, final int length, final boolean force) {
+        if(mServerVersion == 0x10202) applyLegacyCodecWorkaround(data);
         mNetworkSendHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -587,10 +585,25 @@ public class JumbleConnection {
     }
 
     private final void handleUDPMessage(byte[] data) {
-        final JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[data[0] >> 5 & 0x7];
+        if(mServerVersion == 0x10202) applyLegacyCodecWorkaround(data);
+        JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[data[0] >> 5 & 0x7];
+
         for(JumbleUDPMessageListener handler : mUDPHandlers) {
             broadcastUDPMessage(handler, data, dataType);
         }
+    }
+
+    /**
+     * Workaround for 1.2.2 servers that report the old types for CELT alpha and beta.
+     * @param data The UDP data to be patched, if we're on a 1.2.2 server.
+     */
+    private void applyLegacyCodecWorkaround(byte[] data) {
+        JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[data[0] >> 5 & 0x7];
+        if(dataType == JumbleUDPMessageType.UDPVoiceCELTBeta)
+            dataType = JumbleUDPMessageType.UDPVoiceCELTAlpha;
+        else if(dataType == JumbleUDPMessageType.UDPVoiceCELTAlpha)
+            dataType = JumbleUDPMessageType.UDPVoiceCELTBeta;
+        data[0] = (byte) ((dataType.ordinal() << 5) & 0xFF);
     }
 
     /**
@@ -767,7 +780,7 @@ public class JumbleConnection {
             case UDPVoiceSpeex:
             case UDPVoiceCELTBeta:
             case UDPVoiceOpus:
-                handler.messageVoiceData(data);
+                handler.messageVoiceData(data, messageType);
                 break;
         }
     }
