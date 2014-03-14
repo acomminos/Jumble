@@ -145,4 +145,36 @@ public class Message implements Parcelable {
         dest.writeString(mMessage);
         dest.writeLong(mReceivedTime.toMillis(false));
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Message message = (Message) o;
+
+        if (mActor != message.mActor) return false;
+        if (!mActorName.equals(message.mActorName)) return false;
+        if (!mChannels.equals(message.mChannels)) return false;
+        if (!mMessage.equals(message.mMessage)) return false;
+        if (!mReceivedTime.equals(message.mReceivedTime)) return false;
+        if (!mTrees.equals(message.mTrees)) return false;
+        if (mType != message.mType) return false;
+        if (!mUsers.equals(message.mUsers)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = mType.hashCode();
+        result = 31 * result + mActor;
+        result = 31 * result + mActorName.hashCode();
+        result = 31 * result + mChannels.hashCode();
+        result = 31 * result + mTrees.hashCode();
+        result = 31 * result + mUsers.hashCode();
+        result = 31 * result + mMessage.hashCode();
+        result = 31 * result + mReceivedTime.hashCode();
+        return result;
+    }
 }

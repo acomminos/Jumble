@@ -22,7 +22,7 @@ import android.os.Parcelable;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class Channel implements Parcelable {
+public final class Channel implements Parcelable, Comparable<Channel> {
     private int mId;
     private int mPosition;
     private int mLevel;
@@ -174,8 +174,8 @@ public final class Channel implements Parcelable {
         return mSubchannels;
     }
 
-    public void addSubchannel(int channelId) {
-        mSubchannels.add(channelId);
+    public void addSubchannel(int channel) {
+        mSubchannels.add(channel);
     }
 
     public void removeSubchannel(int channelId) {
@@ -215,5 +215,29 @@ public final class Channel implements Parcelable {
 
     public void setPermissions(int permissions) {
         mPermissions = permissions;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Channel channel = (Channel) o;
+
+        if (mId != channel.mId) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return mId;
+    }
+
+    @Override
+    public int compareTo(Channel another) {
+        if(mPosition != another.getPosition())
+            return ((Integer)mPosition).compareTo(another.getPosition());
+        return mName.compareTo(another.getName());
     }
 }

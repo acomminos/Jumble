@@ -272,4 +272,21 @@ public class User implements Parcelable {
     public void setAverageAvailable(float averageAvailable) {
         mAverageAvailable = averageAvailable;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        User user = (User) o;
+
+        if (mId != user.mId) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return mId;
+    }
 }
