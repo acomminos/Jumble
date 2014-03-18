@@ -35,7 +35,6 @@ import android.widget.Toast;
 import com.morlunk.jumble.audio.Audio;
 import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
-import com.morlunk.jumble.audio.NativeAudioException;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
@@ -84,24 +83,24 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
 
     // Service settings
-    public Server mServer;
-    public boolean mAutoReconnect;
-    public int mAutoReconnectDelay;
-    public byte[] mCertificate;
-    public String mCertificatePassword;
-    public float mDetectionThreshold;
-    public float mAmplitudeBoost;
-    public int mTransmitMode;
-    public boolean mUseOpus;
-    public int mInputRate;
-    public int mInputQuality;
-    public boolean mForceTcp;
-    public boolean mUseTor;
-    public String mClientName;
-    public List<String> mAccessTokens;
-    public int mAudioSource;
-    public int mAudioStream;
-    public int mFramesPerPacket;
+    private Server mServer;
+    private boolean mAutoReconnect;
+    private int mAutoReconnectDelay;
+    private byte[] mCertificate;
+    private String mCertificatePassword;
+    private float mDetectionThreshold;
+    private float mAmplitudeBoost;
+    private int mTransmitMode;
+    private boolean mUseOpus;
+    private int mInputRate;
+    private int mInputQuality;
+    private boolean mForceTcp;
+    private boolean mUseTor;
+    private String mClientName;
+    private List<String> mAccessTokens;
+    private int mAudioSource;
+    private int mAudioStream;
+    private int mFramesPerPacket;
 
     private JumbleConnection mConnection;
     private ChannelHandler mChannelHandler;
@@ -110,22 +109,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private AudioOutput mAudioOutput;
     private AudioInput mAudioInput;
     private PowerManager.WakeLock mWakeLock;
-
-    /* FIXME
-    private AudioManager.OnAudioFocusChangeListener mAudioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
-        @Override
-        public void onAudioFocusChange(int focusChange) {
-            switch (focusChange) {
-                case AudioManager.AUDIOFOCUS_GAIN:
-                    mAudioOutput.startPlaying(false);
-                    break;
-                case AudioManager.AUDIOFOCUS_LOSS:
-                    mAudioOutput.stopPlaying();
-                    break;
-            }
-        }
-    };
-    */
 
     private boolean mBluetoothOn = false;
     private BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
@@ -335,7 +318,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public void setTransmitMode(int transmitMode) throws RemoteException {
             mTransmitMode = transmitMode;
-            mAudioInput.setTransmitMode(mTransmitMode);
 
             // Reconfigure audio input/output to accommodate for change in transmit mode.
             if(mConnection != null && mConnection.isConnected()) {
@@ -348,14 +330,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void setVADThreshold(float threshold) throws RemoteException {
-            if(mAudioInput != null)
-                mAudioInput.setVADThreshold(threshold);
+            mDetectionThreshold = threshold;
         }
 
         @Override
         public void setAmplitudeBoost(float boost) throws RemoteException {
             mAmplitudeBoost = boost;
-            if(mAudioInput != null) mAudioInput.setAmplitudeBoost(boost);
         }
 
         @Override
@@ -590,6 +570,15 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         super.onCreate();
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Jumble");
+
+        mConnection = new JumbleConnection(this, this);
+        mChannelHandler = new ChannelHandler(this);
+        mUserHandler = new UserHandler(this);
+        mTextMessageHandler = new TextMessageHandler(this);
+        mAudioOutput = new AudioOutput(this);
+        mAudioInput = new AudioInput(this, mAudioInputListener);
+        mConnection.addTCPMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioOutput, mAudioInput);
+        mConnection.addUDPMessageHandlers(mAudioOutput);
     }
 
     @Override
@@ -608,17 +597,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     public void connect() {
         try {
-            mConnection = new JumbleConnection(this, this, mServer, mClientName, mCertificate, mCertificatePassword, mForceTcp, mUseOpus, mUseTor);
-
             mPermissions = 0;
             mReconnecting = false;
-            mChannelHandler = new ChannelHandler(this);
-            mUserHandler = new UserHandler(this);
-            mTextMessageHandler = new TextMessageHandler(this);
-            mAudioOutput = new AudioOutput(this, mAudioStream);
-            mAudioInput = new AudioInput(this, JumbleUDPMessageType.UDPVoiceOpus, mAudioSource, mInputRate, mInputQuality, mTransmitMode, mDetectionThreshold, mAmplitudeBoost, mFramesPerPacket, mAudioInputListener);
-            mConnection.addTCPMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioOutput, mAudioInput);
-            mConnection.addUDPMessageHandlers(mAudioOutput);
 
             mConnection.connect();
         } catch (final JumbleConnectionException e) {
@@ -630,15 +610,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                     observer.onConnectionError(e.getMessage(), e.isAutoReconnectAllowed());
                 }
             });
-        } catch (final NativeAudioException e) {
-            e.printStackTrace();
-
-            notifyObservers(new ObserverRunnable() {
-                @Override
-                public void run(IJumbleObserver observer) throws RemoteException {
-                    observer.onConnectionError(e.getMessage(), false);
-                }
-            });
         }
     }
 
@@ -647,7 +618,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             @Override
             public void run() {
                 mConnection.disconnect();
-                mConnection = null;
             }
         }).start();
     }
@@ -668,12 +638,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         mAudioOutput.startPlaying(false);
 
-        // Configure audio manager FIXME audio focus
-//        AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-//        int result = audioManager.requestAudioFocus(mAudioFocusChangeListener,
-//                                                    AudioManager.STREAM_MUSIC,
-//                                                    AudioManager.AUDIOFOCUS_GAIN);
-        // TODO handle result
         // This sticky broadcast will initialize the audio output.
         registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
         if(mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY)
@@ -698,13 +662,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             e.printStackTrace();
         }
 
+        mUserHandler.clear();
+        mChannelHandler.clear();
         mAudioOutput.stopPlaying();
-        mAudioInput.stopRecordingAndWait();
-        mAudioInput.destroy();
+        mAudioInput.shutdown();
+        mMessageLog.clear();
 
         // Restore audio manager mode
         AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-//        audioManager.abandonAudioFocus(mAudioFocusChangeListener);
         audioManager.stopBluetoothSco();
 
         notifyObservers(new ObserverRunnable() {
@@ -713,8 +678,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 observer.onDisconnected();
             }
         });
-
-        mMessageLog.clear();
     }
 
     @Override
@@ -749,6 +712,78 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      */
     public int getSession() {
         return mConnection.getSession();
+    }
+
+    public boolean shouldAutoReconnect() {
+        return mAutoReconnect;
+    }
+
+    public int getAutoReconnectDelay() {
+        return mAutoReconnectDelay;
+    }
+
+    public byte[] getCertificate() {
+        return mCertificate;
+    }
+
+    public String getCertificatePassword() {
+        return mCertificatePassword;
+    }
+
+    public float getDetectionThreshold() {
+        return mDetectionThreshold;
+    }
+
+    public float getAmplitudeBoost() {
+        return mAmplitudeBoost;
+    }
+
+    public int getTransmitMode() {
+        return mTransmitMode;
+    }
+
+    public boolean shouldUseOpus() {
+        return mUseOpus;
+    }
+
+    public int getInputRate() {
+        return mInputRate;
+    }
+
+    public int getInputQuality() {
+        return mInputQuality;
+    }
+
+    public boolean shouldForceTcp() {
+        return mForceTcp;
+    }
+
+    public boolean shouldUseTor() {
+        return mUseTor;
+    }
+
+    public String getClientName() {
+        return mClientName;
+    }
+
+    public List<String> getAccessTokens() {
+        return mAccessTokens;
+    }
+
+    public int getAudioSource() {
+        return mAudioSource;
+    }
+
+    public int getAudioStream() {
+        return mAudioStream;
+    }
+
+    public int getFramesPerPacket() {
+        return mFramesPerPacket;
+    }
+
+    public Server getServer() {
+        return mServer;
     }
 
     public UserHandler getUserHandler() {

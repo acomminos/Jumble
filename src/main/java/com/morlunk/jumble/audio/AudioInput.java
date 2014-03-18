@@ -68,26 +68,19 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     private Speex.SpeexResampler mResampler;
 
     private AudioInputListener mListener;
-    private int mTransmitMode = Constants.TRANSMIT_PUSH_TO_TALK;
-    private float mVADThreshold = 0;
+    private AudioRecord mAudioRecord;
     private boolean mVADLastDetected = false;
     private long mVADLastDetectedTime;
-    private float mAmplitudeBoost;
-
-    private AudioRecord mAudioRecord;
-    private int mAudioSource;
     private int mMinBufferSize;
     private int mSampleRate = -1;
-    private int mQuality;
     private int mFrameSize = Audio.FRAME_SIZE;
     private int mMicFrameSize = Audio.FRAME_SIZE;
-    private int mFramesPerPacket;
 
     // Temporary encoder state
-    private final short[] mOpusBuffer;
+    private short[] mOpusBuffer;
 
     // CELT encoded frame buffer
-    private final byte[][] mCELTBuffer;
+    private byte[][] mCELTBuffer;
 
     private final byte[] mEncodedBuffer = new byte[OPUS_MAX_BYTES];
     private final byte[] mPacketBuffer = new byte[1024];
@@ -105,35 +98,9 @@ public class AudioInput extends ProtocolHandler implements Runnable {
      * Creates a new audio input manager configured for the specified codec.
      * @param listener
      */
-    public AudioInput(JumbleService service, JumbleUDPMessageType codec, int audioSource, int sampleRate, int quality, int transmitMode, float voiceThreshold, float amplitudeBoost, int framesPerPacket, AudioInputListener listener) throws NativeAudioException {
+    public AudioInput(JumbleService service, AudioInputListener listener) {
         super(service);
         mListener = listener;
-        mAudioSource = audioSource;
-        mTransmitMode = transmitMode;
-        mVADThreshold = voiceThreshold;
-        mAmplitudeBoost = amplitudeBoost;
-        mFramesPerPacket = framesPerPacket;
-        mQuality = quality;
-        mSampleRate = getSupportedSampleRate(sampleRate);
-        switchCodec(codec);
-        configurePreprocessState();
-
-        mCELTBuffer = new byte[mFramesPerPacket][Audio.SAMPLE_RATE/800];
-        mOpusBuffer = new short[mFrameSize*mFramesPerPacket];
-
-        if(mSampleRate != -1) {
-            if(mSampleRate != Audio.SAMPLE_RATE) {
-                mResampler = new Speex.SpeexResampler(1, mSampleRate, Audio.SAMPLE_RATE, SPEEX_RESAMPLE_QUALITY);
-                mMicFrameSize = (mFrameSize * mSampleRate)/Audio.SAMPLE_RATE;
-            }
-        } else {
-            throw new RuntimeException("Device does not support any compatible input sampling rates!");
-        }
-
-        int reportedMinBufferSize = AudioRecord.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-        mMinBufferSize = Math.max(reportedMinBufferSize, mFrameSize);
-
-        Log.i(Constants.TAG, "AudioInput: " + mQuality + "bps, " + mFramesPerPacket + " frames/packet, " + mSampleRate + "hz");
     }
 
     /**
@@ -158,18 +125,6 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         }
 
         return -1;
-    }
-
-    public void setVADThreshold(float threshold) {
-        mVADThreshold = threshold;
-    }
-
-    public void setAmplitudeBoost(float boost) {
-        mAmplitudeBoost = boost;
-    }
-
-    public void setTransmitMode(int transmitMode) {
-        mTransmitMode = transmitMode;
     }
 
     /**
@@ -230,7 +185,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
             default:
                 return;
         }
-        mEncoder.setBitrate(mQuality);
+        mEncoder.setBitrate(getService().getInputQuality());
     }
 
     /**
@@ -244,7 +199,25 @@ public class AudioInput extends ProtocolHandler implements Runnable {
             }
 
             if(mAudioRecord == null) {
-                mAudioRecord = new AudioRecord(mAudioSource, mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
+                mSampleRate = getSupportedSampleRate(getService().getInputRate());
+                if(mSampleRate != -1) {
+                    if(mSampleRate != Audio.SAMPLE_RATE) {
+                        mResampler = new Speex.SpeexResampler(1, mSampleRate, Audio.SAMPLE_RATE, SPEEX_RESAMPLE_QUALITY);
+                        mMicFrameSize = (mFrameSize * mSampleRate)/Audio.SAMPLE_RATE;
+                    }
+                } else {
+                    throw new RuntimeException("Device does not support any compatible input sampling rates!");
+                }
+
+                int reportedMinBufferSize = AudioRecord.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+                mMinBufferSize = Math.max(reportedMinBufferSize, mFrameSize);
+
+                mCELTBuffer = new byte[getService().getFramesPerPacket()][Audio.SAMPLE_RATE/800];
+                mOpusBuffer = new short[mFrameSize*getService().getFramesPerPacket()];
+
+                configurePreprocessState();
+
+                mAudioRecord = new AudioRecord(getService().getAudioSource(), mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
 
                 // If we're still uninitialized, we have a problem.
                 if(mAudioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
@@ -252,6 +225,8 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                     getService().disconnect();
                     return;
                 }
+
+                Log.i(Constants.TAG, "AudioInput: " + getService().getInputQuality() + "bps, " + getService().getFramesPerPacket() + " frames/packet, " + mSampleRate + "hz");
             }
 
             mRecording = true;
@@ -275,19 +250,44 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
     /**
      * Stops the record loop and waits on it to finish.
+     * Releases native audio resources.
+     * NOTE: It is safe to call startRecording after.
      * @throws InterruptedException
      */
-    public void stopRecordingAndWait() {
-        if(!mRecording) return;
-
-        synchronized (mRecordLock) {
-            mRecording = false;
-            try {
-                mRecordLock.wait();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+    public void shutdown() {
+        if(mRecording) {
+            synchronized (mRecordLock) {
+                mRecording = false;
+                try {
+                    mRecordLock.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
-            mRecordThread = null;
+        }
+
+        mRecordThread = null;
+        mCodec = null;
+
+        if(mAudioRecord != null) {
+            mAudioRecord.release();
+            mAudioRecord = null;
+        }
+        if(mEncoder != null) {
+            mEncoder.destroy();
+            mEncoder = null;
+        }
+        if(mPreprocessState != null) {
+            mPreprocessState.destroy();
+            mPreprocessState = null;
+        }
+        if(mResampler != null) {
+            mResampler.destroy();
+            mResampler = null;
+        }
+        if(mAudioRecord != null) {
+            mAudioRecord.release();
+            mAudioRecord = null;
         }
     }
 
@@ -301,6 +301,11 @@ public class AudioInput extends ProtocolHandler implements Runnable {
     public void run() {
         android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
 
+        if(mCodec == null) {
+            Log.v(Constants.TAG, "Tried to start recording without a codec version!");
+            return;
+        }
+
         mBufferedFrames = 0;
         mFrameCounter = 0;
         mVADLastDetected = false;
@@ -313,7 +318,10 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         final short[] audioData = new short[mFrameSize];
         final short[] resampleBuffer = new short[mMicFrameSize];
 
-        if(mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK)
+        int transmitMode = getService().getTransmitMode();
+        int framesPerPacket = getService().getFramesPerPacket();
+
+        if(transmitMode == Constants.TRANSMIT_CONTINUOUS || transmitMode == Constants.TRANSMIT_PUSH_TO_TALK)
             mListener.onTalkStateChanged(true);
 
         // We loop when the 'recording' instance var is true instead of checking audio record state because we want to always cleanly shutdown.
@@ -332,9 +340,9 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                 mPreprocessState.preprocess(audioData);
 
                 // Boost/reduce amplitude based on user preference
-                if(mAmplitudeBoost != 1.0f) {
+                if(getService().getAmplitudeBoost() != 1.0f) {
                     for(int i = 0; i < mFrameSize; i++) {
-                        audioData[i] *= mAmplitudeBoost;
+                        audioData[i] *= getService().getAmplitudeBoost();
                         if(audioData[i] > Short.MAX_VALUE) audioData[i] = Short.MAX_VALUE;
                         else if(audioData[i] < Short.MIN_VALUE) audioData[i] = Short.MIN_VALUE;
                     }
@@ -342,7 +350,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
                 boolean talking = true;
 
-                if(mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY) {
+                if(transmitMode == Constants.TRANSMIT_VOICE_ACTIVITY) {
                     // Use a logarithmic energy-based scale for VAD.
                     float sum = 1.0f;
                     for (int i = 0; i < mFrameSize; i++) {
@@ -350,7 +358,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                     }
                     float micLevel = (float) Math.sqrt(sum / (float)mFrameSize);
                     float peakSignal = (float) (20.0f*Math.log10(micLevel / 32768.0f))/96.0f;
-                    talking = (peakSignal+1) >= mVADThreshold;
+                    talking = (peakSignal+1) >= getService().getDetectionThreshold();
 
                     /* Record the last time where VAD was detected in order to prevent speech dropping. */
                     if(talking) mVADLastDetectedTime = System.nanoTime();
@@ -375,9 +383,9 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                         System.arraycopy(audioData, 0, mOpusBuffer, mFrameSize * mBufferedFrames, mFrameSize);
                         mBufferedFrames++;
 
-                        if((!mRecording && mBufferedFrames > 0) || mBufferedFrames >= mFramesPerPacket) {
-                            if(mBufferedFrames < mFramesPerPacket)
-                                mBufferedFrames = mFramesPerPacket; // If recording was stopped early, encode remaining empty frames too.
+                        if((!mRecording && mBufferedFrames > 0) || mBufferedFrames >= framesPerPacket) {
+                            if(mBufferedFrames < framesPerPacket)
+                                mBufferedFrames = framesPerPacket; // If recording was stopped early, encode remaining empty frames too.
 
                             try {
                                 mEncoder.encode(mOpusBuffer, mFrameSize * mBufferedFrames, mEncodedBuffer, OPUS_MAX_BYTES);
@@ -393,7 +401,7 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                         try {
                             mEncoder.encode(audioData, mFrameSize, mCELTBuffer[mBufferedFrames], Audio.SAMPLE_RATE/800);
                             mBufferedFrames++;
-                            encoded = mBufferedFrames >= mFramesPerPacket || (!mRecording && mBufferedFrames > 0);
+                            encoded = mBufferedFrames >= framesPerPacket || (!mRecording && mBufferedFrames > 0);
                         } catch (NativeAudioException e) {
                             mBufferedFrames = 0;
                             continue;
@@ -458,18 +466,6 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         }
 
         mListener.onFrameEncoded(mPacketBuffer, mPacketDataStream.size(), mCodec);
-    }
-
-    /**
-     * Deallocates native assets. Must be called on disconnect.
-     */
-    public void destroy() {
-        if(mEncoder != null) mEncoder.destroy();
-        if(mPreprocessState != null)
-            mPreprocessState.destroy();
-        if(mResampler != null)
-            mResampler.destroy();
-        if(mAudioRecord != null) mAudioRecord.release();
     }
 
     @Override

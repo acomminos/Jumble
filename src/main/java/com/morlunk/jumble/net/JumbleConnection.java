@@ -26,6 +26,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
+import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.protocol.JumbleTCPMessageListener;
@@ -50,7 +51,10 @@ import java.security.NoSuchProviderException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -74,18 +78,20 @@ public class JumbleConnection {
      * Message types that aren't shown in logcat.
      * For annoying types like UDPTunnel.
      */
-    public static final List<JumbleTCPMessageType> UNLOGGED_MESSAGES = Arrays.asList(new JumbleTCPMessageType[] {
-            JumbleTCPMessageType.UDPTunnel,
-            JumbleTCPMessageType.Ping
-    });
+    public static final Set<JumbleTCPMessageType> UNLOGGED_MESSAGES;
+
+    static {
+        UNLOGGED_MESSAGES = new HashSet<JumbleTCPMessageType>();
+        UNLOGGED_MESSAGES.add(JumbleTCPMessageType.UDPTunnel);
+        UNLOGGED_MESSAGES.add(JumbleTCPMessageType.Ping);
+    }
+
+    private JumbleService mService;
+    private JumbleConnectionListener mListener;
 
     // Tor connection details
     public static final String TOR_HOST = "localhost";
     public static final int TOR_PORT = 9050;
-
-    private Context mContext;
-    private JumbleConnectionListener mListener;
-    private String mClientName;
 
     // Authentication
     private JumbleSSLSocketFactory mSocketFactory;
@@ -103,9 +109,6 @@ public class JumbleConnection {
     private Future mTCPTask;
     private JumbleUDP mUDP;
     private ScheduledFuture mPingTask;
-    private boolean mForceTCP;
-    private boolean mUseOpus = true;
-    private boolean mUseTor;
     private boolean mUsingUDP = true;
     private boolean mConnected;
     private boolean mSynchronized;
@@ -118,7 +121,6 @@ public class JumbleConnection {
     private long mLastTCPPing;
 
     // Server
-    private Server mServer;
     private int mServerVersion;
     private String mServerRelease;
     private String mServerOSName;
@@ -141,7 +143,7 @@ public class JumbleConnection {
         @Override
         public void messageServerSync(Mumble.ServerSync msg) {
             // Protocol says we're supposed to send a dummy UDPTunnel packet here to let the server know we don't like UDP.
-            if(mForceTCP) {
+            if(mService.shouldForceTcp()) {
                 Mumble.UDPTunnel.Builder utb = Mumble.UDPTunnel.newBuilder();
                 utb.setPacket(ByteString.copyFrom(new byte[3]));
                 sendTCPMessage(utb.build(), JumbleTCPMessageType.UDPTunnel);
@@ -236,7 +238,7 @@ public class JumbleConnection {
 
             if(((mCryptState.mUiRemoteGood == 0) || (mCryptState.mUiGood == 0)) && mUsingUDP && elapsed > 20000000) {
                 mUsingUDP = false;
-                if(!mForceTCP && mListener != null) {
+                if(!mService.shouldForceTcp() && mListener != null) {
                     if((mCryptState.mUiRemoteGood == 0) && (mCryptState.mUiGood == 0))
                         mListener.onConnectionWarning("UDP packets cannot be sent to or received from the server. Switching to TCP mode.");
                     else if(mCryptState.mUiRemoteGood == 0)
@@ -246,7 +248,7 @@ public class JumbleConnection {
                 }
             } else if (!mUsingUDP && (mCryptState.mUiRemoteGood > 3) && (mCryptState.mUiGood > 3)) {
                 mUsingUDP = true;
-                if (!mForceTCP && mListener != null)
+                if (!mService.shouldForceTcp() && mListener != null)
                     mListener.onConnectionWarning("UDP packets can be sent to and received from the server. Switching back to UDP mode.");
             }
         }
@@ -256,7 +258,7 @@ public class JumbleConnection {
 
         @Override
         public void messageUDPPing(byte[] data) {
-            Log.v(Constants.TAG, "IN: UDP Ping");
+//            Log.v(Constants.TAG, "IN: UDP Ping");
             byte[] timedata = new byte[8];
             System.arraycopy(data, 1, timedata, 0, 8);
             ByteBuffer buffer = ByteBuffer.allocate(8);
@@ -277,7 +279,7 @@ public class JumbleConnection {
             // In microseconds
             long t = getElapsed();
 
-            if(!mForceTCP) {
+            if(!mService.shouldForceTcp()) {
                 ByteBuffer buffer = ByteBuffer.allocate(16);
                 buffer.put((byte) ((JumbleUDPMessageType.UDPPing.ordinal() << 5) & 0xFF));
                 buffer.putLong(t);
@@ -303,41 +305,28 @@ public class JumbleConnection {
      * @throws CertificateException if an exception occurred parsing the p12 file.
      * @throws IOException if there was an error reading the p12 file.
      */
-    public JumbleConnection(Context context,
-                            JumbleConnectionListener listener,
-                            Server server,
-                            String clientName,
-                            byte[] certificate,
-                            String certificatePassword,
-                            boolean forceTcp,
-                            boolean useOpus,
-                            boolean useTor) throws JumbleConnectionException {
-
-        mContext = context;
+    public JumbleConnection(JumbleService service,
+                            JumbleConnectionListener listener) {
+        mService = service;
         mListener = listener;
-        mServer = server;
-        mClientName = clientName;
-        mForceTCP = forceTcp;
-        mUseOpus = useOpus;
-        mUseTor = useTor;
-        mMainHandler = new Handler(context.getMainLooper());
+        mMainHandler = new Handler(service.getMainLooper());
         mTCPHandlers.add(mConnectionMessageHandler);
         mUDPHandlers.add(mUDPPingListener);
-        setupSocketFactory(certificate, certificatePassword);
     }
 
-    public void connect() {
+    public void connect() throws JumbleConnectionException {
         mConnected = false;
         mSynchronized = false;
         mExceptionHandled = false;
-        mUsingUDP = !mForceTCP;
+        mUsingUDP = !mService.shouldForceTcp();
         mStartTimestamp = System.nanoTime();
 
-        mExecutorService = Executors.newFixedThreadPool(mForceTCP ? 2 : 3); // One TCP receive thread, one UDP receive thread (if not forcing TCP), one network send thread
+        mExecutorService = Executors.newFixedThreadPool(mService.shouldForceTcp() ? 2 : 3); // One TCP receive thread, one UDP receive thread (if not forcing TCP), one network send thread
         mPingExecutorService = Executors.newSingleThreadScheduledExecutor();
 
+        setupSocketFactory(mService.getCertificate(), mService.getCertificatePassword());
         mTCP = new JumbleTCP();
-        if(!mForceTCP)
+        if(!mService.shouldForceTcp())
             mUDP = new JumbleUDP();
         mNetworkSendThread = new NetworkSendThread();
         mExecutorService.submit(mNetworkSendThread);
@@ -363,16 +352,14 @@ public class JumbleConnection {
     }
 
     public void addTCPMessageHandlers(JumbleTCPMessageListener... handlers) {
-        for(JumbleTCPMessageListener listener : handlers)
-            mTCPHandlers.add(listener);
+        Collections.addAll(mTCPHandlers, handlers);
     }
 
     public void removeTCPMessageHandler(JumbleTCPMessageListener handler) {
         mTCPHandlers.remove(handler);
     }
     public void addUDPMessageHandlers(JumbleUDPMessageListener... handlers) {
-        for(JumbleUDPMessageListener listener : handlers)
-            mUDPHandlers.add(listener);
+        Collections.addAll(mUDPHandlers, handlers);
     }
 
     public void removeUDPMessageHandler(JumbleUDPMessageListener handler) {
@@ -554,9 +541,9 @@ public class JumbleConnection {
             @Override
             public void run() {
                 try {
-                    if (!force && (mForceTCP || !mUsingUDP))
+                    if (!force && (mService.shouldForceTcp() || !mUsingUDP))
                         mTCP.sendMessage(data, length, JumbleTCPMessageType.UDPTunnel);
-                    else if (!mForceTCP)
+                    else if (!mService.shouldForceTcp())
                         mUDP.sendMessage(data, length);
                 } catch (IOException e) {
                     e.printStackTrace(); // TODO handle me
@@ -565,7 +552,7 @@ public class JumbleConnection {
         });
     }
 
-    private final void handleTCPMessage(byte[] data, int length, JumbleTCPMessageType messageType) {
+    private void handleTCPMessage(byte[] data, int length, JumbleTCPMessageType messageType) {
         if(!UNLOGGED_MESSAGES.contains(messageType))
             Log.v(Constants.TAG, "IN: "+messageType);
 
@@ -584,7 +571,7 @@ public class JumbleConnection {
         }
     }
 
-    private final void handleUDPMessage(byte[] data) {
+    private void handleUDPMessage(byte[] data) {
         if(mServerVersion == 0x10202) applyLegacyCodecWorkaround(data);
         JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[data[0] >> 5 & 0x7];
 
@@ -804,18 +791,19 @@ public class JumbleConnection {
         }
 
         public void run() {
+            Server server = mService.getServer();
             try {
                 try {
-                    mHost = InetAddress.getByName(mServer.getHost());
+                    mHost = InetAddress.getByName(server.getHost());
                 } catch (UnknownHostException e) {
                     handleFatalException(new JumbleConnectionException("Could not resolve host", e, true));
                     return;
                 }
 
-                if(mUseTor)
-                    mTCPSocket = mSocketFactory.createTorSocket(mServer.getHost(), mServer.getPort(), TOR_HOST, TOR_PORT);
+                if(mService.shouldUseTor())
+                    mTCPSocket = mSocketFactory.createTorSocket(server.getHost(), server.getPort(), TOR_HOST, TOR_PORT);
                 else
-                    mTCPSocket = mSocketFactory.createSocket(mServer.getHost(), mServer.getPort());
+                    mTCPSocket = mSocketFactory.createSocket(server.getHost(), server.getPort());
 
                 mTCPSocket.startHandshake();
 
@@ -835,23 +823,23 @@ public class JumbleConnection {
 
             Log.v(Constants.TAG, "Started listening");
 
-            if(!mForceTCP)
+            if(!mService.shouldForceTcp())
                 mExecutorService.submit(mUDP);
 
 
             // Send version information and authenticate.
             final Mumble.Version.Builder version = Mumble.Version.newBuilder();
-            version.setRelease(mClientName);
+            version.setRelease(mService.getClientName());
             version.setVersion(Constants.PROTOCOL_VERSION);
             version.setOs("Android");
             version.setOsVersion(Build.VERSION.RELEASE);
 
             final Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
-            auth.setUsername(mServer.getUsername());
-            auth.setPassword(mServer.getPassword());
+            auth.setUsername(server.getUsername());
+            auth.setPassword(server.getPassword());
             auth.addCeltVersions(Constants.CELT_7_VERSION);
             auth.addCeltVersions(Constants.CELT_11_VERSION);
-            auth.setOpus(mUseOpus);
+            auth.setOpus(mService.shouldUseOpus());
 
             sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
             sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
@@ -942,7 +930,7 @@ public class JumbleConnection {
                 mListener.onConnectionWarning("Could not initialize UDP socket! Try forcing a TCP connection.");
                 return;
             }
-            mUDPSocket.connect(mHost, mServer.getPort());
+            mUDPSocket.connect(mHost, mService.getServer().getPort());
             final DatagramPacket packet = new DatagramPacket(new byte[BUFFER_SIZE], BUFFER_SIZE);
 
             Log.v(Constants.TAG, "Created UDP socket");
@@ -979,7 +967,7 @@ public class JumbleConnection {
             byte[] encryptedData = mCryptState.encrypt(data, length);
             DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
             packet.setAddress(mHost);
-            packet.setPort(mServer.getPort());
+            packet.setPort(mService.getServer().getPort());
             mUDPSocket.send(packet);
         }
     }

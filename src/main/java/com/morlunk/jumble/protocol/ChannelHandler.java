@@ -85,6 +85,10 @@ public class ChannelHandler extends ProtocolHandler {
             changeSubchannelUsers(parentChannel, change);
     }
 
+    public void clear() {
+        mChannels.clear();
+    }
+
     @Override
     public void messageChannelState(Mumble.ChannelState msg) {
         if(!msg.hasChannelId())

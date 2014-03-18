@@ -43,11 +43,10 @@ import java.util.List;
 /**
  * Created by andrew on 16/07/13.
  */
-public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutputSpeech.TalkStateListener, JumbleUDPMessageListener {
+public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutputSpeech.TalkStateListener {
 
     private SparseArray<AudioOutputSpeech> mAudioOutputs = new SparseArray<AudioOutputSpeech>();
     private AudioTrack mAudioTrack;
-    private int mAudioStream;
     private int mBufferSize;
     private Thread mThread;
     private final Object mInactiveLock = new Object(); // Lock that the audio thread waits on when there's no audio to play. Wake when we get a frame.
@@ -56,10 +55,9 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
     private List<AudioOutputSpeech> mDelBuffer = new ArrayList<AudioOutputSpeech>();
     private Handler mMainHandler;
 
-    public AudioOutput(JumbleService service, int audioStream) {
+    public AudioOutput(JumbleService service) {
         super(service);
         mMainHandler = new Handler(Looper.getMainLooper());
-        mAudioStream = audioStream;
     }
 
     public void startPlaying(boolean scoEnabled) {
@@ -72,7 +70,7 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
         Log.v(Constants.TAG, "Using buffer size "+mBufferSize+", system's min buffer size: "+minBufferSize);
 
         // Force STREAM_VOICE_CALL for Bluetooth, as it's all that will work.
-        mAudioTrack = new AudioTrack(scoEnabled ? AudioManager.STREAM_VOICE_CALL : mAudioStream,
+        mAudioTrack = new AudioTrack(scoEnabled ? AudioManager.STREAM_VOICE_CALL : getService().getAudioStream(),
                 Audio.SAMPLE_RATE,
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
@@ -215,11 +213,6 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
             }
         }
 
-    }
-
-    @Override
-    public void messageUDPPing(byte[] data) {
-        // nothing
     }
 
     @Override
