@@ -838,7 +838,8 @@ public class JumbleConnection {
             auth.setUsername(server.getUsername());
             auth.setPassword(server.getPassword());
             auth.addCeltVersions(Constants.CELT_7_VERSION);
-            auth.addCeltVersions(Constants.CELT_11_VERSION);
+            // FIXME: resolve issues with CELT 11 robot voices.
+//            auth.addCeltVersions(Constants.CELT_11_VERSION);
             auth.setOpus(mService.shouldUseOpus());
 
             sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
