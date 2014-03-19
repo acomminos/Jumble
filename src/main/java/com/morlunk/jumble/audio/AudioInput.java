@@ -212,12 +212,17 @@ public class AudioInput extends ProtocolHandler implements Runnable {
                 int reportedMinBufferSize = AudioRecord.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
                 mMinBufferSize = Math.max(reportedMinBufferSize, mFrameSize);
 
+                try {
+                    mAudioRecord = new AudioRecord(getService().getAudioSource(), mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
+                } catch (IllegalArgumentException e) {
+                    getService().logWarning(e.getLocalizedMessage());
+                    return;
+                }
+
                 mCELTBuffer = new byte[getService().getFramesPerPacket()][Audio.SAMPLE_RATE/800];
                 mOpusBuffer = new short[mFrameSize*getService().getFramesPerPacket()];
 
                 configurePreprocessState();
-
-                mAudioRecord = new AudioRecord(getService().getAudioSource(), mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mMinBufferSize);
 
                 // If we're still uninitialized, we have a problem.
                 if(mAudioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
