@@ -805,6 +805,7 @@ public class JumbleConnection {
                 else
                     mTCPSocket = mSocketFactory.createSocket(server.getHost(), server.getPort());
 
+                mTCPSocket.setKeepAlive(true);
                 mTCPSocket.startHandshake();
 
                 Log.v(Constants.TAG, "Started handshake");
