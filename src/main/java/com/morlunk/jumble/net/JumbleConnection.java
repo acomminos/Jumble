@@ -285,7 +285,7 @@ public class JumbleConnection {
                 buffer.putLong(t);
 
                 sendUDPMessage(buffer.array(), 16, true);
-                Log.v(Constants.TAG, "OUT: UDP Ping");
+//                Log.v(Constants.TAG, "OUT: UDP Ping");
             }
 
             Mumble.Ping.Builder pb = Mumble.Ping.newBuilder();
@@ -957,8 +957,13 @@ public class JumbleConnection {
 
                     handleUDPMessage(mDecryptedBuffer);
                 } catch (IOException e) {
+                    if(!mConnected) {
+                        break; // Only quit the thread gracefully if we're disconnected.
+                    }
+                    Log.v(Constants.TAG, "UDP thread received exception, trying reconnect");
                     e.printStackTrace();
-                    break;
+                    run();
+                    return;
                 }
             }
         }
