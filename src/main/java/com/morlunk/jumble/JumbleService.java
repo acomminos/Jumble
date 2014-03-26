@@ -599,7 +599,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mPermissions = 0;
             mReconnecting = false;
 
-            mConnection.connect(mServer.getHost(), mServer.getPort(), mUseTor, mForceTcp, mCertificate, mCertificatePassword);
+            mConnection.connect(mServer.getHost(), mServer.getPort(), mForceTcp, mUseTor, mCertificate, mCertificatePassword);
         } catch (final JumbleConnectionException e) {
             e.printStackTrace();
 
