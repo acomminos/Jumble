@@ -21,6 +21,8 @@ import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.protobuf.Mumble;
 
 /**
+ * FIXME: This class is bad. Bad bad bad. Because we depend on JumbleService so much, the protocol handlers are basically untestable.
+ *
  * A protocol handler implements a discrete type (or class) of TCP or UDP protobuf messages.
  * The purpose of protocol handlers is to divide logic for each type of data received from the
  * server (i.e. audio, user state, channels) into their own classes.

@@ -23,6 +23,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.MediaRecorder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -194,9 +195,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public boolean isConnected() throws RemoteException {
-            if(mConnection != null)
-                return mConnection.isConnected();
-            return false;
+            return mConnection.isConnected();
         }
 
         @Override
@@ -571,7 +570,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Jumble");
 
-        mConnection = new JumbleConnection(this, this);
+        mConnection = new JumbleConnection(this);
         mChannelHandler = new ChannelHandler(this);
         mUserHandler = new UserHandler(this);
         mTextMessageHandler = new TextMessageHandler(this);
@@ -600,7 +599,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mPermissions = 0;
             mReconnecting = false;
 
-            mConnection.connect();
+            mConnection.connect(mServer.getHost(), mServer.getPort(), mUseTor, mForceTcp, mCertificate, mCertificatePassword);
         } catch (final JumbleConnectionException e) {
             e.printStackTrace();
 
@@ -614,20 +613,36 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     }
 
     public void disconnect() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                mConnection.disconnect();
-            }
-        }).start();
+        mConnection.disconnect();
     }
 
     public boolean isConnected() {
-        return mConnection != null && mConnection.isConnected();
+        return mConnection.isConnected();
     }
 
     @Override
     public void onConnectionEstablished() {
+        // Send version information and authenticate.
+        final Mumble.Version.Builder version = Mumble.Version.newBuilder();
+        version.setRelease(mClientName);
+        version.setVersion(Constants.PROTOCOL_VERSION);
+        version.setOs("Android");
+        version.setOsVersion(Build.VERSION.RELEASE);
+
+        final Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
+        auth.setUsername(mServer.getUsername());
+        auth.setPassword(mServer.getPassword());
+        auth.addCeltVersions(Constants.CELT_7_VERSION);
+        // FIXME: resolve issues with CELT 11 robot voices.
+//            auth.addCeltVersions(Constants.CELT_11_VERSION);
+        auth.setOpus(mUseOpus);
+
+        mConnection.sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
+        mConnection.sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
+    }
+
+    @Override
+    public void onConnectionSynchronized() {
         Log.v(Constants.TAG, "Connected");
         mWakeLock.acquire();
 

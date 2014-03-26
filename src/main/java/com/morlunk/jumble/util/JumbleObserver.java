@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.morlunk.jumble.net;
+package com.morlunk.jumble.util;
 
 import android.os.RemoteException;
 
