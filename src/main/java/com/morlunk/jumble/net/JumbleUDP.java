@@ -99,6 +99,7 @@ public class JumbleUDP extends JumbleNetworkThread {
                 if(mListener != null) mListener.onUDPDataReceived(decryptedData);
             } catch (IOException e) {
                 e.printStackTrace();
+                break;
             }
         }
         disconnect(); // Make sure we close the socket if disconnect wasn't controlled

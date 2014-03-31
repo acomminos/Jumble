@@ -697,7 +697,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     @Override
     public void onConnectionError(final JumbleConnectionException e) {
-        Log.e(Constants.TAG, "Connection error: "+e.getMessage());
+        Log.e(Constants.TAG, "Connection error: "+e.getMessage()+", should reconnect: " + e.isAutoReconnectAllowed());
         mReconnecting = mAutoReconnect && e.isAutoReconnectAllowed();
         if(mReconnecting) {
             Handler mainHandler = new Handler();
