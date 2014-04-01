@@ -636,6 +636,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         // FIXME: resolve issues with CELT 11 robot voices.
 //            auth.addCeltVersions(Constants.CELT_11_VERSION);
         auth.setOpus(mUseOpus);
+        auth.addAllTokens(mAccessTokens);
 
         mConnection.sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
         mConnection.sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
@@ -645,11 +646,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void onConnectionSynchronized() {
         Log.v(Constants.TAG, "Connected");
         mWakeLock.acquire();
-
-        // Send access tokens
-        Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
-        ab.addAllTokens(mAccessTokens);
-        mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
 
         mAudioOutput.startPlaying(false);
 
