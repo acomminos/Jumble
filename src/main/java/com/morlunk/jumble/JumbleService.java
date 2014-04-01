@@ -515,9 +515,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
             usb.setSelfMute(mute);
             usb.setSelfDeaf(deaf);
-            if(!mute && (mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY))
+            if(!mute && !mAudioInput.isRecording() && (mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY))
                 mAudioInput.startRecording(); // Resume recording when unmuted for PTT.
-            else
+            else if(mAudioInput.isRecording())
                 mAudioInput.stopRecording(); // Stop recording when muted.
             mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
         }
