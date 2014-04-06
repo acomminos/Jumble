@@ -44,6 +44,11 @@ public class JumbleObserver extends IJumbleObserver.Stub {
     }
 
     @Override
+    public void onTLSHandshakeFailed(ParcelableByteArray cert) throws RemoteException {
+
+    }
+
+    @Override
     public void onChannelAdded(Channel channel) throws RemoteException {
 
     }

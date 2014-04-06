@@ -16,9 +16,13 @@
 
 package com.morlunk.jumble.net;
 
+import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.security.KeyChain;
 import android.util.Log;
 
 import com.google.protobuf.ByteString;
@@ -45,6 +49,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -289,7 +294,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         mUDPHandlers.add(mUDPPingListener);
     }
 
-    public void connect(String host, int port, boolean forceTCP, boolean useTor, byte[] certificate, String certificatePassword) throws JumbleConnectionException {
+    public void connect(String host, int port, boolean forceTCP, boolean useTor, String trustStore, String trustStorePassword, String trustStoreFormat, byte[] certificate, String certificatePassword) throws JumbleConnectionException {
         mHost = host;
         mPort = port;
         mConnected = false;
@@ -303,7 +308,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         mPingExecutorService = Executors.newSingleThreadScheduledExecutor();
 
         try {
-            setupSocketFactory(certificate, certificatePassword);
+            setupSocketFactory(certificate, certificatePassword, trustStore, trustStorePassword, trustStoreFormat);
             mTCP = new JumbleTCP(mSocketFactory);
             mTCP.setTCPConnectionListener(this);
             if(!mForceTCP) {
@@ -425,7 +430,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
      * @param certificate The binary representation of a PKCS12 (.p12) certificate. May be null.
      * @param certificatePassword The password to decrypt the key store. May be null.
      */
-    protected void setupSocketFactory(byte[] certificate, String certificatePassword) throws JumbleConnectionException {
+    protected void setupSocketFactory(byte[] certificate, String certificatePassword, String trustStore, String trustStorePassword, String trustStoreFormat) throws JumbleConnectionException {
         try {
             KeyStore keyStore = null;
             if(certificate != null) {
@@ -434,7 +439,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
                 keyStore.load(inputStream, certificatePassword != null ? certificatePassword.toCharArray() : new char[0]);
             }
 
-            mSocketFactory = new JumbleSSLSocketFactory(keyStore, certificatePassword);
+            mSocketFactory = new JumbleSSLSocketFactory(keyStore, certificatePassword, trustStore, trustStorePassword, trustStoreFormat);
         } catch (KeyManagementException e) {
             throw new JumbleConnectionException("Could not recover keys from certificate", e, false);
         } catch (KeyStoreException e) {
@@ -533,6 +538,15 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         }
 
         if(mListener != null) mListener.onConnectionEstablished();
+    }
+
+    @Override
+    public void onTLSHandshakeFailed(X509Certificate[] chain) {
+        disconnect();
+        if(mListener != null) {
+            mListener.onConnectionHandshakeFailed(chain);
+            mListener.onConnectionDisconnected();
+        }
     }
 
     @Override
@@ -760,6 +774,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
     public interface JumbleConnectionListener {
         public void onConnectionEstablished();
         public void onConnectionSynchronized();
+        public void onConnectionHandshakeFailed(X509Certificate[] chain);
         public void onConnectionDisconnected();
         public void onConnectionError(JumbleConnectionException e);
         public void onConnectionWarning(String warning);

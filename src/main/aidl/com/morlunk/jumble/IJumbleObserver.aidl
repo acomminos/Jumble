@@ -19,12 +19,16 @@ package com.morlunk.jumble;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.model.Message;
+import com.morlunk.jumble.util.ParcelableByteArray;
 
 interface IJumbleObserver {
     // Connection
     void onConnected();
     void onDisconnected();
     void onConnectionError(String message, boolean reconnecting);
+
+    // Authentication
+    void onTLSHandshakeFailed(in ParcelableByteArray cert);
 
     // Channel
     void onChannelAdded(in Channel channel);

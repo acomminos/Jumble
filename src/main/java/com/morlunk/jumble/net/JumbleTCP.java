@@ -17,10 +17,12 @@
 
 package com.morlunk.jumble.net;
 
+import android.content.Intent;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.security.KeyChain;
 import android.util.Log;
 
 import com.google.protobuf.Message;
@@ -35,9 +37,13 @@ import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.security.cert.X509Certificate;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+import javax.net.ssl.HandshakeCompletedEvent;
+import javax.net.ssl.HandshakeCompletedListener;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocket;
 
 /**
@@ -95,6 +101,20 @@ public class JumbleTCP extends JumbleNetworkThread {
             mDataOutput = new DataOutputStream(mTCPSocket.getOutputStream());
         } catch (SocketException e) {
             error("Could not open a connection to the host", e, false);
+            return;
+        } catch (SSLHandshakeException e) {
+            // Try and verify certificate manually.
+            if(mSocketFactory.getServerChain() != null && mListener != null) {
+                executeOnMainThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListener.onTLSHandshakeFailed(mSocketFactory.getServerChain());
+                    }
+                });
+                mRunning = false;
+            } else {
+                error("Could not verify host certificate", e, false);
+            }
             return;
         } catch (IOException e) {
             error("An error occurred when communicating with the host", e, false);
@@ -225,6 +245,7 @@ public class JumbleTCP extends JumbleNetworkThread {
 
     public interface TCPConnectionListener {
         public void onTCPConnectionEstablished();
+        public void onTLSHandshakeFailed(X509Certificate[] chain);
         public void onTCPConnectionFailed(JumbleConnectionException e);
         public void onTCPConnectionDisconnect();
         public void onTCPMessageReceived(JumbleTCPMessageType type, int length, byte[] data);

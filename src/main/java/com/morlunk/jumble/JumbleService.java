@@ -16,6 +16,7 @@
 
 package com.morlunk.jumble;
 
+import android.annotation.TargetApi;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -30,6 +31,7 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
+import android.security.KeyChain;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -48,8 +50,11 @@ import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.protocol.ChannelHandler;
 import com.morlunk.jumble.protocol.TextMessageHandler;
 import com.morlunk.jumble.protocol.UserHandler;
+import com.morlunk.jumble.util.ParcelableByteArray;
 
 import java.security.Security;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -80,6 +85,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_AUDIO_SOURCE = "audio_source";
     public static final String EXTRAS_AUDIO_STREAM = "audio_stream";
     public static final String EXTRAS_FRAMES_PER_PACKET = "frames_per_packet";
+    /** An optional path to a trust store for CA certificates. */
+    public static final String EXTRAS_TRUST_STORE = "trust_store";
+    /** The trust store's password. */
+    public static final String EXTRAS_TRUST_STORE_PASSWORD = "trust_store_password";
+    /** The trust store's format. */
+    public static final String EXTRAS_TRUST_STORE_FORMAT = "trust_store_format";
 
     public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
 
@@ -102,6 +113,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private int mAudioSource;
     private int mAudioStream;
     private int mFramesPerPacket;
+    private String mTrustStore;
+    private String mTrustStorePassword;
+    private String mTrustStoreFormat;
 
     private JumbleConnection mConnection;
     private ChannelHandler mChannelHandler;
@@ -110,6 +124,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private AudioOutput mAudioOutput;
     private AudioInput mAudioInput;
     private PowerManager.WakeLock mWakeLock;
+    private Handler mHandler;
 
     private boolean mBluetoothOn = false;
     private BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
@@ -154,7 +169,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
                 final User currentUser = getBinder().getSessionUser();
 
-                new Handler(getMainLooper()).post(new Runnable() {
+                mHandler.post(new Runnable() {
                     @Override
                     public void run() {
                         currentUser.setTalkState(talking ? User.TalkState.TALKING : User.TalkState.PASSIVE);
@@ -392,8 +407,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void sendAccessTokens(List tokens) throws RemoteException {
+            mAccessTokens = new ArrayList<String>(tokens);
             Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
-            ab.addAllTokens(tokens);
+            ab.addAllTokens(mAccessTokens);
             mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
         }
 
@@ -559,6 +575,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mAudioSource = extras.getInt(EXTRAS_AUDIO_SOURCE, MediaRecorder.AudioSource.MIC);
             mAudioStream = extras.getInt(EXTRAS_AUDIO_STREAM, AudioManager.STREAM_MUSIC);
             mFramesPerPacket = extras.getInt(EXTRAS_FRAMES_PER_PACKET, 2);
+            mTrustStore = extras.getString(EXTRAS_TRUST_STORE);
+            mTrustStorePassword = extras.getString(EXTRAS_TRUST_STORE_PASSWORD);
+            mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
             connect();
         }
         return START_NOT_STICKY;
@@ -569,6 +588,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         super.onCreate();
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Jumble");
+        mHandler = new Handler(getMainLooper());
 
         mConnection = new JumbleConnection(this);
         mChannelHandler = new ChannelHandler(this);
@@ -599,7 +619,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mPermissions = 0;
             mReconnecting = false;
 
-            mConnection.connect(mServer.getHost(), mServer.getPort(), mForceTcp, mUseTor, mCertificate, mCertificatePassword);
+            mConnection.connect(mServer.getHost(), mServer.getPort(), mForceTcp, mUseTor, mTrustStore, mTrustStorePassword, mTrustStoreFormat, mCertificate, mCertificatePassword);
         } catch (final JumbleConnectionException e) {
             e.printStackTrace();
 
@@ -660,6 +680,21 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 observer.onConnected();
             }
         });
+    }
+
+    @Override
+    public void onConnectionHandshakeFailed(X509Certificate[] chain) {
+        try {
+            final ParcelableByteArray encodedCert = new ParcelableByteArray(chain[0].getEncoded());
+            notifyObservers(new ObserverRunnable() {
+                @Override
+                public void run(IJumbleObserver observer) throws RemoteException {
+                    observer.onTLSHandshakeFailed(encodedCert);
+                }
+            });
+        } catch (CertificateEncodingException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
