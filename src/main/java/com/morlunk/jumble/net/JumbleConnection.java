@@ -83,6 +83,9 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
 
     // Authentication
     private JumbleSSLSocketFactory mSocketFactory;
+    private String mTrustStorePath;
+    private String mTrustStorePassword;
+    private String mTrustStoreFormat;
 
     // Threading
     private ScheduledExecutorService mPingExecutorService;
@@ -294,7 +297,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         mUDPHandlers.add(mUDPPingListener);
     }
 
-    public void connect(String host, int port, boolean forceTCP, boolean useTor, String trustStore, String trustStorePassword, String trustStoreFormat, byte[] certificate, String certificatePassword) throws JumbleConnectionException {
+    public void connect(String host, int port, boolean forceTCP, boolean useTor, byte[] certificate, String certificatePassword) throws JumbleConnectionException {
         mHost = host;
         mPort = port;
         mConnected = false;
@@ -308,7 +311,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         mPingExecutorService = Executors.newSingleThreadScheduledExecutor();
 
         try {
-            setupSocketFactory(certificate, certificatePassword, trustStore, trustStorePassword, trustStoreFormat);
+            setupSocketFactory(certificate, certificatePassword);
             mTCP = new JumbleTCP(mSocketFactory);
             mTCP.setTCPConnectionListener(this);
             if(!mForceTCP) {
@@ -352,6 +355,12 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
 
     public void removeUDPMessageHandler(JumbleUDPMessageListener handler) {
         mUDPHandlers.remove(handler);
+    }
+
+    public void setTrustStore(String path, String password, String format) {
+        mTrustStorePath = path;
+        mTrustStorePassword = password;
+        mTrustStoreFormat = format;
     }
 
     public int getServerVersion() {
@@ -430,7 +439,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
      * @param certificate The binary representation of a PKCS12 (.p12) certificate. May be null.
      * @param certificatePassword The password to decrypt the key store. May be null.
      */
-    protected void setupSocketFactory(byte[] certificate, String certificatePassword, String trustStore, String trustStorePassword, String trustStoreFormat) throws JumbleConnectionException {
+    protected void setupSocketFactory(byte[] certificate, String certificatePassword) throws JumbleConnectionException {
         try {
             KeyStore keyStore = null;
             if(certificate != null) {
@@ -439,7 +448,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
                 keyStore.load(inputStream, certificatePassword != null ? certificatePassword.toCharArray() : new char[0]);
             }
 
-            mSocketFactory = new JumbleSSLSocketFactory(keyStore, certificatePassword, trustStore, trustStorePassword, trustStoreFormat);
+            mSocketFactory = new JumbleSSLSocketFactory(keyStore, certificatePassword, mTrustStorePath, mTrustStorePassword, mTrustStoreFormat);
         } catch (KeyManagementException e) {
             throw new JumbleConnectionException("Could not recover keys from certificate", e, false);
         } catch (KeyStoreException e) {

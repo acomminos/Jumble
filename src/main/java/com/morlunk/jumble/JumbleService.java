@@ -578,6 +578,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mTrustStore = extras.getString(EXTRAS_TRUST_STORE);
             mTrustStorePassword = extras.getString(EXTRAS_TRUST_STORE_PASSWORD);
             mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
+            mConnection.setTrustStore(mTrustStore, mTrustStorePassword, mTrustStoreFormat);
             connect();
         }
         return START_NOT_STICKY;
@@ -619,7 +620,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mPermissions = 0;
             mReconnecting = false;
 
-            mConnection.connect(mServer.getHost(), mServer.getPort(), mForceTcp, mUseTor, mTrustStore, mTrustStorePassword, mTrustStoreFormat, mCertificate, mCertificatePassword);
+            mConnection.connect(mServer.getHost(), mServer.getPort(), mForceTcp, mUseTor, mCertificate, mCertificatePassword);
         } catch (final JumbleConnectionException e) {
             e.printStackTrace();
 
