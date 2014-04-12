@@ -82,6 +82,7 @@ public class JumbleUDP extends JumbleNetworkThread {
 
         mUDPSocket.connect(mResolvedHost, mPort);
         final DatagramPacket packet = new DatagramPacket(new byte[BUFFER_SIZE], BUFFER_SIZE);
+        final byte[] buffer = new byte[BUFFER_SIZE];
 
         Log.v(Constants.TAG, "Created UDP socket");
         mConnected = true;
@@ -93,9 +94,8 @@ public class JumbleUDP extends JumbleNetworkThread {
                 // Decrypt UDP packet using OCB-AES128
                 final byte[] data = packet.getData();
                 final int length = packet.getLength();
-                final byte[] decryptedData = new byte[length - 4]; // Tag occupies 4 bytes in encrypted data
-                mCryptState.decrypt(data, decryptedData, length);
-                if(mListener != null) mListener.onUDPDataReceived(decryptedData);
+                mCryptState.decrypt(data, buffer, length);
+                if(mListener != null) mListener.onUDPDataReceived(buffer);
             } catch (IOException e) {
                 e.printStackTrace();
                 break;

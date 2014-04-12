@@ -560,8 +560,11 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
 
     @Override
     public void onTCPConnectionFailed(JumbleConnectionException e) {
-        disconnect();
-        if(mListener != null) mListener.onConnectionError(e);
+        // Ignore if we're already disconnected.
+        if(mConnected) {
+            disconnect();
+            if(mListener != null) mListener.onConnectionError(e);
+        }
     }
 
     @Override
