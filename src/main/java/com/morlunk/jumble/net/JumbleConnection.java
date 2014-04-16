@@ -572,10 +572,12 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
     @Override
     public void onUDPDataReceived(byte[] data) {
         if(mServerVersion == 0x10202) applyLegacyCodecWorkaround(data);
-        JumbleUDPMessageType dataType = JumbleUDPMessageType.values()[data[0] >> 5 & 0x7];
+        int dataType = data[0] >> 5 & 0x7;
+        if(dataType < 0 || dataType > JumbleUDPMessageType.values().length - 1) return; // Discard invalid data types
+        JumbleUDPMessageType udpDataType = JumbleUDPMessageType.values()[dataType];
 
         for(JumbleUDPMessageListener handler : mUDPHandlers) {
-            broadcastUDPMessage(handler, data, dataType);
+            broadcastUDPMessage(handler, data, udpDataType);
         }
     }
 
