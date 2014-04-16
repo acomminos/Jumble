@@ -50,6 +50,7 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
     private int mBufferSize;
     private Thread mThread;
     private final Object mInactiveLock = new Object(); // Lock that the audio thread waits on when there's no audio to play. Wake when we get a frame.
+    private final Object mPacketLock = new Object();
     private boolean mRunning = false;
     private List<AudioOutputSpeech> mMixBuffer = new ArrayList<AudioOutputSpeech>();
     private List<AudioOutputSpeech> mDelBuffer = new ArrayList<AudioOutputSpeech>();
@@ -144,29 +145,30 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
         mDelBuffer.clear();
         // TODO add priority speaker support
 
-        for(int i = 0; i < mAudioOutputs.size(); i++) {
-            AudioOutputSpeech speech = mAudioOutputs.valueAt(i);
-            if(!speech.needSamples(bufferSize))
-                mDelBuffer.add(speech);
-            else
-                mMixBuffer.add(speech);
-        }
+        synchronized (mPacketLock) {
+            for(int i = 0; i < mAudioOutputs.size(); i++) {
+                AudioOutputSpeech speech = mAudioOutputs.valueAt(i);
+                if(!speech.needSamples(bufferSize))
+                    mDelBuffer.add(speech);
+                else
+                    mMixBuffer.add(speech);
+            }
 
-        if(!mMixBuffer.isEmpty()) {
-            for(AudioOutputSpeech speech : mMixBuffer) {
-                float[] buffer = speech.getBuffer();
-                for(int i = 0; i < bufferSize; i++) {
-                    short pcm = (short) (buffer[i]*Short.MAX_VALUE); // Convert float to short
-                    pcm = pcm <= Short.MAX_VALUE ? (pcm >= Short.MIN_VALUE ? pcm : Short.MIN_VALUE) : Short.MIN_VALUE; // Clip audio
-                    outBuffer[i] += pcm;
+            if(!mMixBuffer.isEmpty()) {
+                for(AudioOutputSpeech speech : mMixBuffer) {
+                    float[] buffer = speech.getBuffer();
+                    for(int i = 0; i < bufferSize; i++) {
+                        short pcm = (short) (buffer[i]*Short.MAX_VALUE); // Convert float to short
+                        pcm = pcm <= Short.MAX_VALUE ? (pcm >= Short.MIN_VALUE ? pcm : Short.MIN_VALUE) : Short.MIN_VALUE; // Clip audio
+                        outBuffer[i] += pcm;
+                    }
                 }
             }
-        }
-
-        for(AudioOutputSpeech speech : mDelBuffer) {
-            Log.v(Constants.TAG, "Deleted audio user "+speech.getUser().getName());
-            mAudioOutputs.remove(speech.getSession());
-            speech.destroy();
+            for(AudioOutputSpeech speech : mDelBuffer) {
+                Log.v(Constants.TAG, "Deleted audio user "+speech.getUser().getName());
+                mAudioOutputs.remove(speech.getSession());
+                speech.destroy();
+            }
         }
 
         return !mMixBuffer.isEmpty();
@@ -189,24 +191,27 @@ public class AudioOutput extends ProtocolHandler implements Runnable, AudioOutpu
             packet.put((byte)msgFlags);
             packet.put(pds.dataBlock(pds.left()));
 
-            AudioOutputSpeech aop = mAudioOutputs.get(session);
-            if(aop != null && aop.getCodec() != messageType) {
-                aop.destroy();
-                aop = null;
-            }
-            if(aop == null) {
-                try {
-                    aop = new AudioOutputSpeech(user, messageType, this);
-                } catch (NativeAudioException e) {
-                    Log.v(Constants.TAG, "Failed to create audio user "+user.getName());
-                    e.printStackTrace();
-                    return;
+            // Synchronize so we don't destroy an output while we add a buffer to it.
+            synchronized (mPacketLock) {
+                AudioOutputSpeech aop = mAudioOutputs.get(session);
+                if(aop != null && aop.getCodec() != messageType) {
+                    aop.destroy();
+                    aop = null;
                 }
-                Log.v(Constants.TAG, "Created audio user "+user.getName());
-                mAudioOutputs.put(session, aop);
-            }
+                if(aop == null) {
+                    try {
+                        aop = new AudioOutputSpeech(user, messageType, this);
+                    } catch (NativeAudioException e) {
+                        Log.v(Constants.TAG, "Failed to create audio user "+user.getName());
+                        e.printStackTrace();
+                        return;
+                    }
+                    Log.v(Constants.TAG, "Created audio user "+user.getName());
+                    mAudioOutputs.put(session, aop);
+                }
 
-            aop.addFrameToBuffer(packet.array(), seq);
+                aop.addFrameToBuffer(packet.array(), seq);
+            }
 
             synchronized (mInactiveLock) {
                 mInactiveLock.notify();
