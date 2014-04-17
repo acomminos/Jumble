@@ -91,6 +91,9 @@ public class JumbleUDP extends JumbleNetworkThread {
             try {
                 mUDPSocket.receive(packet);
 
+                // Discard packet if we can't decode it yet
+                if(!mCryptState.isValid()) continue;
+
                 // Decrypt UDP packet using OCB-AES128
                 final byte[] data = packet.getData();
                 final int length = packet.getLength();

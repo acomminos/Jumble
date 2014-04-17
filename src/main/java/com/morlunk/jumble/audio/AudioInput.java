@@ -84,7 +84,6 @@ public class AudioInput extends ProtocolHandler implements Runnable {
 
     private final byte[] mEncodedBuffer = new byte[OPUS_MAX_BYTES];
     private final byte[] mPacketBuffer = new byte[1024];
-    private final PacketDataStream mPacketDataStream = new PacketDataStream(mPacketBuffer, 1024);
     private int mBufferedFrames = 0;
     private int mFrameCounter;
 
@@ -442,35 +441,37 @@ public class AudioInput extends ProtocolHandler implements Runnable {
         int frames = mBufferedFrames;
         mBufferedFrames = 0;
 
-        Arrays.fill(mPacketBuffer, (byte) 0);
-
         int flags = 0;
         flags |= mCodec.ordinal() << 5;
 
+        Arrays.fill(mPacketBuffer, (byte) 0);
         mPacketBuffer[0] = (byte) (flags & 0xFF);
-        mPacketDataStream.rewind();
-        mPacketDataStream.skip(1);
-        mPacketDataStream.writeLong(mFrameCounter - frames);
+
+        PacketDataStream ds = new PacketDataStream(mPacketBuffer, 1024);
+        ds.skip(1);
+        ds.writeLong(mFrameCounter - frames);
 
         if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
             byte[] frame = mEncodedBuffer;
             long size = frame.length;
             if(terminator)
                 size |= 1 << 13;
-            mPacketDataStream.writeLong(size);
-            mPacketDataStream.append(frame, frame.length);
+            ds.writeLong(size);
+            ds.append(frame, frame.length);
         } else {
             for (int x=0;x<frames;x++) {
                 byte[] frame = mCELTBuffer[x];
                 int head = frame.length;
                 if(x < frames-1)
                    head |= 0x80;
-                mPacketDataStream.append(head);
-                mPacketDataStream.append(frame, frame.length);
+                ds.append(head);
+                ds.append(frame, frame.length);
             }
         }
 
-        mListener.onFrameEncoded(mPacketBuffer, mPacketDataStream.size(), mCodec);
+        if(ds.size() > 0) { // extra precaution to prevent triggering Mumble-SA-2014-001 and Mumble-SA-2014-002
+            mListener.onFrameEncoded(mPacketBuffer, ds.size(), mCodec);
+        }
     }
 
     @Override
