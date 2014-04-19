@@ -104,6 +104,7 @@ public class JumbleTCP extends JumbleNetworkThread {
         } catch (SSLHandshakeException e) {
             // Try and verify certificate manually.
             if(mSocketFactory.getServerChain() != null && mListener != null) {
+                if(!mRunning) return;
                 executeOnMainThread(new Runnable() {
                     @Override
                     public void run() {
@@ -167,6 +168,7 @@ public class JumbleTCP extends JumbleNetworkThread {
     }
 
     private void error(String desc, Exception e, boolean autoReconnect) {
+        if(!mRunning) return;
         final JumbleConnectionException ce = new JumbleConnectionException(desc, e, autoReconnect);
         if(mListener != null) executeOnMainThread(new Runnable() {
             @Override
@@ -226,15 +228,16 @@ public class JumbleTCP extends JumbleNetworkThread {
      * Attempts to disconnect gracefully on the Tx thread.
      */
     public void disconnect() {
-        if(!mConnected) return;
+        if(!mRunning) return;
         mConnected = false;
+        mRunning = false;
         executeOnSendThread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    mDataOutput.close();
-                    mDataInput.close();
-                    mTCPSocket.close();
+                    if(mDataOutput != null) mDataOutput.close();
+                    if(mDataInput != null) mDataInput.close();
+                    if(mTCPSocket != null) mTCPSocket.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
