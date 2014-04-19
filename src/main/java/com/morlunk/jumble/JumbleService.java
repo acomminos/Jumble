@@ -204,8 +204,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void disconnect() throws RemoteException {
-            if(isConnected())
-                JumbleService.this.disconnect();
+            JumbleService.this.disconnect();
         }
 
         @Override

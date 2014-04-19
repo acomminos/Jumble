@@ -21,6 +21,7 @@ import android.os.Looper;
 
 import java.net.InetAddress;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
@@ -30,7 +31,7 @@ import java.util.concurrent.Executors;
  */
 public abstract class JumbleNetworkThread implements Runnable {
 
-    private final Executor mExecutor;
+    private final ExecutorService mExecutor;
     private final Executor mSendExecutor;
     private final Handler mMainHandler;
 

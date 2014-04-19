@@ -86,6 +86,8 @@ public class JumbleTCP extends JumbleNetworkThread {
         try {
             InetAddress address = InetAddress.getByName(mHost);
 
+            Log.i(Constants.TAG, "JumbleTCP: Connecting");
+
             if(mUseTor)
                 mTCPSocket = mSocketFactory.createTorSocket(address, mPort, JumbleConnection.TOR_HOST, JumbleConnection.TOR_PORT);
             else
@@ -94,7 +96,7 @@ public class JumbleTCP extends JumbleNetworkThread {
             mTCPSocket.setKeepAlive(true);
             mTCPSocket.startHandshake();
 
-            Log.v(Constants.TAG, "Started handshake");
+            Log.v(Constants.TAG, "JumbleTCP: Started handshake");
 
             mDataInput = new DataInputStream(mTCPSocket.getInputStream());
             mDataOutput = new DataOutputStream(mTCPSocket.getOutputStream());
@@ -124,7 +126,7 @@ public class JumbleTCP extends JumbleNetworkThread {
         mConnected = true;
         if(mListener != null) mListener.onTCPConnectionEstablished();
 
-        Log.v(Constants.TAG, "Started listening");
+        Log.v(Constants.TAG, "JumbleTCP: Now listening");
 
         while(mConnected) {
             try {
@@ -238,6 +240,7 @@ public class JumbleTCP extends JumbleNetworkThread {
                     if(mDataOutput != null) mDataOutput.close();
                     if(mDataInput != null) mDataInput.close();
                     if(mTCPSocket != null) mTCPSocket.close();
+                    Log.i(Constants.TAG, "JumbleTCP: Disconnected");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
