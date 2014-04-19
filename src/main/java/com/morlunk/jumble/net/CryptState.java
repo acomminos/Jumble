@@ -203,13 +203,14 @@ public class CryptState {
         try {
             ocbDecrypt(tagShiftedDst, dst, mDecryptIV, tag);
         } catch (BadPaddingException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+            return null;
         } catch (IllegalBlockSizeException e) {
-            // Should never occur. We use a constant, reasonable block size.
-            throw new RuntimeException(e);
+            e.printStackTrace();
+            return null;
         } catch (ShortBufferException e) {
-            // Should never occur. We use a constant, reasonable block size.
-            throw new RuntimeException(e);
+            e.printStackTrace();
+            return null;
         } catch (DataLengthException e) {
             e.printStackTrace();
             return null;
