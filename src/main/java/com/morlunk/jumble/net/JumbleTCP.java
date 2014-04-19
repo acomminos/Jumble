@@ -124,7 +124,14 @@ public class JumbleTCP extends JumbleNetworkThread {
         }
 
         mConnected = true;
-        if(mListener != null) mListener.onTCPConnectionEstablished();
+        if(mListener != null) {
+            executeOnMainThread(new Runnable() {
+                @Override
+                public void run() {
+                    mListener.onTCPConnectionEstablished();
+                }
+            });
+        }
 
         Log.v(Constants.TAG, "JumbleTCP: Now listening");
 
@@ -136,23 +143,18 @@ public class JumbleTCP extends JumbleNetworkThread {
                 mDataInput.readFully(data);
 
                 final JumbleTCPMessageType tcpMessageType = JumbleTCPMessageType.values()[messageType];
-                executeOnMainThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (mListener != null)
-                            mListener.onTCPMessageReceived(tcpMessageType, messageLength, data);
-                    }
-                });
-            } catch (final IOException e) {
-                if(mConnected) {
-                    mConnected = false;
-                    // We perform this action on the main thread so that any clean disconnects get handled first.
+                if (mListener != null) {
                     executeOnMainThread(new Runnable() {
                         @Override
                         public void run() {
-                            error("Lost connection to server", e, true);
+                            mListener.onTCPMessageReceived(tcpMessageType, messageLength, data);
                         }
                     });
+                }
+            } catch (final IOException e) {
+                if(mConnected) {
+                    mConnected = false;
+                    error("Lost connection to server", e, true);
                 }
             }
         }

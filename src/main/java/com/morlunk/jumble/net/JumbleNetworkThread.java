@@ -53,6 +53,10 @@ public abstract class JumbleNetworkThread implements Runnable {
         mMainHandler.post(r);
     }
 
+    protected void stopReadThread() {
+        mExecutor.shutdownNow();
+    }
+
     protected Handler getMainHandler() {
         return mMainHandler;
     }

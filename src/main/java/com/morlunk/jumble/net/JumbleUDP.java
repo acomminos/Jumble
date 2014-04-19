@@ -96,7 +96,11 @@ public class JumbleUDP extends JumbleNetworkThread {
                 if(length < 5) continue;
 
                 final byte[] buffer = mCryptState.decrypt(data, length);
-                if(buffer != null && mListener != null) mListener.onUDPDataReceived(buffer);
+                if(buffer != null) {
+                    if(mListener != null) mListener.onUDPDataReceived(buffer);
+                } else {
+                    Log.e(Constants.TAG, "JumbleUDP: Failed to decrypt UDP packet.");
+                }
             } catch (IOException e) {
                 e.printStackTrace();
                 break;
