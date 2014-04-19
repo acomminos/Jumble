@@ -16,6 +16,8 @@
 
 package com.morlunk.jumble.net;
 
+import org.spongycastle.crypto.DataLengthException;
+
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -115,12 +117,12 @@ public class CryptState {
      * Decrypts data using the OCB-AES128 standard.
      * @param source The encoded audio data.
      * @param length The length of the source array.
-     * @param dst A destination array of size length - 4.
      */
-    public void decrypt(final byte[] source, final byte[] dst, final int length) {
-        if (length < 4) return;
+    public byte[] decrypt(final byte[] source, final int length) {
+        if (length < 4) return null;
 
         final int plainLength = length - 4;
+        byte[] dst = new byte[plainLength];
 
         final byte[] saveiv = new byte[AES_BLOCK_SIZE];
         final short ivbyte = (short) (source[0] & 0xFF);
@@ -144,7 +146,7 @@ public class CryptState {
                     }
                 }
             } else {
-                return;
+                return null;
             }
         } else {
             // This is either out of order or a repeat.
@@ -187,12 +189,12 @@ public class CryptState {
                     }
                 }
             } else {
-                return;
+                return null;
             }
 
             if (mDecryptHistory[mDecryptIV[0] & 0xFF] == mEncryptIV[0]) {
                 System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
-                return;
+                return null;
             }
         }
 
@@ -208,11 +210,14 @@ public class CryptState {
         } catch (ShortBufferException e) {
             // Should never occur. We use a constant, reasonable block size.
             throw new RuntimeException(e);
+        } catch (DataLengthException e) {
+            e.printStackTrace();
+            return null;
         }
 
         if (tag[0] != source[1] || tag[1] != source[2] || tag[2] != source[3]) {
             System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
-            return;
+            return null;
         }
         mDecryptHistory[mDecryptIV[0] & 0xff] = mDecryptIV[1];
 
@@ -224,6 +229,7 @@ public class CryptState {
         mUiLost += lost;
 
         mLastGoodStart = System.nanoTime();
+        return dst;
     }
 
     public void ocbDecrypt(byte[] encrypted, byte[] plain, byte[] nonce, byte[] tag) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
