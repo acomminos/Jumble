@@ -96,6 +96,7 @@ public class AudioInput implements Runnable {
 
     public AudioInput(AudioInputListener listener, JumbleUDPMessageType codec, int audioSource, int targetSampleRate, int bitrate, int framesPerPacket, int transmitMode, float vadThreshold, float amplitudeBoost) throws InvalidSampleRateException, NativeAudioException {
         mListener = listener;
+        mCodec = codec;
         mAudioSource = audioSource;
         mSampleRate = getSupportedSampleRate(targetSampleRate);
         mBitrate = bitrate;
@@ -105,13 +106,13 @@ public class AudioInput implements Runnable {
         mAmplitudeBoost = amplitudeBoost;
 
         mAudioRecord = createAudioRecord();
+        mEncoder = createEncoder(mCodec);
 
         mOpusBuffer = new short[mFrameSize * mFramesPerPacket];
         mCELTBuffer = new byte[mFramesPerPacket][Audio.SAMPLE_RATE/800];
 
         configureResampler();
         configurePreprocessState();
-        setCodec(codec);
     }
 
     /**
@@ -192,28 +193,28 @@ public class AudioInput implements Runnable {
         return audioRecord;
     }
 
-    private void setCodec(JumbleUDPMessageType codec) throws NativeAudioException {
-        mCodec = codec;
-
+    private IEncoder createEncoder(JumbleUDPMessageType codec) throws NativeAudioException {
         Log.v(Constants.TAG, "Using codec "+codec.toString()+" for input");
 
+        IEncoder encoder;
         switch (codec) {
             case UDPVoiceOpus:
-                mEncoder = new Opus.OpusEncoder(Audio.SAMPLE_RATE, 1);
+                encoder = new Opus.OpusEncoder(Audio.SAMPLE_RATE, 1);
                 break;
             case UDPVoiceCELTBeta:
-                mEncoder = new CELT11.CELT11Encoder(Audio.SAMPLE_RATE, 1);
+                encoder = new CELT11.CELT11Encoder(Audio.SAMPLE_RATE, 1);
                 break;
             case UDPVoiceCELTAlpha:
-                mEncoder = new CELT7.CELT7Encoder(Audio.SAMPLE_RATE, mFrameSize, 1);
+                encoder = new CELT7.CELT7Encoder(Audio.SAMPLE_RATE, mFrameSize, 1);
                 break;
 //            case UDPVoiceSpeex:
                 // TODO
 //                break;
             default:
-                return;
+                return null;
         }
-        mEncoder.setBitrate(mBitrate);
+        encoder.setBitrate(mBitrate);
+        return encoder;
     }
 
     /**
@@ -241,6 +242,19 @@ public class AudioInput implements Runnable {
             mRecording = false;
             mRecordThread = null;
         }
+    }
+
+    public void setVADThreshold(float threshold) {
+        mVADThreshold = threshold;
+    }
+
+    public void setAmplitudeBoost(float boost) {
+        mAmplitudeBoost = boost;
+    }
+
+    public void setBitrate(int bitrate) {
+        mBitrate = bitrate;
+        if(mEncoder != null) mEncoder.setBitrate(bitrate);
     }
 
     /**

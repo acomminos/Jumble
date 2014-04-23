@@ -177,7 +177,7 @@ public class AudioHandler extends JumbleNetworkListener {
 
     public void setBitrate(int mBitrate) {
         this.mBitrate = mBitrate;
-        if(mInput != null) configureAudioInput();
+        if(mInput != null) mInput.setBitrate(mBitrate);
     }
 
     public int getFramesPerPacket() {
@@ -204,7 +204,7 @@ public class AudioHandler extends JumbleNetworkListener {
 
     public void setVADThreshold(float mVADThreshold) {
         this.mVADThreshold = mVADThreshold;
-        if(mInput != null) configureAudioInput();
+        if(mInput != null) mInput.setVADThreshold(mVADThreshold);
     }
 
     public float getAmplitudeBoost() {
@@ -213,7 +213,7 @@ public class AudioHandler extends JumbleNetworkListener {
 
     public void setAmplitudeBoost(float mAmplitudeBoost) {
         this.mAmplitudeBoost = mAmplitudeBoost;
-        if(mInput != null) configureAudioInput();
+        if(mInput != null) mInput.setAmplitudeBoost(mAmplitudeBoost);
     }
 
     public boolean isRecording() {
