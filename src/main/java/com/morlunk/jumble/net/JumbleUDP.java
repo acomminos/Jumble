@@ -109,14 +109,23 @@ public class JumbleUDP extends JumbleNetworkThread {
         disconnect(); // Make sure we close the socket if disconnect wasn't controlled
     }
 
-    public void sendMessage(byte[] data, int length) throws IOException {
+    public void sendMessage(byte[] data, int length) {
         if(!mCryptState.isValid() || !mConnected)
             return;
         byte[] encryptedData = mCryptState.encrypt(data, length);
-        DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
+        final DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
         packet.setAddress(mResolvedHost);
         packet.setPort(mPort);
-        mUDPSocket.send(packet);
+        executeOnSendThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    mUDPSocket.send(packet);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     public void disconnect() {

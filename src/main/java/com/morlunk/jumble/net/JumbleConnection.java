@@ -314,12 +314,8 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
             setupSocketFactory(certificate, certificatePassword);
             mTCP = new JumbleTCP(mSocketFactory);
             mTCP.setTCPConnectionListener(this);
-            if(!mForceTCP) {
-                mUDP = new JumbleUDP(mCryptState);
-                mUDP.setUDPConnectionListener(this);
-            }
-            // UDP thread is formally started after TCP connection.
             mTCP.connect(host, port, useTor);
+            // UDP thread is formally started after TCP connection.
         } catch (ConnectException e) {
             throw new JumbleConnectionException(e.getMessage(), e, false);
         }
@@ -493,15 +489,10 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
      */
     public void sendUDPMessage(final byte[] data, final int length, final boolean force) {
         if(mServerVersion == 0x10202) applyLegacyCodecWorkaround(data);
-        try {
-            if (!force && (mForceTCP || !mUsingUDP))
-                mTCP.sendMessage(data, length, JumbleTCPMessageType.UDPTunnel);
-            else if (!mForceTCP)
-                mUDP.sendMessage(data, length);
-        } catch (IOException e) {
-            // TODO handle
-            e.printStackTrace();
-        }
+        if (!force && (mForceTCP || !mUsingUDP))
+            mTCP.sendMessage(data, length, JumbleTCPMessageType.UDPTunnel);
+        else if (!mForceTCP)
+            mUDP.sendMessage(data, length);
     }
 
     /**
@@ -540,6 +531,8 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         // Attempt to start UDP thread once connected.
         if(!mForceTCP) {
             try {
+                mUDP = new JumbleUDP(mCryptState);
+                mUDP.setUDPConnectionListener(this);
                 mUDP.connect(mHost, mPort);
             } catch (ConnectException e) {
                 onUDPConnectionError(e);

@@ -293,11 +293,13 @@ public class CryptState {
         final byte[] dst = new byte[length + 4];
         try {
             ocbEncrypt(source, dst, length, mEncryptIV, tag);
-        } catch (final IllegalBlockSizeException e) {
+        } catch (IllegalBlockSizeException e) {
             e.printStackTrace();
-        } catch (final BadPaddingException e) {
+        } catch (BadPaddingException e) {
             e.printStackTrace();
-        } catch (final ShortBufferException e) {
+        } catch (ShortBufferException e) {
+            e.printStackTrace();
+        } catch (DataLengthException e) {
             e.printStackTrace();
         }
 
