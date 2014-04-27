@@ -101,7 +101,7 @@ public class JumbleUDP extends JumbleNetworkThread {
 
                 try {
                     final byte[] buffer = mCryptState.decrypt(data, length);
-                    if(mListener != null) mListener.onUDPDataReceived(buffer);
+                    if(mListener != null && buffer != null) mListener.onUDPDataReceived(buffer);
                 } catch (BadPaddingException e) {
                     e.printStackTrace();
                 } catch (IllegalBlockSizeException e) {
