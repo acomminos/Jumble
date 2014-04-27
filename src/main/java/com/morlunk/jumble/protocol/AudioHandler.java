@@ -121,7 +121,10 @@ public class AudioHandler extends JumbleNetworkListener {
         mOutput = new AudioOutput(mOutputListener, mAudioStream);
     }
 
-    public void startAudioOutput() {
+    /**
+     * Starts the audio output thread.
+     */
+    public void initialize() {
         if(mPlaying) return;
         if(mOutput == null) configureAudioOutput();
         // This sticky broadcast will initialize the audio output.
@@ -139,6 +142,14 @@ public class AudioHandler extends JumbleNetworkListener {
         mInput.stopRecording();
     }
 
+    /**
+     * Returns whether or not the handler has been initialized.
+     * @return true if the handler is ready to play and record audio.
+     */
+    public boolean isInitialized() {
+        return mPlaying;
+    }
+
 
     public JumbleUDPMessageType getCodec() {
         return mCodec;
@@ -148,8 +159,13 @@ public class AudioHandler extends JumbleNetworkListener {
         return mAudioStream;
     }
 
-    public void setAudioStream(int mAudioStream) {
-        this.mAudioStream = mAudioStream;
+    /**
+     * Sets the output stream for audio, such as {@link android.media.AudioManager#STREAM_VOICE_CALL}.
+     * The output thread will be automatically recreated if currently playing.
+     * @param audioStream A constant representing an Android stream. Found in {@link android.media.AudioManager}.
+     */
+    public void setAudioStream(int audioStream) {
+        this.mAudioStream = audioStream;
         if(mOutput != null) configureAudioOutput();
     }
 
@@ -157,8 +173,13 @@ public class AudioHandler extends JumbleNetworkListener {
         return mAudioSource;
     }
 
-    public void setAudioSource(int mAudioSource) {
-        this.mAudioSource = mAudioSource;
+    /**
+     * Sets the input source for audio, i.e. back microphone, front microphone.
+     * The input thread will be automatically respawned if currently recording.
+     * @param audioSource A constant representing an Android audio source. Found in {@link android.media.MediaRecorder.AudioSource}.
+     */
+    public void setAudioSource(int audioSource) {
+        this.mAudioSource = audioSource;
         if(mInput != null) configureAudioInput();
     }
 
@@ -166,8 +187,14 @@ public class AudioHandler extends JumbleNetworkListener {
         return mSampleRate;
     }
 
-    public void setSampleRate(int mSampleRate) {
-        this.mSampleRate = mSampleRate;
+    /**
+     * Attempts to set the sample rate of the audio input thread.
+     * If the desired sample rate is not supported, the next best one will be chosen.
+     * The input thread will be automatically respawned if currently recording.
+     * @param sampleRate The desired sample rate.
+     */
+    public void setSampleRate(int sampleRate) {
+        this.mSampleRate = sampleRate;
         if(mInput != null) configureAudioInput();
     }
 
@@ -175,17 +202,27 @@ public class AudioHandler extends JumbleNetworkListener {
         return mBitrate;
     }
 
-    public void setBitrate(int mBitrate) {
-        this.mBitrate = mBitrate;
-        if(mInput != null) mInput.setBitrate(mBitrate);
+    /**
+     * Sets the bitrate of the audio input thread.
+     * Does not require input thread recreation.
+     * @param bitrate The desired bitrate.
+     */
+    public void setBitrate(int bitrate) {
+        this.mBitrate = bitrate;
+        if(mInput != null) mInput.setBitrate(bitrate);
     }
 
     public int getFramesPerPacket() {
         return mFramesPerPacket;
     }
 
-    public void setFramesPerPacket(int mFramesPerPacket) {
-        this.mFramesPerPacket = mFramesPerPacket;
+    /**
+     * Sets the number of frames per packet to be encoded before sending to the server.
+     * The input thread will be automatically respawned if currently recording.
+     * @param framesPerPacket The number of frames per audio packet.
+     */
+    public void setFramesPerPacket(int framesPerPacket) {
+        this.mFramesPerPacket = framesPerPacket;
         if(mInput != null) configureAudioInput();
     }
 
@@ -193,8 +230,13 @@ public class AudioHandler extends JumbleNetworkListener {
         return mTransmitMode;
     }
 
-    public void setTransmitMode(int mTransmitMode) {
-        this.mTransmitMode = mTransmitMode;
+    /**
+     * Sets the transmit mode for the audio input thread.
+     * The input thread will be automatically respawned if currently recording.
+     * @param transmitMode A transmission mode constant found in {@link Constants}.
+     */
+    public void setTransmitMode(int transmitMode) {
+        this.mTransmitMode = transmitMode;
         if(mInput != null) configureAudioInput();
     }
 
@@ -202,24 +244,38 @@ public class AudioHandler extends JumbleNetworkListener {
         return mVADThreshold;
     }
 
-    public void setVADThreshold(float mVADThreshold) {
-        this.mVADThreshold = mVADThreshold;
-        if(mInput != null) mInput.setVADThreshold(mVADThreshold);
+    /**
+     * Sets the threshold for voice activation transmission.
+     * Does not require input thread recreation.
+     * @param threshold An arbitrary floating point value to use in determining speech.
+     */
+    public void setVADThreshold(float threshold) {
+        this.mVADThreshold = threshold;
+        if(mInput != null) mInput.setVADThreshold(threshold);
     }
 
     public float getAmplitudeBoost() {
         return mAmplitudeBoost;
     }
 
-    public void setAmplitudeBoost(float mAmplitudeBoost) {
-        this.mAmplitudeBoost = mAmplitudeBoost;
-        if(mInput != null) mInput.setAmplitudeBoost(mAmplitudeBoost);
+    /**
+     * Sets an amplitude boost multiplier for audio input.
+     * Does not require input thread recreation.
+     * @param boost An floating point value to multiply raw PCM data by in the range [0, {@link Float#MAX_VALUE}].
+     */
+    public void setAmplitudeBoost(float boost) {
+        this.mAmplitudeBoost = boost;
+        if(mInput != null) mInput.setAmplitudeBoost(boost);
     }
 
     public boolean isRecording() {
         return mInput != null && mInput.isRecording();
     }
 
+    /**
+     * Shuts down the audio handler, halting input and output.
+     * The handler may still be reinitialized with {@link AudioHandler#initialize()} after.
+     */
     public void shutdown() {
         if(mInput != null) {
             mInput.shutdown();
@@ -230,6 +286,8 @@ public class AudioHandler extends JumbleNetworkListener {
             mContext.unregisterReceiver(mBluetoothReceiver);
             mOutput = null;
         }
+        mPlaying = false;
+        mBluetoothOn = false;
         // Restore audio manager mode
         AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
         audioManager.stopBluetoothSco();

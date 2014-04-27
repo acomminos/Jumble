@@ -30,6 +30,10 @@ import java.net.UnknownHostException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.ShortBufferException;
+
 /**
  * Class to maintain and receive packets from the UDP connection to a Mumble server.
  */
@@ -95,11 +99,15 @@ public class JumbleUDP extends JumbleNetworkThread {
                 if(!mCryptState.isValid()) continue;
                 if(length < 5) continue;
 
-                final byte[] buffer = mCryptState.decrypt(data, length);
-                if(buffer != null) {
+                try {
+                    final byte[] buffer = mCryptState.decrypt(data, length);
                     if(mListener != null) mListener.onUDPDataReceived(buffer);
-                } else {
-                    Log.e(Constants.TAG, "JumbleUDP: Failed to decrypt UDP packet.");
+                } catch (BadPaddingException e) {
+                    e.printStackTrace();
+                } catch (IllegalBlockSizeException e) {
+                    e.printStackTrace();
+                } catch (ShortBufferException e) {
+                    e.printStackTrace();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -112,20 +120,28 @@ public class JumbleUDP extends JumbleNetworkThread {
     public void sendMessage(byte[] data, int length) {
         if(!mCryptState.isValid() || !mConnected)
             return;
-        byte[] encryptedData = mCryptState.encrypt(data, length);
-        final DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
-        packet.setAddress(mResolvedHost);
-        packet.setPort(mPort);
-        executeOnSendThread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    mUDPSocket.send(packet);
-                } catch (IOException e) {
-                    e.printStackTrace();
+        try {
+            byte[] encryptedData = mCryptState.encrypt(data, length);
+            final DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
+            packet.setAddress(mResolvedHost);
+            packet.setPort(mPort);
+            executeOnSendThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        mUDPSocket.send(packet);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-        });
+            });
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (ShortBufferException e) {
+            e.printStackTrace();
+        }
     }
 
     public void disconnect() {

@@ -125,13 +125,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private PowerManager.WakeLock mWakeLock;
     private Handler mHandler;
 
-    private boolean mBluetoothOn = false;
-
     private AudioInput.AudioInputListener mAudioInputListener = new AudioInput.AudioInputListener() {
         @Override
         public void onFrameEncoded(byte[] data, int length, JumbleUDPMessageType messageType) {
-            if(isConnected())
+            if(mConnection.isSynchronized()) {
                 mConnection.sendUDPMessage(data, length, false);
+            }
         }
 
         @Override
@@ -653,7 +652,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         auth.setOpus(mUseOpus);
         auth.addAllTokens(mAccessTokens);
 
-        mAudioHandler.startAudioOutput();
+        mAudioHandler.initialize();
 
         mConnection.sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
         mConnection.sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);

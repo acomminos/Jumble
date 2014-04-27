@@ -477,7 +477,8 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
      * @param message A built protobuf message.
      * @param messageType The corresponding protobuf message type.
      */
-    public void sendTCPMessage(Message message, JumbleTCPMessageType messageType){
+    public void sendTCPMessage(Message message, JumbleTCPMessageType messageType) {
+        if(!mConnected) return;
         mTCP.sendMessage(message, messageType);
     }
 
@@ -488,6 +489,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
      * @param force Whether to avoid tunneling this data over TCP.
      */
     public void sendUDPMessage(final byte[] data, final int length, final boolean force) {
+        if(!mConnected) return;
         if(mServerVersion == 0x10202) applyLegacyCodecWorkaround(data);
         if (!force && (mForceTCP || !mUsingUDP))
             mTCP.sendMessage(data, length, JumbleTCPMessageType.UDPTunnel);
@@ -499,6 +501,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
      * Sends a message to the server, asking it to tunnel future voice packets over TCP.
      */
     private void enableForceTCP() {
+        if(!mConnected) return;
         Mumble.UDPTunnel.Builder utb = Mumble.UDPTunnel.newBuilder();
         utb.setPacket(ByteString.copyFrom(new byte[3]));
         sendTCPMessage(utb.build(), JumbleTCPMessageType.UDPTunnel);

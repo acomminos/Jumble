@@ -178,12 +178,10 @@ public class AudioInput implements Runnable {
     }
 
     private AudioRecord createAudioRecord() throws InvalidSampleRateException {
-        int reportedMinBufferSize = AudioRecord.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-        int bufferSize = Math.max(reportedMinBufferSize, mFrameSize);
-
+        int minBufferSize = AudioRecord.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         AudioRecord audioRecord;
         try {
-            audioRecord = new AudioRecord(mAudioSource, mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
+            audioRecord = new AudioRecord(mAudioSource, mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
         } catch (IllegalArgumentException e) {
             throw new InvalidSampleRateException(e);
         }
@@ -249,6 +247,7 @@ public class AudioInput implements Runnable {
     }
 
     public void setAmplitudeBoost(float boost) {
+        if(boost < 0) throw new IllegalArgumentException("Amplitude boost must not be a negative number!");
         mAmplitudeBoost = boost;
     }
 

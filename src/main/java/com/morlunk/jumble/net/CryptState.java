@@ -118,7 +118,7 @@ public class CryptState {
      * @param source The encoded audio data.
      * @param length The length of the source array.
      */
-    public byte[] decrypt(final byte[] source, final int length) {
+    public byte[] decrypt(final byte[] source, final int length) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
         if (length < 4) return null;
 
         final int plainLength = length - 4;
@@ -200,21 +200,8 @@ public class CryptState {
 
         final byte[] tagShiftedDst = new byte[plainLength];
         System.arraycopy(source, 4, tagShiftedDst, 0, plainLength);
-        try {
-            ocbDecrypt(tagShiftedDst, dst, mDecryptIV, tag);
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-            return null;
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-            return null;
-        } catch (ShortBufferException e) {
-            e.printStackTrace();
-            return null;
-        } catch (DataLengthException e) {
-            e.printStackTrace();
-            return null;
-        }
+
+        ocbDecrypt(tagShiftedDst, dst, mDecryptIV, tag);
 
         if (tag[0] != source[1] || tag[1] != source[2] || tag[2] != source[3]) {
             System.arraycopy(saveiv, 0, mDecryptIV, 0, AES_BLOCK_SIZE);
@@ -280,7 +267,7 @@ public class CryptState {
         mEncryptCipher.doFinal(tmp, 0, AES_BLOCK_SIZE, tag);
     }
 
-    public byte[] encrypt(final byte[] source, final int length) {
+    public byte[] encrypt(final byte[] source, final int length) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
         final byte[] tag = new byte[AES_BLOCK_SIZE];
 
         // First, increase our IV.
@@ -291,17 +278,7 @@ public class CryptState {
         }
 
         final byte[] dst = new byte[length + 4];
-        try {
-            ocbEncrypt(source, dst, length, mEncryptIV, tag);
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (ShortBufferException e) {
-            e.printStackTrace();
-        } catch (DataLengthException e) {
-            e.printStackTrace();
-        }
+        ocbEncrypt(source, dst, length, mEncryptIV, tag);
 
         System.arraycopy(dst, 0, dst, 4, length);
         dst[0] = mEncryptIV[0];
