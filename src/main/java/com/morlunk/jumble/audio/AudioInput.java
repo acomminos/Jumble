@@ -94,7 +94,7 @@ public class AudioInput implements Runnable {
     private Thread mRecordThread;
     private boolean mRecording;
 
-    public AudioInput(AudioInputListener listener, JumbleUDPMessageType codec, int audioSource, int targetSampleRate, int bitrate, int framesPerPacket, int transmitMode, float vadThreshold, float amplitudeBoost) throws InvalidSampleRateException, NativeAudioException {
+    public AudioInput(AudioInputListener listener, JumbleUDPMessageType codec, int audioSource, int targetSampleRate, int bitrate, int framesPerPacket, int transmitMode, float vadThreshold, float amplitudeBoost) throws NativeAudioException {
         mListener = listener;
         mCodec = codec;
         mAudioSource = audioSource;
