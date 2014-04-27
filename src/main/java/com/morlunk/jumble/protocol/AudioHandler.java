@@ -95,7 +95,7 @@ public class AudioHandler extends JumbleNetworkListener {
      * Automatically starts recording if mTransitMode is continuous or voice activity.
      * Will cleanup old input thread if applicable.
      */
-    private void configureAudioInput() {
+    private void createAudioInput() {
         if(mInput != null) mInput.shutdown();
 
         try {
@@ -103,10 +103,6 @@ public class AudioHandler extends JumbleNetworkListener {
             if(mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY || mTransmitMode == Constants.TRANSMIT_CONTINUOUS) {
                 mInput.startRecording();
             }
-        } catch (InvalidSampleRateException e) {
-            e.printStackTrace();
-            // TODO error handling
-//            onConnectionError(new JumbleConnectionException(e, false));
         } catch (NativeAudioException e) {
             e.printStackTrace();
         }
@@ -116,25 +112,26 @@ public class AudioHandler extends JumbleNetworkListener {
      * Configures a new audio output thread with the handler's settings.
      * Will cleanup old output thread if applicable.
      */
-    private void configureAudioOutput() {
-        if(mOutput != null) mOutput.stopPlaying();
+    private void createAudioOutput() {
+        if(mInitialized) mOutput.stopPlaying();
         mOutput = new AudioOutput(mOutputListener, mAudioStream);
     }
 
     /**
-     * Starts the audio output thread.
+     * Starts the audio output thread. Will create both the input and output modules if they
+     * haven't been created yet.
      */
     public void initialize() {
         if(mInitialized) return;
-        if(mOutput == null) configureAudioOutput();
-        if(mInput == null) configureAudioInput();
+        if(mOutput == null) createAudioOutput();
+        if(mInput == null) createAudioInput();
         // This sticky broadcast will initialize the audio output.
         mContext.registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
         mInitialized = true;
     }
 
     public void startRecording() {
-        if(mInput == null) configureAudioInput();
+        if(mInput == null) createAudioInput();
         mInput.startRecording();
     }
 
@@ -149,6 +146,10 @@ public class AudioHandler extends JumbleNetworkListener {
      */
     public boolean isInitialized() {
         return mInitialized;
+    }
+
+    public boolean isRecording() {
+        return mInput != null && mInput.isRecording();
     }
 
 
@@ -167,7 +168,7 @@ public class AudioHandler extends JumbleNetworkListener {
      */
     public void setAudioStream(int audioStream) {
         this.mAudioStream = audioStream;
-        if(mOutput != null) configureAudioOutput();
+        if(mInitialized) createAudioOutput();
     }
 
     public int getAudioSource() {
@@ -181,7 +182,7 @@ public class AudioHandler extends JumbleNetworkListener {
      */
     public void setAudioSource(int audioSource) {
         this.mAudioSource = audioSource;
-        if(mInput != null) configureAudioInput();
+        if(mInitialized) createAudioInput();
     }
 
     public int getSampleRate() {
@@ -196,7 +197,7 @@ public class AudioHandler extends JumbleNetworkListener {
      */
     public void setSampleRate(int sampleRate) {
         this.mSampleRate = sampleRate;
-        if(mInput != null) configureAudioInput();
+        if(mInitialized) createAudioInput();
     }
 
     public int getBitrate() {
@@ -224,7 +225,7 @@ public class AudioHandler extends JumbleNetworkListener {
      */
     public void setFramesPerPacket(int framesPerPacket) {
         this.mFramesPerPacket = framesPerPacket;
-        if(mInput != null) configureAudioInput();
+        if(mInput != null) createAudioInput();
     }
 
     public int getTransmitMode() {
@@ -238,7 +239,7 @@ public class AudioHandler extends JumbleNetworkListener {
      */
     public void setTransmitMode(int transmitMode) {
         this.mTransmitMode = transmitMode;
-        if(mInput != null) configureAudioInput();
+        if(mInitialized) createAudioInput();
     }
 
     public float getVADThreshold() {
@@ -252,7 +253,7 @@ public class AudioHandler extends JumbleNetworkListener {
      */
     public void setVADThreshold(float threshold) {
         this.mVADThreshold = threshold;
-        if(mInput != null) mInput.setVADThreshold(threshold);
+        if(mInitialized) mInput.setVADThreshold(threshold);
     }
 
     public float getAmplitudeBoost() {
@@ -266,11 +267,7 @@ public class AudioHandler extends JumbleNetworkListener {
      */
     public void setAmplitudeBoost(float boost) {
         this.mAmplitudeBoost = boost;
-        if(mInput != null) mInput.setAmplitudeBoost(boost);
-    }
-
-    public boolean isRecording() {
-        return mInput != null && mInput.isRecording();
+        if(mInitialized) mInput.setAmplitudeBoost(boost);
     }
 
     /**
@@ -303,7 +300,7 @@ public class AudioHandler extends JumbleNetworkListener {
         } else {
             mCodec = JumbleUDPMessageType.UDPVoiceCELTAlpha;
         }
-        if(mInitialized) configureAudioInput();
+        if(mInitialized) createAudioInput();
     }
 
     @Override

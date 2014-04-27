@@ -177,13 +177,20 @@ public class AudioInput implements Runnable {
         mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_GET_PROB_START, arg);
     }
 
-    private AudioRecord createAudioRecord() throws InvalidSampleRateException {
+    private AudioRecord createAudioRecord() {
         int minBufferSize = AudioRecord.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         AudioRecord audioRecord;
         try {
             audioRecord = new AudioRecord(mAudioSource, mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
         } catch (IllegalArgumentException e) {
-            throw new InvalidSampleRateException(e);
+            // This is almost always caused by an invalid sample rate specified.
+            // Ideally, this should have been caught by checking for failed calls to getMinBufferSize with the
+            // chosen sample rate. Unfortunately, some devices don't properly fail calling that method
+            // when provided with an invalid buffer size.
+            e.printStackTrace();
+            Log.w(Constants.TAG, "Checks for input sample rate failed, defaulting to 48000hz");
+            mSampleRate = 48000;
+            return createAudioRecord();
         }
 
         Log.i(Constants.TAG, "AudioInput: " + mBitrate + "bps, " + mFramesPerPacket + " frames/packet, " + mSampleRate + "hz");
