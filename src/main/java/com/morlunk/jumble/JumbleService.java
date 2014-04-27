@@ -135,16 +135,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void onTalkStateChanged(final boolean talking) {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if(!isConnected()) return;
+                    try {
+                        final User currentUser = getBinder().getSessionUser();
+                        if(currentUser == null) return;
 
-            try {
-                if(!isConnected())
-                    return;
-
-                final User currentUser = getBinder().getSessionUser();
-
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
                         currentUser.setTalkState(talking ? User.TalkState.TALKING : User.TalkState.PASSIVE);
                         notifyObservers(new ObserverRunnable() {
                             @Override
@@ -152,11 +150,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                                 observer.onUserTalkStateUpdated(currentUser);
                             }
                         });
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
                     }
-                });
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+                }
+            });
         }
     };
 

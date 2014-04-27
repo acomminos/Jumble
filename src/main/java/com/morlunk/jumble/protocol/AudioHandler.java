@@ -58,7 +58,7 @@ public class AudioHandler extends JumbleNetworkListener {
     private float mVADThreshold;
     private float mAmplitudeBoost = 1.0f;
 
-    private boolean mPlaying;
+    private boolean mInitialized;
     private boolean mBluetoothOn;
 
     private BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
@@ -125,11 +125,12 @@ public class AudioHandler extends JumbleNetworkListener {
      * Starts the audio output thread.
      */
     public void initialize() {
-        if(mPlaying) return;
+        if(mInitialized) return;
         if(mOutput == null) configureAudioOutput();
+        if(mInput == null) configureAudioInput();
         // This sticky broadcast will initialize the audio output.
         mContext.registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
-        mPlaying = true;
+        mInitialized = true;
     }
 
     public void startRecording() {
@@ -147,7 +148,7 @@ public class AudioHandler extends JumbleNetworkListener {
      * @return true if the handler is ready to play and record audio.
      */
     public boolean isInitialized() {
-        return mPlaying;
+        return mInitialized;
     }
 
 
@@ -286,7 +287,7 @@ public class AudioHandler extends JumbleNetworkListener {
             mContext.unregisterReceiver(mBluetoothReceiver);
             mOutput = null;
         }
-        mPlaying = false;
+        mInitialized = false;
         mBluetoothOn = false;
         // Restore audio manager mode
         AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
@@ -302,7 +303,7 @@ public class AudioHandler extends JumbleNetworkListener {
         } else {
             mCodec = JumbleUDPMessageType.UDPVoiceCELTAlpha;
         }
-        configureAudioInput(); // Audio input is started when we first get the codec information.
+        if(mInitialized) configureAudioInput();
     }
 
     @Override
