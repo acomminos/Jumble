@@ -79,9 +79,9 @@ public class AudioInput implements Runnable {
 
     // Encoder state
     final short[] mAudioBuffer = new short[mFrameSize];
-    final short[] mResampleBuffer = new short[mMicFrameSize];
     final short[] mOpusBuffer;
     final byte[][] mCELTBuffer;
+    short[] mResampleBuffer;
 
     private final byte[] mEncodedBuffer = new byte[OPUS_MAX_BYTES];
     private final byte[] mPacketBuffer = new byte[1024];
@@ -111,7 +111,12 @@ public class AudioInput implements Runnable {
         mOpusBuffer = new short[mFrameSize * mFramesPerPacket];
         mCELTBuffer = new byte[mFramesPerPacket][Audio.SAMPLE_RATE/800];
 
-        configureResampler();
+        if(mSampleRate != Audio.SAMPLE_RATE) {
+            mResampler = new Speex.SpeexResampler(1, mSampleRate, Audio.SAMPLE_RATE, SPEEX_RESAMPLE_QUALITY);
+            mMicFrameSize = (mSampleRate * mFrameSize) / Audio.SAMPLE_RATE;
+            mResampleBuffer = new short[mMicFrameSize];
+        }
+
         configurePreprocessState();
     }
 
@@ -137,17 +142,6 @@ public class AudioInput implements Runnable {
 
         // If all else fails, return the android default.
         return 48000;
-    }
-
-    /**
-     * Creates a Speex resampler if the input sample rate differs from the protocol's.
-     */
-    private void configureResampler() {
-        if(mResampler != null) mResampler.destroy();
-
-        if(mSampleRate != Audio.SAMPLE_RATE) {
-            mResampler = new Speex.SpeexResampler(1, mSampleRate, Audio.SAMPLE_RATE, SPEEX_RESAMPLE_QUALITY);
-        }
     }
 
     /**
@@ -193,6 +187,10 @@ public class AudioInput implements Runnable {
             return createAudioRecord();
         }
 
+        if(audioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
+            // TODO check
+        }
+
         Log.i(Constants.TAG, "AudioInput: " + mBitrate + "bps, " + mFramesPerPacket + " frames/packet, " + mSampleRate + "hz");
 
         return audioRecord;
@@ -216,7 +214,7 @@ public class AudioInput implements Runnable {
                 // TODO
 //                break;
             default:
-                return null;
+                throw new NativeAudioException("Codec " + codec + " not supported.");
         }
         encoder.setBitrate(mBitrate);
         return encoder;
