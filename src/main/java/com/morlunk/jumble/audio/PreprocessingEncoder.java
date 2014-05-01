@@ -18,6 +18,7 @@ package com.morlunk.jumble.audio;
 
 import com.googlecode.javacpp.IntPointer;
 import com.morlunk.jumble.audio.javacpp.Speex;
+import com.morlunk.jumble.exception.NativeAudioException;
 
 /**
  * Wrapper performing preprocessing options on the nested encoder.
@@ -28,7 +29,7 @@ public class PreprocessingEncoder implements IEncoder {
     private IEncoder mEncoder;
     private Speex.SpeexPreprocessState mPreprocessor;
 
-    public PreprocessingEncoder(IEncoder encoder, int sampleRate, int frameSize) {
+    public PreprocessingEncoder(IEncoder encoder, int frameSize, int sampleRate) {
         mEncoder = encoder;
         mPreprocessor = new Speex.SpeexPreprocessState(frameSize, sampleRate);
 

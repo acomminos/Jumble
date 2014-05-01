@@ -37,6 +37,7 @@ import com.morlunk.jumble.audio.Audio;
 import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.audio.InvalidSampleRateException;
+import com.morlunk.jumble.exception.AudioException;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
@@ -319,7 +320,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public void setTransmitMode(int transmitMode) throws RemoteException {
             mTransmitMode = transmitMode;
-            mAudioHandler.setTransmitMode(transmitMode);
+            try {
+                mAudioHandler.setTransmitMode(transmitMode);
+            } catch (AudioException e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
@@ -346,8 +351,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void setTalkingState(boolean talking) throws RemoteException {
-            if(talking) mAudioHandler.startRecording();
-            else mAudioHandler.stopRecording();
+            if(talking) {
+                try {
+                    mAudioHandler.startRecording();
+                } catch (AudioException e) {
+                    e.printStackTrace();
+                    onConnectionWarning(e.getMessage());
+                }
+            } else {
+                mAudioHandler.stopRecording();
+            }
         }
 
         @Override
@@ -514,7 +527,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             usb.setSelfMute(mute);
             usb.setSelfDeaf(deaf);
             if(!mute && !mAudioHandler.isRecording() && (mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY))
-                mAudioHandler.startRecording(); // Resume recording when unmuted for PTT.
+                try {
+                    mAudioHandler.startRecording(); // Resume recording when unmuted for PTT.
+                } catch (AudioException e) {
+                    e.printStackTrace();
+                    onConnectionWarning(e.getMessage());
+                }
             else if(mAudioHandler.isRecording())
                 mAudioHandler.stopRecording(); // Stop recording when muted.
             mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
@@ -562,14 +580,19 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
 
             mConnection.setTrustStore(mTrustStore, mTrustStorePassword, mTrustStoreFormat);
-            mAudioHandler.setAmplitudeBoost(mAmplitudeBoost);
-            mAudioHandler.setBitrate(mInputQuality);
-            mAudioHandler.setVADThreshold(mDetectionThreshold);
-            mAudioHandler.setTransmitMode(mTransmitMode);
-            mAudioHandler.setAudioSource(mAudioSource);
-            mAudioHandler.setAudioStream(mAudioStream);
-            mAudioHandler.setFramesPerPacket(mFramesPerPacket);
-            mAudioHandler.setSampleRate(mInputRate);
+
+            try {
+                mAudioHandler.setAmplitudeBoost(mAmplitudeBoost);
+                mAudioHandler.setBitrate(mInputQuality);
+                mAudioHandler.setVADThreshold(mDetectionThreshold);
+                mAudioHandler.setTransmitMode(mTransmitMode);
+                mAudioHandler.setAudioSource(mAudioSource);
+                mAudioHandler.setAudioStream(mAudioStream);
+                mAudioHandler.setFramesPerPacket(mFramesPerPacket);
+                mAudioHandler.setSampleRate(mInputRate);
+            } catch (AudioException e) {
+                e.printStackTrace();
+            }
 
             connect();
         }
@@ -650,10 +673,15 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         auth.setOpus(mUseOpus);
         auth.addAllTokens(mAccessTokens);
 
-        mAudioHandler.initialize();
-
         mConnection.sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
         mConnection.sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
+
+        try {
+            mAudioHandler.initialize();
+        } catch (AudioException e) {
+            e.printStackTrace();
+            onConnectionWarning(e.getMessage());
+        }
     }
 
     @Override

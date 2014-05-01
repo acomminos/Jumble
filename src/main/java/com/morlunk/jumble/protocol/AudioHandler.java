@@ -27,8 +27,9 @@ import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.R;
 import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
-import com.morlunk.jumble.audio.InvalidSampleRateException;
-import com.morlunk.jumble.audio.NativeAudioException;
+import com.morlunk.jumble.exception.AudioException;
+import com.morlunk.jumble.exception.AudioInitializationException;
+import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.util.JumbleNetworkListener;
@@ -94,17 +95,14 @@ public class AudioHandler extends JumbleNetworkListener {
      * Configures a new audio input thread with the handler's settings.
      * Automatically starts recording if mTransitMode is continuous or voice activity.
      * Will cleanup old input thread if applicable.
+     * @throws AudioException if the AudioInput instance failed to initialize.
      */
-    private void createAudioInput() {
+    private void createAudioInput() throws AudioException {
         if(mInput != null) mInput.shutdown();
 
-        try {
-            mInput = new AudioInput(mInputListener, mCodec, mAudioSource, mSampleRate, mBitrate, mFramesPerPacket, mTransmitMode, mVADThreshold, mAmplitudeBoost);
-            if(mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY || mTransmitMode == Constants.TRANSMIT_CONTINUOUS) {
-                mInput.startRecording();
-            }
-        } catch (NativeAudioException e) {
-            e.printStackTrace();
+        mInput = new AudioInput(mInputListener, mCodec, mAudioSource, mSampleRate, mBitrate, mFramesPerPacket, mTransmitMode, mVADThreshold, mAmplitudeBoost);
+        if(mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY || mTransmitMode == Constants.TRANSMIT_CONTINUOUS) {
+            mInput.startRecording();
         }
     }
 
@@ -121,7 +119,7 @@ public class AudioHandler extends JumbleNetworkListener {
      * Starts the audio output thread. Will create both the input and output modules if they
      * haven't been created yet.
      */
-    public void initialize() {
+    public void initialize() throws AudioException {
         if(mInitialized) return;
         if(mOutput == null) createAudioOutput();
         if(mInput == null) createAudioInput();
@@ -130,7 +128,7 @@ public class AudioHandler extends JumbleNetworkListener {
         mInitialized = true;
     }
 
-    public void startRecording() {
+    public void startRecording() throws AudioException {
         if(mInput == null) createAudioInput();
         mInput.startRecording();
     }
@@ -180,7 +178,7 @@ public class AudioHandler extends JumbleNetworkListener {
      * The input thread will be automatically respawned if currently recording.
      * @param audioSource A constant representing an Android audio source. Found in {@link android.media.MediaRecorder.AudioSource}.
      */
-    public void setAudioSource(int audioSource) {
+    public void setAudioSource(int audioSource) throws AudioException {
         this.mAudioSource = audioSource;
         if(mInitialized) createAudioInput();
     }
@@ -195,7 +193,7 @@ public class AudioHandler extends JumbleNetworkListener {
      * The input thread will be automatically respawned if currently recording.
      * @param sampleRate The desired sample rate.
      */
-    public void setSampleRate(int sampleRate) {
+    public void setSampleRate(int sampleRate) throws AudioException {
         this.mSampleRate = sampleRate;
         if(mInitialized) createAudioInput();
     }
@@ -223,7 +221,7 @@ public class AudioHandler extends JumbleNetworkListener {
      * The input thread will be automatically respawned if currently recording.
      * @param framesPerPacket The number of frames per audio packet.
      */
-    public void setFramesPerPacket(int framesPerPacket) {
+    public void setFramesPerPacket(int framesPerPacket) throws AudioException {
         this.mFramesPerPacket = framesPerPacket;
         if(mInput != null) createAudioInput();
     }
@@ -237,7 +235,7 @@ public class AudioHandler extends JumbleNetworkListener {
      * The input thread will be automatically respawned if currently recording.
      * @param transmitMode A transmission mode constant found in {@link Constants}.
      */
-    public void setTransmitMode(int transmitMode) {
+    public void setTransmitMode(int transmitMode) throws AudioException {
         this.mTransmitMode = transmitMode;
         if(mInitialized) createAudioInput();
     }
@@ -300,7 +298,14 @@ public class AudioHandler extends JumbleNetworkListener {
         } else {
             mCodec = JumbleUDPMessageType.UDPVoiceCELTAlpha;
         }
-        if(mInitialized) createAudioInput();
+        if(mInitialized) {
+            try {
+                createAudioInput();
+            } catch (AudioException e) {
+                e.printStackTrace();
+                // TODO handle gracefully
+            }
+        }
     }
 
     @Override

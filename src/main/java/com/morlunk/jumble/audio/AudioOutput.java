@@ -22,18 +22,14 @@ import android.media.AudioTrack;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Process;
-import android.os.RemoteException;
 import android.util.Log;
 import android.util.SparseArray;
 
 import com.morlunk.jumble.Constants;
-import com.morlunk.jumble.IJumbleObserver;
-import com.morlunk.jumble.JumbleService;
+import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
-import com.morlunk.jumble.protocol.JumbleUDPMessageListener;
-import com.morlunk.jumble.protocol.ProtocolHandler;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

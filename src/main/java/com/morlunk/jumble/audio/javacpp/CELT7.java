@@ -24,7 +24,7 @@ import com.googlecode.javacpp.annotation.NoDeallocator;
 import com.googlecode.javacpp.annotation.Platform;
 import com.morlunk.jumble.audio.IDecoder;
 import com.morlunk.jumble.audio.IEncoder;
-import com.morlunk.jumble.audio.NativeAudioException;
+import com.morlunk.jumble.exception.NativeAudioException;
 
 /**
  * Created by andrew on 20/10/13.

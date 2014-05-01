@@ -16,6 +16,8 @@
 
 package com.morlunk.jumble.audio;
 
+import com.morlunk.jumble.exception.NativeAudioException;
+
 /**
  * Created by andrew on 07/03/14.
  */
@@ -27,7 +29,7 @@ public interface IDecoder {
      * @param output An initialized output array at least frameSize for float PCM data.
      * @param frameSize The maximum frame size possible.
      * @return The number of decoded samples.
-     * @throws NativeAudioException if encoding failed.
+     * @throws com.morlunk.jumble.exception.NativeAudioException if encoding failed.
      */
     public int decodeFloat(byte[] input, int inputSize, float[] output, int frameSize) throws NativeAudioException;
 

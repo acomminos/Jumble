@@ -17,6 +17,7 @@
 package com.morlunk.jumble.audio;
 
 import com.morlunk.jumble.audio.javacpp.Speex;
+import com.morlunk.jumble.exception.NativeAudioException;
 
 /**
  * Wraps around another encoder, resampling up/down all input using the Speex resampler.

@@ -18,11 +18,11 @@ package com.morlunk.jumble.audio;
 
 import com.googlecode.javacpp.BytePointer;
 import com.googlecode.javacpp.IntPointer;
-import com.googlecode.javacpp.Pointer;
 import com.morlunk.jumble.audio.javacpp.CELT11;
 import com.morlunk.jumble.audio.javacpp.CELT7;
 import com.morlunk.jumble.audio.javacpp.Opus;
 import com.morlunk.jumble.audio.javacpp.Speex;
+import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;

@@ -14,15 +14,21 @@
  * limitations under the License.
  */
 
-package com.morlunk.jumble.audio;
-
-import com.morlunk.jumble.exception.NativeAudioException;
+package com.morlunk.jumble.exception;
 
 /**
  * Created by andrew on 07/03/14.
  */
-public interface IEncoder {
-    public void encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException;
-    public void setBitrate(int bitrate);
-    public void destroy();
+public class NativeAudioException extends AudioException {
+    public NativeAudioException(String message) {
+        super(message);
+    }
+
+    public NativeAudioException(Throwable throwable) {
+        super(throwable);
+    }
+
+    public NativeAudioException(String message, Throwable throwable) {
+        super(message, throwable);
+    }
 }

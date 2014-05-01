@@ -27,6 +27,8 @@ import com.morlunk.jumble.audio.javacpp.CELT11;
 import com.morlunk.jumble.audio.javacpp.CELT7;
 import com.morlunk.jumble.audio.javacpp.Opus;
 import com.morlunk.jumble.audio.javacpp.Speex;
+import com.morlunk.jumble.exception.AudioInitializationException;
+import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
 
@@ -76,6 +78,7 @@ public class AudioInput implements Runnable {
     private int mTransmitMode;
     private float mVADThreshold;
     private float mAmplitudeBoost = 1.0f;
+    private boolean mUsePreprocessor = true;
 
     // Encoder state
     final short[] mAudioBuffer = new short[mFrameSize];
@@ -94,7 +97,7 @@ public class AudioInput implements Runnable {
     private Thread mRecordThread;
     private boolean mRecording;
 
-    public AudioInput(AudioInputListener listener, JumbleUDPMessageType codec, int audioSource, int targetSampleRate, int bitrate, int framesPerPacket, int transmitMode, float vadThreshold, float amplitudeBoost) throws NativeAudioException {
+    public AudioInput(AudioInputListener listener, JumbleUDPMessageType codec, int audioSource, int targetSampleRate, int bitrate, int framesPerPacket, int transmitMode, float vadThreshold, float amplitudeBoost) throws NativeAudioException, AudioInitializationException {
         mListener = listener;
         mCodec = codec;
         mAudioSource = audioSource;
@@ -109,7 +112,7 @@ public class AudioInput implements Runnable {
         mEncoder = createEncoder(mCodec);
 
         mOpusBuffer = new short[mFrameSize * mFramesPerPacket];
-        mCELTBuffer = new byte[mFramesPerPacket][Audio.SAMPLE_RATE/800];
+        mCELTBuffer = new byte[mFramesPerPacket][Audio.SAMPLE_RATE / 800];
 
         if(mSampleRate != Audio.SAMPLE_RATE) {
             mResampler = new Speex.SpeexResampler(1, mSampleRate, Audio.SAMPLE_RATE, SPEEX_RESAMPLE_QUALITY);
@@ -117,7 +120,9 @@ public class AudioInput implements Runnable {
             mResampleBuffer = new short[mMicFrameSize];
         }
 
-        configurePreprocessState();
+        if(mUsePreprocessor) {
+            configurePreprocessState();
+        }
     }
 
     /**
@@ -155,8 +160,9 @@ public class AudioInput implements Runnable {
 
         IntPointer arg = new IntPointer(1);
 
-        arg.put(1);
+        arg.put(0);
         mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_SET_VAD, arg);
+        arg.put(1);
         mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_SET_AGC, arg);
         mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_SET_DENOISE, arg);
         mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_SET_DEREVERB, arg);
@@ -171,7 +177,7 @@ public class AudioInput implements Runnable {
         mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_GET_PROB_START, arg);
     }
 
-    private AudioRecord createAudioRecord() {
+    private AudioRecord createAudioRecord() throws AudioInitializationException {
         int minBufferSize = AudioRecord.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         AudioRecord audioRecord;
         try {
@@ -183,12 +189,12 @@ public class AudioInput implements Runnable {
             // when provided with an invalid buffer size.
             e.printStackTrace();
             Log.w(Constants.TAG, "Checks for input sample rate failed, defaulting to 48000hz");
-            mSampleRate = 48000;
+            mSampleRate = Audio.SAMPLE_RATE;
             return createAudioRecord();
         }
 
         if(audioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
-            // TODO check
+            throw new AudioInitializationException("AudioRecord failed to initialize!");
         }
 
         Log.i(Constants.TAG, "AudioInput: " + mBitrate + "bps, " + mFramesPerPacket + " frames/packet, " + mSampleRate + "hz");

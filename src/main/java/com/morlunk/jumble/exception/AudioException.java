@@ -14,13 +14,21 @@
  * limitations under the License.
  */
 
-package com.morlunk.jumble.audio;
+package com.morlunk.jumble.exception;
 
 /**
- * Created by andrew on 07/03/14.
+ * Created by andrew on 28/04/14.
  */
-public class NativeAudioException extends Exception {
-    public NativeAudioException(String message) {
+public class AudioException extends Exception {
+    public AudioException(String message) {
         super(message);
+    }
+
+    public AudioException(Throwable throwable) {
+        super(throwable);
+    }
+
+    public AudioException(String message, Throwable throwable) {
+        super(message, throwable);
     }
 }
