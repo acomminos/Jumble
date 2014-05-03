@@ -87,7 +87,7 @@ public class CryptState {
         return mDecryptIV;
     }
 
-    public void setKeys(final byte[] rkey, final byte[] eiv, final byte[] div) throws InvalidKeyException {
+    public synchronized void setKeys(final byte[] rkey, final byte[] eiv, final byte[] div) throws InvalidKeyException {
         try {
             mEncryptCipher = Cipher.getInstance(AES_TRANSFORMATION);
             mDecryptCipher = Cipher.getInstance(AES_TRANSFORMATION);
@@ -118,7 +118,7 @@ public class CryptState {
      * @param source The encoded audio data.
      * @param length The length of the source array.
      */
-    public byte[] decrypt(final byte[] source, final int length) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
+    public synchronized byte[] decrypt(final byte[] source, final int length) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
         if (length < 4) return null;
 
         final int plainLength = length - 4;
@@ -267,7 +267,7 @@ public class CryptState {
         mEncryptCipher.doFinal(tmp, 0, AES_BLOCK_SIZE, tag);
     }
 
-    public byte[] encrypt(final byte[] source, final int length) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
+    public synchronized byte[] encrypt(final byte[] source, final int length) throws BadPaddingException, IllegalBlockSizeException, ShortBufferException {
         final byte[] tag = new byte[AES_BLOCK_SIZE];
 
         // First, increase our IV.

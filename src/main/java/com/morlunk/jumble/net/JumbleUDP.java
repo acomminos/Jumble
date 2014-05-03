@@ -20,6 +20,8 @@ import android.util.Log;
 
 import com.morlunk.jumble.Constants;
 
+import org.spongycastle.crypto.DataLengthException;
+
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.DatagramPacket;
@@ -117,31 +119,29 @@ public class JumbleUDP extends JumbleNetworkThread {
         disconnect(); // Make sure we close the socket if disconnect wasn't controlled
     }
 
-    public void sendMessage(byte[] data, int length) {
+    public void sendMessage(final byte[] data, final int length) {
         if(!mCryptState.isValid() || !mConnected)
             return;
-        try {
-            byte[] encryptedData = mCryptState.encrypt(data, length);
-            final DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
-            packet.setAddress(mResolvedHost);
-            packet.setPort(mPort);
-            executeOnSendThread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        mUDPSocket.send(packet);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+        executeOnSendThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    byte[] encryptedData = mCryptState.encrypt(data, length);
+                    final DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
+                    packet.setAddress(mResolvedHost);
+                    packet.setPort(mPort);
+                    mUDPSocket.send(packet);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (IllegalBlockSizeException e) {
+                    e.printStackTrace();
+                } catch (ShortBufferException e) {
+                    e.printStackTrace();
+                } catch (BadPaddingException e) {
+                    e.printStackTrace();
                 }
-            });
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-        } catch (ShortBufferException e) {
-            e.printStackTrace();
-        }
+            }
+        });
     }
 
     public void disconnect() {

@@ -87,7 +87,6 @@ public class AudioInput implements Runnable {
     short[] mResampleBuffer;
 
     private final byte[] mEncodedBuffer = new byte[OPUS_MAX_BYTES];
-    private final byte[] mPacketBuffer = new byte[1024];
     private int mBufferedFrames = 0;
     private int mFrameCounter;
 
@@ -445,10 +444,10 @@ public class AudioInput implements Runnable {
         int flags = 0;
         flags |= mCodec.ordinal() << 5;
 
-        Arrays.fill(mPacketBuffer, (byte) 0);
-        mPacketBuffer[0] = (byte) (flags & 0xFF);
+        final byte[] packetBuffer = new byte[1024];
+        packetBuffer[0] = (byte) (flags & 0xFF);
 
-        PacketDataStream ds = new PacketDataStream(mPacketBuffer, 1024);
+        PacketDataStream ds = new PacketDataStream(packetBuffer, 1024);
         ds.skip(1);
         ds.writeLong(mFrameCounter - frames);
 
@@ -470,6 +469,6 @@ public class AudioInput implements Runnable {
             }
         }
 
-        mListener.onFrameEncoded(mPacketBuffer, ds.size() + 1, mCodec);
+        mListener.onFrameEncoded(packetBuffer, ds.size(), mCodec);
     }
 }

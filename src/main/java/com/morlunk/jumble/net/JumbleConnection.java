@@ -478,7 +478,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
      * @param messageType The corresponding protobuf message type.
      */
     public void sendTCPMessage(Message message, JumbleTCPMessageType messageType) {
-        if(!mConnected) return;
+        if(!mConnected || mTCP == null) return;
         mTCP.sendMessage(message, messageType);
     }
 
