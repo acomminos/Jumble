@@ -579,9 +579,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mTrustStorePassword = extras.getString(EXTRAS_TRUST_STORE_PASSWORD);
             mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
 
-            mConnection.setTrustStore(mTrustStore, mTrustStorePassword, mTrustStoreFormat);
-
             try {
+                mConnection.setTrustStore(mTrustStore, mTrustStorePassword, mTrustStoreFormat);
+
                 mAudioHandler.setAmplitudeBoost(mAmplitudeBoost);
                 mAudioHandler.setBitrate(mInputQuality);
                 mAudioHandler.setVADThreshold(mDetectionThreshold);
@@ -590,14 +590,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 mAudioHandler.setAudioStream(mAudioStream);
                 mAudioHandler.setFramesPerPacket(mFramesPerPacket);
                 mAudioHandler.setSampleRate(mInputRate);
+
+                connect();
             } catch (AudioException e) {
                 // An AudioException will only be thrown in the reinitialization of input or output.
                 // As we make these calls before initialization, no audio input/output is ever
                 // created, so we don't have to worry about this catch clause.
-                throw new RuntimeException(e);
+                onConnectionError(new JumbleConnectionException(e, false));
             }
-
-            connect();
         }
         return START_NOT_STICKY;
     }

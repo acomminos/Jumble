@@ -117,12 +117,13 @@ public class AudioHandler extends JumbleNetworkListener {
 
     /**
      * Starts the audio output thread. Will create both the input and output modules if they
-     * haven't been created yet.
+     * haven't been created yet. If the codec information has not yet been received from the server,
+     * we'll initialize input once we receive that.
      */
     public void initialize() throws AudioException {
         if(mInitialized) return;
         if(mOutput == null) createAudioOutput();
-        if(mInput == null) createAudioInput();
+        if(mInput == null && mCodec != null) createAudioInput();
         // This sticky broadcast will initialize the audio output.
         mContext.registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
         mInitialized = true;
