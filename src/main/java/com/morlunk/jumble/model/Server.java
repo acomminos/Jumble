@@ -87,8 +87,12 @@ public class Server implements Parcelable {
         mId = id;
     }
 
+    /**
+     * Returns a user-defined name for the server, or the host if the user-defined name is not set.
+     * @return A user readable name for the server.
+     */
     public String getName() {
-        return mName;
+        return (mName != null && mName.length() > 0) ? mName : mHost;
     }
 
     public void setName(String mName) {

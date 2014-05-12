@@ -43,6 +43,10 @@
     <string name="chat_notify_self_recording_stopped">Recording stopped</string>
     <string name="chat_notify_user_recording_started">%s started recording.</string>
     <string name="chat_notify_user_recording_stopped">%s stopped recording.</string>
+    <string name="chat_notify_user_joined_channel">%s entered channel.</string>
+    <string name="chat_notify_user_left_channel">%1$s moved to %2$s.</string>
+    <string name="chat_notify_user_joined_channel_by">%1$s moved in from %2$s by %3$s.</string>
+    <string name="chat_notify_user_left_channel_by">%1$s moved to %2$s by %3$s.</string>
     <string name="bluetooth_connected">Bluetooth connected</string>
     <string name="bluetooth_disconnected">Bluetooth disconnected</string>
     <string name="deny_reason_channel_name">Denied: Invalid channel name.</string>
@@ -55,4 +59,5 @@
     <string name="deny_reason_other">Reason: %s</string>
     <string name="perm_denied">Permission denied.</string>
     <string name="server">Server</string>
+    <string name="the_server">the server</string>
 </resources>

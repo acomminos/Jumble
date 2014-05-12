@@ -216,6 +216,30 @@ public class UserHandler extends ProtocolHandler {
                     }
                 });
             }
+
+            if(old != null && self != null && user.getSession() != self.getSession()) {
+                // TODO add logic for other user moving self
+                String actorString = actor != null ? MessageFormatter.highlightString(actor.getName()) : getService().getString(R.string.the_server);
+                if(channel.getId() != self.getChannelId() && old.getId() == self.getChannelId()) {
+                    // User moved out of self's channel
+                    if(actor != null && actor.getSession() == user.getSession()) {
+                        // By themselves
+                        getService().logInfo(getService().getString(R.string.chat_notify_user_left_channel, MessageFormatter.highlightString(user.getName()), MessageFormatter.highlightString(channel.getName())));
+                    } else {
+                        // By external actor
+                        getService().logInfo(getService().getString(R.string.chat_notify_user_left_channel_by, MessageFormatter.highlightString(user.getName()), MessageFormatter.highlightString(channel.getName()), actorString));
+                    }
+                } else if(channel.getId() == self.getChannelId()) {
+                    // User moved into self's channel
+                    if(actor != null && actor.getSession() == user.getSession()) {
+                        // By themselves
+                        getService().logInfo(getService().getString(R.string.chat_notify_user_joined_channel, MessageFormatter.highlightString(user.getName())));
+                    } else {
+                        // By external actor
+                        getService().logInfo(getService().getString(R.string.chat_notify_user_joined_channel_by, MessageFormatter.highlightString(user.getName()), MessageFormatter.highlightString(old.getName()), actorString));
+                    }
+                }
+            }
             /*
              * TODO: logging
              * Base this off of Messages.cpp:454
