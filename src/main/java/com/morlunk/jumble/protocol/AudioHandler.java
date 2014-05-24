@@ -44,6 +44,7 @@ import com.morlunk.jumble.util.JumbleNetworkListener;
  */
 public class AudioHandler extends JumbleNetworkListener {
     private Context mContext;
+    private AudioManager mAudioManager;
     private AudioInput mInput;
     private AudioOutput mOutput;
     private AudioInput.AudioInputListener mInputListener;
@@ -61,6 +62,7 @@ public class AudioHandler extends JumbleNetworkListener {
 
     private boolean mInitialized;
     private boolean mBluetoothOn;
+    private boolean mHalfDuplex;
 
     private BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
         @Override
@@ -89,6 +91,7 @@ public class AudioHandler extends JumbleNetworkListener {
         mContext = context;
         mInputListener = inputListener;
         mOutputListener = outputListener;
+        mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
     }
 
     /**
@@ -132,11 +135,17 @@ public class AudioHandler extends JumbleNetworkListener {
     public void startRecording() throws AudioException {
         if(mInput == null) createAudioInput();
         mInput.startRecording();
+        if(mHalfDuplex && mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK) {
+            mAudioManager.setStreamMute(getAudioStream(), true);
+        }
     }
 
     public void stopRecording() {
         if(mInput == null) return;
         mInput.stopRecording();
+        if(mHalfDuplex && mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK) {
+            mAudioManager.setStreamMute(getAudioStream(), false);
+        }
     }
 
     /**
@@ -267,6 +276,25 @@ public class AudioHandler extends JumbleNetworkListener {
     public void setAmplitudeBoost(float boost) {
         this.mAmplitudeBoost = boost;
         if(mInitialized) mInput.setAmplitudeBoost(boost);
+    }
+
+    /**
+     * Returns whether or not the audio handler is operating in half duplex mode, muting outgoing
+     * audio when incoming audio is received.
+     * @return true if the handler is in half duplex mode.
+     */
+    public boolean isHalfDuplex() {
+        return mHalfDuplex;
+    }
+
+    /**
+     * Sets whether or not the audio handler should operate in half duplex mode, muting outgoing
+     * audio when incoming audio is received.
+     * Does not require input thread recreation.
+     * @param halfDuplex Whether to enable half duplex mode.
+     */
+    public void setHalfDuplex(boolean halfDuplex) {
+        mHalfDuplex = halfDuplex;
     }
 
     /**

@@ -87,6 +87,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_TRUST_STORE_PASSWORD = "trust_store_password";
     /** The trust store's format. */
     public static final String EXTRAS_TRUST_STORE_FORMAT = "trust_store_format";
+    public static final String EXTRAS_HALF_DUPLEX = "half_duplex";
 
     public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
 
@@ -112,6 +113,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private String mTrustStore;
     private String mTrustStorePassword;
     private String mTrustStoreFormat;
+    private boolean mHalfDuplex;
 
     private JumbleConnection mConnection;
     private ChannelHandler mChannelHandler;
@@ -573,6 +575,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mTrustStore = extras.getString(EXTRAS_TRUST_STORE);
             mTrustStorePassword = extras.getString(EXTRAS_TRUST_STORE_PASSWORD);
             mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
+            mHalfDuplex = extras.getBoolean(EXTRAS_HALF_DUPLEX);
 
             try {
                 mConnection.setTrustStore(mTrustStore, mTrustStorePassword, mTrustStoreFormat);
@@ -585,6 +588,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 mAudioHandler.setAudioStream(mAudioStream);
                 mAudioHandler.setFramesPerPacket(mFramesPerPacket);
                 mAudioHandler.setSampleRate(mInputRate);
+                mAudioHandler.setHalfDuplex(mHalfDuplex);
 
                 connect();
             } catch (AudioException e) {
