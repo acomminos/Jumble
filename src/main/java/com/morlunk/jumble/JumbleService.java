@@ -17,10 +17,7 @@
 package com.morlunk.jumble;
 
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.MediaRecorder;
 import android.os.Build;
@@ -31,19 +28,17 @@ import android.os.PowerManager;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.morlunk.jumble.audio.Audio;
 import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
-import com.morlunk.jumble.audio.InvalidSampleRateException;
 import com.morlunk.jumble.exception.AudioException;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleConnection;
-import com.morlunk.jumble.net.JumbleConnectionException;
+import com.morlunk.jumble.net.JumbleException;
 import com.morlunk.jumble.net.JumbleTCPMessageType;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.protobuf.Mumble;
@@ -533,7 +528,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                     e.printStackTrace();
                     onConnectionWarning(e.getMessage());
                 }
-            else if(mAudioHandler.isRecording())
+            else if(mute && mAudioHandler.isRecording())
                 mAudioHandler.stopRecording(); // Stop recording when muted.
             mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
         }
@@ -596,7 +591,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 // An AudioException will only be thrown in the reinitialization of input or output.
                 // As we make these calls before initialization, no audio input/output is ever
                 // created, so we don't have to worry about this catch clause.
-                onConnectionError(new JumbleConnectionException(e, false));
+                onConnectionError(new JumbleException(e, false));
             }
         }
         return START_NOT_STICKY;
@@ -638,7 +633,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mReconnecting = false;
 
             mConnection.connect(mServer.getHost(), mServer.getPort(), mForceTcp, mUseTor, mCertificate, mCertificatePassword);
-        } catch (final JumbleConnectionException e) {
+        } catch (final JumbleException e) {
             e.printStackTrace();
 
             notifyObservers(new ObserverRunnable() {
@@ -734,7 +729,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     }
 
     @Override
-    public void onConnectionError(final JumbleConnectionException e) {
+    public void onConnectionError(final JumbleException e) {
         Log.e(Constants.TAG, "Connection error: "+e.getMessage()+", should reconnect: " + e.isAutoReconnectAllowed());
         mReconnecting = mAutoReconnect && e.isAutoReconnectAllowed();
         if(mReconnecting) {

@@ -16,18 +16,10 @@
 
 package com.morlunk.jumble.net;
 
-import android.content.Intent;
-import android.os.Build;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Looper;
-import android.security.KeyChain;
 import android.util.Log;
 
 import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
-import com.morlunk.jumble.model.Server;
-import com.morlunk.jumble.protobuf.Mumble;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -35,13 +27,8 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.security.cert.X509Certificate;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
-import javax.net.ssl.HandshakeCompletedEvent;
-import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocket;
 
@@ -173,7 +160,7 @@ public class JumbleTCP extends JumbleNetworkThread {
 
     private void error(String desc, Exception e, boolean autoReconnect) {
         if(!mRunning) return;
-        final JumbleConnectionException ce = new JumbleConnectionException(desc, e, autoReconnect);
+        final JumbleException ce = new JumbleException(desc, e, autoReconnect);
         if(mListener != null) executeOnMainThread(new Runnable() {
             @Override
             public void run() {
@@ -253,7 +240,7 @@ public class JumbleTCP extends JumbleNetworkThread {
     public interface TCPConnectionListener {
         public void onTCPConnectionEstablished();
         public void onTLSHandshakeFailed(X509Certificate[] chain);
-        public void onTCPConnectionFailed(JumbleConnectionException e);
+        public void onTCPConnectionFailed(JumbleException e);
         public void onTCPConnectionDisconnect();
         public void onTCPMessageReceived(JumbleTCPMessageType type, int length, byte[] data);
     }

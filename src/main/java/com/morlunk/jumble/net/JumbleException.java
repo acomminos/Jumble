@@ -21,7 +21,7 @@ import com.morlunk.jumble.protobuf.Mumble;
 /**
  * Created by andrew on 14/07/13.
  */
-public class JumbleConnectionException extends Exception {
+public class JumbleException extends Exception {
     public enum JumbleDisconnectReason {
         REJECT,
         USER_REMOVE,
@@ -36,29 +36,29 @@ public class JumbleConnectionException extends Exception {
     /** Indicates that this exception was caused by being kicked/banned from the server. */
     private Mumble.UserRemove mUserRemove;
 
-    public JumbleConnectionException(String message, Throwable e, boolean autoReconnect) {
+    public JumbleException(String message, Throwable e, boolean autoReconnect) {
         super(message, e);
         mAutoReconnect = autoReconnect;
     }
 
-    public JumbleConnectionException(String message, boolean autoReconnect) {
+    public JumbleException(String message, boolean autoReconnect) {
         super(message);
         mAutoReconnect = autoReconnect;
     }
 
-    public JumbleConnectionException(Throwable e, boolean autoReconnect) {
+    public JumbleException(Throwable e, boolean autoReconnect) {
         super(e);
         mAutoReconnect = autoReconnect;
     }
 
-    public JumbleConnectionException(Mumble.Reject reject) {
+    public JumbleException(Mumble.Reject reject) {
         super("Reject: "+reject.getReason());
         mReject = reject;
         mReason = JumbleDisconnectReason.REJECT;
         mAutoReconnect = false;
     }
 
-    public JumbleConnectionException(Mumble.UserRemove userRemove) {
+    public JumbleException(Mumble.UserRemove userRemove) {
         super((userRemove.getBan() ? "Banned: " : "Kicked: ")+userRemove.getReason());
         mUserRemove = userRemove;
         mReason = JumbleDisconnectReason.USER_REMOVE;

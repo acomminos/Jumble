@@ -16,20 +16,14 @@
 
 package com.morlunk.jumble.net;
 
-import android.annotation.TargetApi;
-import android.content.Context;
-import android.content.Intent;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-import android.security.KeyChain;
 import android.util.Log;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
-import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.protocol.JumbleTCPMessageListener;
 import com.morlunk.jumble.protocol.JumbleUDPMessageListener;
@@ -37,9 +31,6 @@ import com.morlunk.jumble.protocol.JumbleUDPMessageListener;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.ConnectException;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.KeyManagementException;
@@ -54,10 +45,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -166,14 +154,14 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         @Override
         public void messageReject(final Mumble.Reject msg) {
             mConnected = false;
-            handleFatalException(new JumbleConnectionException(msg));
+            handleFatalException(new JumbleException(msg));
         }
 
         @Override
         public void messageUserRemove(final Mumble.UserRemove msg) {
             if(msg.getSession() == mSession) {
                 mConnected = false;
-                handleFatalException(new JumbleConnectionException(msg));
+                handleFatalException(new JumbleException(msg));
             }
         }
 
@@ -201,7 +189,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
                     sendTCPMessage(csb.build(), JumbleTCPMessageType.CryptSetup);
                 }
             } catch (InvalidKeyException e) {
-                handleFatalException(new JumbleConnectionException("Received invalid cryptographic nonce from server", e, true));
+                handleFatalException(new JumbleException("Received invalid cryptographic nonce from server", e, true));
             }
         }
 
@@ -297,7 +285,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         mUDPHandlers.add(mUDPPingListener);
     }
 
-    public void connect(String host, int port, boolean forceTCP, boolean useTor, byte[] certificate, String certificatePassword) throws JumbleConnectionException {
+    public void connect(String host, int port, boolean forceTCP, boolean useTor, byte[] certificate, String certificatePassword) throws JumbleException {
         mHost = host;
         mPort = port;
         mConnected = false;
@@ -317,7 +305,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
             mTCP.connect(host, port, useTor);
             // UDP thread is formally started after TCP connection.
         } catch (ConnectException e) {
-            throw new JumbleConnectionException(e.getMessage(), e, false);
+            throw new JumbleException(e.getMessage(), e, false);
         }
     }
 
@@ -419,7 +407,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
      * Handles an exception that would cause termination of the connection.
      * @param e The exception that caused termination.
      */
-    private void handleFatalException(final JumbleConnectionException e) {
+    private void handleFatalException(final JumbleException e) {
         if(mExceptionHandled) return;
         mExceptionHandled = true;
 
@@ -435,7 +423,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
      * @param certificate The binary representation of a PKCS12 (.p12) certificate. May be null.
      * @param certificatePassword The password to decrypt the key store. May be null.
      */
-    protected void setupSocketFactory(byte[] certificate, String certificatePassword) throws JumbleConnectionException {
+    protected void setupSocketFactory(byte[] certificate, String certificatePassword) throws JumbleException {
         try {
             KeyStore keyStore = null;
             if(certificate != null) {
@@ -446,15 +434,15 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
 
             mSocketFactory = new JumbleSSLSocketFactory(keyStore, certificatePassword, mTrustStorePath, mTrustStorePassword, mTrustStoreFormat);
         } catch (KeyManagementException e) {
-            throw new JumbleConnectionException("Could not recover keys from certificate", e, false);
+            throw new JumbleException("Could not recover keys from certificate", e, false);
         } catch (KeyStoreException e) {
-            throw new JumbleConnectionException("Could not recover keys from certificate", e, false);
+            throw new JumbleException("Could not recover keys from certificate", e, false);
         } catch (UnrecoverableKeyException e) {
-            throw new JumbleConnectionException("Could not recover keys from certificate", e, false);
+            throw new JumbleException("Could not recover keys from certificate", e, false);
         } catch (IOException e) {
-            throw new JumbleConnectionException("Could not read certificate file", e, false);
+            throw new JumbleException("Could not read certificate file", e, false);
         } catch (CertificateException e) {
-            throw new JumbleConnectionException("Could not read certificate", e, false);
+            throw new JumbleException("Could not read certificate", e, false);
         } catch (NoSuchAlgorithmException e) {
                 /*
                  * This will actually NEVER occur.
@@ -555,7 +543,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
     }
 
     @Override
-    public void onTCPConnectionFailed(JumbleConnectionException e) {
+    public void onTCPConnectionFailed(JumbleException e) {
         handleFatalException(e);
     }
 
@@ -782,7 +770,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         public void onConnectionSynchronized();
         public void onConnectionHandshakeFailed(X509Certificate[] chain);
         public void onConnectionDisconnected();
-        public void onConnectionError(JumbleConnectionException e);
+        public void onConnectionError(JumbleException e);
         public void onConnectionWarning(String warning);
     }
 }

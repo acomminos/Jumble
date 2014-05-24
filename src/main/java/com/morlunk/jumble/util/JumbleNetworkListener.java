@@ -16,14 +16,10 @@
 
 package com.morlunk.jumble.util;
 
-import com.morlunk.jumble.net.JumbleConnection;
-import com.morlunk.jumble.net.JumbleConnectionException;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.protocol.JumbleTCPMessageListener;
 import com.morlunk.jumble.protocol.JumbleUDPMessageListener;
-
-import java.security.cert.X509Certificate;
 
 /**
  * Created by andrew on 23/04/14.
