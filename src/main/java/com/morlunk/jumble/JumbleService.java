@@ -137,20 +137,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 @Override
                 public void run() {
                     if(!isConnected()) return;
-                    try {
-                        final User currentUser = getBinder().getSessionUser();
-                        if(currentUser == null) return;
+                    final User currentUser = getUserHandler().getUser(getSession());
+                    if(currentUser == null) return;
 
-                        currentUser.setTalkState(talking ? User.TalkState.TALKING : User.TalkState.PASSIVE);
-                        notifyObservers(new ObserverRunnable() {
-                            @Override
-                            public void run(IJumbleObserver observer) throws RemoteException {
-                                observer.onUserTalkStateUpdated(currentUser);
-                            }
-                        });
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
+                    currentUser.setTalkState(talking ? User.TalkState.TALKING : User.TalkState.PASSIVE);
+                    notifyObservers(new ObserverRunnable() {
+                        @Override
+                        public void run(IJumbleObserver observer) throws RemoteException {
+                            observer.onUserTalkStateUpdated(currentUser);
+                        }
+                    });
                 }
             });
         }
@@ -186,365 +182,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         public void run(IJumbleObserver observer) throws RemoteException;
     }
 
-    private IJumbleService.Stub mBinder = new IJumbleService.Stub() {
-
-        @Override
-        public void disconnect() throws RemoteException {
-            JumbleService.this.disconnect();
-        }
-
-        @Override
-        public boolean isConnected() throws RemoteException {
-            return mConnection.isConnected();
-        }
-
-        @Override
-        public boolean isConnecting() throws RemoteException {
-            return mConnection != null && !mConnection.isConnected();
-        }
-
-        @Override
-        public boolean isReconnecting() throws RemoteException {
-            return mReconnecting;
-        }
-
-        @Override
-        public void cancelReconnect() throws RemoteException {
-            mReconnecting = false;
-        }
-
-        @Override
-        public long getTCPLatency() throws RemoteException {
-            return mConnection.getTCPLatency();
-        }
-
-        @Override
-        public long getUDPLatency() throws RemoteException {
-            return mConnection.getUDPLatency();
-        }
-
-        @Override
-        public int getMaxBandwidth() throws RemoteException {
-            return mConnection.getMaxBandwidth();
-        }
-
-        @Override
-        public int getCurrentBandwidth() throws RemoteException {
-            return 0;
-        }
-
-        @Override
-        public int getServerVersion() throws RemoteException {
-            return mConnection.getServerVersion();
-        }
-
-        @Override
-        public String getServerRelease() throws RemoteException {
-            return mConnection.getServerRelease();
-        }
-
-        @Override
-        public String getServerOSName() throws RemoteException {
-            return mConnection.getServerOSName();
-        }
-
-        @Override
-        public String getServerOSVersion() throws RemoteException {
-            return mConnection.getServerOSVersion();
-        }
-
-        @Override
-        public int getSession() throws RemoteException {
-            return mConnection.getSession();
-        }
-
-        @Override
-        public User getSessionUser() throws RemoteException {
-            return mUserHandler != null ? mUserHandler.getUser(getSession()) : null;
-        }
-
-        @Override
-        public Channel getSessionChannel() throws RemoteException {
-            User user = getSessionUser();
-            return getChannel(user.getChannelId());
-        }
-
-        @Override
-        public Server getConnectedServer() throws RemoteException {
-            return mServer;
-        }
-
-        @Override
-        public User getUser(int id) throws RemoteException {
-            return mUserHandler.getUser(id);
-        }
-
-        @Override
-        public Channel getChannel(int id) throws RemoteException {
-            return mChannelHandler.getChannel(id);
-        }
-
-        @Override
-        public List getUserList() throws RemoteException {
-            return mUserHandler.getUsers();
-        }
-
-        @Override
-        public List getChannelList() throws RemoteException {
-            return mChannelHandler.getChannels();
-        }
-
-        @Override
-        public int getPermissions() throws RemoteException {
-            return mPermissions;
-        }
-
-        @Override
-        public List getMessageLog() throws RemoteException {
-            return mMessageLog;
-        }
-
-        @Override
-        public void clearMessageLog() throws RemoteException {
-            mMessageLog.clear();
-        }
-
-        @Override
-        public int getTransmitMode() throws RemoteException {
-            return mTransmitMode;
-        }
-
-        @Override
-        public void setTransmitMode(int transmitMode) throws RemoteException {
-            mTransmitMode = transmitMode;
-            try {
-                mAudioHandler.setTransmitMode(transmitMode);
-            } catch (AudioException e) {
-                e.printStackTrace();
-            }
-        }
-
-        @Override
-        public void setVADThreshold(float threshold) throws RemoteException {
-            mDetectionThreshold = threshold;
-            mAudioHandler.setVADThreshold(threshold);
-        }
-
-        @Override
-        public void setAmplitudeBoost(float boost) throws RemoteException {
-            mAmplitudeBoost = boost;
-            mAudioHandler.setAmplitudeBoost(boost);
-        }
-
-        @Override
-        public int getCodec() throws RemoteException {
-            return mConnection.getCodec();
-        }
-
-        @Override
-        public boolean isTalking() throws RemoteException {
-            return mAudioHandler.isRecording();
-        }
-
-        @Override
-        public void setTalkingState(boolean talking) throws RemoteException {
-            if(talking) {
-                try {
-                    mAudioHandler.startRecording();
-                } catch (AudioException e) {
-                    e.printStackTrace();
-                    onConnectionWarning(e.getMessage());
-                }
-            } else {
-                mAudioHandler.stopRecording();
-            }
-        }
-
-        @Override
-        public boolean isBluetoothAvailable() throws RemoteException {
-            AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-            return audioManager.isBluetoothScoOn();
-        }
-
-        @Override
-        public void setBluetoothEnabled(boolean enabled) throws RemoteException {
-            AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-            if(enabled) audioManager.startBluetoothSco();
-            else audioManager.stopBluetoothSco();
-        }
-
-        @Override
-        public void joinChannel(int channel) throws RemoteException {
-            moveUserToChannel(getSession(), channel);
-        }
-
-        @Override
-        public void moveUserToChannel(int session, int channel) throws RemoteException {
-            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSession(session);
-            usb.setChannelId(channel);
-            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
-        }
-
-        @Override
-        public void createChannel(int parent, String name, String description, int position, boolean temporary) throws RemoteException {
-            Mumble.ChannelState.Builder csb = Mumble.ChannelState.newBuilder();
-            csb.setParent(parent);
-            csb.setName(name);
-            csb.setDescription(description);
-            csb.setPosition(position);
-            csb.setTemporary(temporary);
-            mConnection.sendTCPMessage(csb.build(), JumbleTCPMessageType.ChannelState);
-        }
-
-        @Override
-        public void sendAccessTokens(List tokens) throws RemoteException {
-            mAccessTokens = new ArrayList<String>(tokens);
-            Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
-            ab.addAllTokens(mAccessTokens);
-            mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
-        }
-
-        @Override
-        public void requestBanList() throws RemoteException {
-            // TODO
-        }
-
-        @Override
-        public void requestUserList() throws RemoteException {
-            // TODO
-        }
-
-        @Override
-        public void requestPermissions(int channel) throws RemoteException {
-            Mumble.PermissionQuery.Builder pqb = Mumble.PermissionQuery.newBuilder();
-            pqb.setChannelId(channel);
-            mConnection.sendTCPMessage(pqb.build(), JumbleTCPMessageType.PermissionQuery);
-        }
-
-        @Override
-        public void requestComment(int session) throws RemoteException {
-            Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
-            rbb.addSessionComment(session);
-            mConnection.sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
-        }
-
-        @Override
-        public void requestChannelDescription(int channel) throws RemoteException {
-            Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
-            rbb.addChannelDescription(channel);
-            mConnection.sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
-        }
-
-        @Override
-        public void registerUser(int session) throws RemoteException {
-            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSession(session);
-            usb.setUserId(0);
-            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
-        }
-
-        @Override
-        public void kickBanUser(int session, String reason, boolean ban) throws RemoteException {
-            Mumble.UserRemove.Builder urb = Mumble.UserRemove.newBuilder();
-            urb.setSession(session);
-            urb.setReason(reason);
-            urb.setBan(ban);
-            mConnection.sendTCPMessage(urb.build(), JumbleTCPMessageType.UserRemove);
-        }
-
-        @Override
-        public Message sendUserTextMessage(int session, String message) throws RemoteException {
-            Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
-            tmb.addSession(session);
-            tmb.setMessage(message);
-            mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
-
-            User self = getSessionUser();
-            User user = getUser(session);
-            List<User> users = new ArrayList<User>(1);
-            users.add(user);
-            Message logMessage = new Message(getSession(), self.getName(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
-            mMessageLog.add(logMessage);
-            return logMessage;
-        }
-
-        @Override
-        public Message sendChannelTextMessage(int channel, String message, boolean tree) throws RemoteException {
-            Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
-            if(tree) tmb.addTreeId(channel);
-            else tmb.addChannelId(channel);
-            tmb.setMessage(message);
-            mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
-
-            User self = getSessionUser();
-            Channel targetChannel = getChannel(channel);
-            List<Channel> targetChannels = new ArrayList<Channel>();
-            targetChannels.add(targetChannel);
-            Message logMessage = new Message(getSession(), self.getName(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
-            mMessageLog.add(logMessage);
-            return logMessage;
-        }
-
-        @Override
-        public void setUserComment(int session, String comment) throws RemoteException {
-            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSession(session);
-            usb.setComment(comment);
-            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
-        }
-
-        @Override
-        public void setPrioritySpeaker(int session, boolean priority) throws RemoteException {
-            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSession(session);
-            usb.setPrioritySpeaker(priority);
-            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
-        }
-
-        @Override
-        public void removeChannel(int channel) throws RemoteException {
-            Mumble.ChannelRemove.Builder crb = Mumble.ChannelRemove.newBuilder();
-            crb.setChannelId(channel);
-            mConnection.sendTCPMessage(crb.build(), JumbleTCPMessageType.ChannelRemove);
-        }
-
-        @Override
-        public void setMuteDeafState(int session, boolean mute, boolean deaf) throws RemoteException {
-            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSession(session);
-            usb.setMute(mute);
-            usb.setDeaf(deaf);
-            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
-        }
-
-        @Override
-        public void setSelfMuteDeafState(boolean mute, boolean deaf) throws RemoteException {
-            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSelfMute(mute);
-            usb.setSelfDeaf(deaf);
-            if(!mute && !mAudioHandler.isRecording() && (mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY))
-                try {
-                    mAudioHandler.startRecording(); // Resume recording when unmuted for PTT.
-                } catch (AudioException e) {
-                    e.printStackTrace();
-                    onConnectionWarning(e.getMessage());
-                }
-            else if(mute && mAudioHandler.isRecording())
-                mAudioHandler.stopRecording(); // Stop recording when muted.
-            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
-        }
-
-        @Override
-        public void registerObserver(IJumbleObserver observer) {
-            mObservers.register(observer);
-        }
-
-        @Override
-        public void unregisterObserver(IJumbleObserver observer) {
-            mObservers.unregister(observer);
-        }
-    };
+    private IJumbleService.Stub mBinder = new JumbleBinder();
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -905,5 +543,364 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             }
         }
         mObservers.finishBroadcast();
+    }
+
+    public class JumbleBinder extends IJumbleService.Stub {
+        @Override
+        public void disconnect() throws RemoteException {
+            JumbleService.this.disconnect();
+        }
+
+        @Override
+        public boolean isConnected() throws RemoteException {
+            return mConnection.isConnected();
+        }
+
+        @Override
+        public boolean isConnecting() throws RemoteException {
+            return mConnection != null && !mConnection.isConnected();
+        }
+
+        @Override
+        public boolean isReconnecting() throws RemoteException {
+            return mReconnecting;
+        }
+
+        @Override
+        public void cancelReconnect() throws RemoteException {
+            mReconnecting = false;
+        }
+
+        @Override
+        public long getTCPLatency() throws RemoteException {
+            return mConnection.getTCPLatency();
+        }
+
+        @Override
+        public long getUDPLatency() throws RemoteException {
+            return mConnection.getUDPLatency();
+        }
+
+        @Override
+        public int getMaxBandwidth() throws RemoteException {
+            return mConnection.getMaxBandwidth();
+        }
+
+        @Override
+        public int getCurrentBandwidth() throws RemoteException {
+            return 0;
+        }
+
+        @Override
+        public int getServerVersion() throws RemoteException {
+            return mConnection.getServerVersion();
+        }
+
+        @Override
+        public String getServerRelease() throws RemoteException {
+            return mConnection.getServerRelease();
+        }
+
+        @Override
+        public String getServerOSName() throws RemoteException {
+            return mConnection.getServerOSName();
+        }
+
+        @Override
+        public String getServerOSVersion() throws RemoteException {
+            return mConnection.getServerOSVersion();
+        }
+
+        @Override
+        public int getSession() throws RemoteException {
+            return mConnection.getSession();
+        }
+
+        @Override
+        public User getSessionUser() throws RemoteException {
+            return mUserHandler != null ? mUserHandler.getUser(getSession()) : null;
+        }
+
+        @Override
+        public Channel getSessionChannel() throws RemoteException {
+            User user = getSessionUser();
+            return getChannel(user.getChannelId());
+        }
+
+        @Override
+        public Server getConnectedServer() throws RemoteException {
+            return mServer;
+        }
+
+        @Override
+        public User getUser(int id) throws RemoteException {
+            return mUserHandler.getUser(id);
+        }
+
+        @Override
+        public Channel getChannel(int id) throws RemoteException {
+            return mChannelHandler.getChannel(id);
+        }
+
+        @Override
+        public List getUserList() throws RemoteException {
+            return mUserHandler.getUsers();
+        }
+
+        @Override
+        public List getChannelList() throws RemoteException {
+            return mChannelHandler.getChannels();
+        }
+
+        @Override
+        public int getPermissions() throws RemoteException {
+            return mPermissions;
+        }
+
+        @Override
+        public List getMessageLog() throws RemoteException {
+            return mMessageLog;
+        }
+
+        @Override
+        public void clearMessageLog() throws RemoteException {
+            mMessageLog.clear();
+        }
+
+        @Override
+        public int getTransmitMode() throws RemoteException {
+            return mTransmitMode;
+        }
+
+        @Override
+        public void setTransmitMode(int transmitMode) throws RemoteException {
+            mTransmitMode = transmitMode;
+            try {
+                mAudioHandler.setTransmitMode(transmitMode);
+            } catch (AudioException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void setVADThreshold(float threshold) throws RemoteException {
+            mDetectionThreshold = threshold;
+            mAudioHandler.setVADThreshold(threshold);
+        }
+
+        @Override
+        public void setAmplitudeBoost(float boost) throws RemoteException {
+            mAmplitudeBoost = boost;
+            mAudioHandler.setAmplitudeBoost(boost);
+        }
+
+        @Override
+        public int getCodec() throws RemoteException {
+            return mConnection.getCodec();
+        }
+
+        @Override
+        public boolean isTalking() throws RemoteException {
+            return mAudioHandler.isRecording();
+        }
+
+        @Override
+        public void setTalkingState(boolean talking) throws RemoteException {
+            if(talking) {
+                try {
+                    mAudioHandler.startRecording();
+                } catch (AudioException e) {
+                    e.printStackTrace();
+                    onConnectionWarning(e.getMessage());
+                }
+            } else {
+                mAudioHandler.stopRecording();
+            }
+        }
+
+        @Override
+        public boolean isBluetoothAvailable() throws RemoteException {
+            AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+            return audioManager.isBluetoothScoOn();
+        }
+
+        @Override
+        public void setBluetoothEnabled(boolean enabled) throws RemoteException {
+            AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if(enabled) audioManager.startBluetoothSco();
+            else audioManager.stopBluetoothSco();
+        }
+
+        @Override
+        public void joinChannel(int channel) throws RemoteException {
+            moveUserToChannel(getSession(), channel);
+        }
+
+        @Override
+        public void moveUserToChannel(int session, int channel) throws RemoteException {
+            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+            usb.setSession(session);
+            usb.setChannelId(channel);
+            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+        }
+
+        @Override
+        public void createChannel(int parent, String name, String description, int position, boolean temporary) throws RemoteException {
+            Mumble.ChannelState.Builder csb = Mumble.ChannelState.newBuilder();
+            csb.setParent(parent);
+            csb.setName(name);
+            csb.setDescription(description);
+            csb.setPosition(position);
+            csb.setTemporary(temporary);
+            mConnection.sendTCPMessage(csb.build(), JumbleTCPMessageType.ChannelState);
+        }
+
+        @Override
+        public void sendAccessTokens(List tokens) throws RemoteException {
+            mAccessTokens = new ArrayList<String>(tokens);
+            Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
+            ab.addAllTokens(mAccessTokens);
+            mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
+        }
+
+        @Override
+        public void requestBanList() throws RemoteException {
+            // TODO
+        }
+
+        @Override
+        public void requestUserList() throws RemoteException {
+            // TODO
+        }
+
+        @Override
+        public void requestPermissions(int channel) throws RemoteException {
+            Mumble.PermissionQuery.Builder pqb = Mumble.PermissionQuery.newBuilder();
+            pqb.setChannelId(channel);
+            mConnection.sendTCPMessage(pqb.build(), JumbleTCPMessageType.PermissionQuery);
+        }
+
+        @Override
+        public void requestComment(int session) throws RemoteException {
+            Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
+            rbb.addSessionComment(session);
+            mConnection.sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
+        }
+
+        @Override
+        public void requestChannelDescription(int channel) throws RemoteException {
+            Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
+            rbb.addChannelDescription(channel);
+            mConnection.sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
+        }
+
+        @Override
+        public void registerUser(int session) throws RemoteException {
+            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+            usb.setSession(session);
+            usb.setUserId(0);
+            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+        }
+
+        @Override
+        public void kickBanUser(int session, String reason, boolean ban) throws RemoteException {
+            Mumble.UserRemove.Builder urb = Mumble.UserRemove.newBuilder();
+            urb.setSession(session);
+            urb.setReason(reason);
+            urb.setBan(ban);
+            mConnection.sendTCPMessage(urb.build(), JumbleTCPMessageType.UserRemove);
+        }
+
+        @Override
+        public Message sendUserTextMessage(int session, String message) throws RemoteException {
+            Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
+            tmb.addSession(session);
+            tmb.setMessage(message);
+            mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
+
+            User self = getSessionUser();
+            User user = getUser(session);
+            List<User> users = new ArrayList<User>(1);
+            users.add(user);
+            Message logMessage = new Message(getSession(), self.getName(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
+            mMessageLog.add(logMessage);
+            return logMessage;
+        }
+
+        @Override
+        public Message sendChannelTextMessage(int channel, String message, boolean tree) throws RemoteException {
+            Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
+            if(tree) tmb.addTreeId(channel);
+            else tmb.addChannelId(channel);
+            tmb.setMessage(message);
+            mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
+
+            User self = getSessionUser();
+            Channel targetChannel = getChannel(channel);
+            List<Channel> targetChannels = new ArrayList<Channel>();
+            targetChannels.add(targetChannel);
+            Message logMessage = new Message(getSession(), self.getName(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
+            mMessageLog.add(logMessage);
+            return logMessage;
+        }
+
+        @Override
+        public void setUserComment(int session, String comment) throws RemoteException {
+            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+            usb.setSession(session);
+            usb.setComment(comment);
+            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+        }
+
+        @Override
+        public void setPrioritySpeaker(int session, boolean priority) throws RemoteException {
+            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+            usb.setSession(session);
+            usb.setPrioritySpeaker(priority);
+            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+        }
+
+        @Override
+        public void removeChannel(int channel) throws RemoteException {
+            Mumble.ChannelRemove.Builder crb = Mumble.ChannelRemove.newBuilder();
+            crb.setChannelId(channel);
+            mConnection.sendTCPMessage(crb.build(), JumbleTCPMessageType.ChannelRemove);
+        }
+
+        @Override
+        public void setMuteDeafState(int session, boolean mute, boolean deaf) throws RemoteException {
+            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+            usb.setSession(session);
+            usb.setMute(mute);
+            usb.setDeaf(deaf);
+            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+        }
+
+        @Override
+        public void setSelfMuteDeafState(boolean mute, boolean deaf) throws RemoteException {
+            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+            usb.setSelfMute(mute);
+            usb.setSelfDeaf(deaf);
+            if(!mute && !mAudioHandler.isRecording() && (mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY))
+                try {
+                    mAudioHandler.startRecording(); // Resume recording when unmuted for PTT.
+                } catch (AudioException e) {
+                    e.printStackTrace();
+                    onConnectionWarning(e.getMessage());
+                }
+            else if(mute && mAudioHandler.isRecording())
+                mAudioHandler.stopRecording(); // Stop recording when muted.
+            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+        }
+
+        @Override
+        public void registerObserver(IJumbleObserver observer) throws RemoteException {
+            mObservers.register(observer);
+        }
+
+        @Override
+        public void unregisterObserver(IJumbleObserver observer) throws RemoteException {
+            mObservers.unregister(observer);
+        }
     }
 }
