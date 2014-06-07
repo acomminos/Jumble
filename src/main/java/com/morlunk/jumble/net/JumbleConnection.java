@@ -305,7 +305,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
             mTCP.connect(host, port, useTor);
             // UDP thread is formally started after TCP connection.
         } catch (ConnectException e) {
-            throw new JumbleException(e.getMessage(), e, false);
+            throw new JumbleException(e, false);
         }
     }
 

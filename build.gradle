@@ -19,7 +19,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.9.+'
+        classpath 'com.android.tools.build:gradle:0.11.+'
     }
 }
 apply plugin: 'android-library'
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.android.support:support-v4:19.0.+'
+    compile 'com.android.support:support-v4:19.1.+'
     compile group:'com.google.protobuf', name:'protobuf-java', version:'2.5.0'
     compile group:'com.madgag', name:'sc-light-jdk15on', version:'1.47.0.2'
     compile group:'com.madgag', name:'scprov-jdk15on', version:'1.47.0.2'
