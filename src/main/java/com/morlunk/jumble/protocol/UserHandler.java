@@ -169,10 +169,12 @@ public class UserHandler extends ProtocolHandler {
         }
 
         if(msg.hasDeaf() || msg.hasMute() || msg.hasSuppress() || msg.hasPrioritySpeaker()) {
-            if(msg.hasMute())
-                user.setMuted(msg.getMute());
             if(msg.hasDeaf())
                 user.setDeafened(msg.getDeaf());
+            if(msg.hasMute())
+                user.setMuted(msg.getMute());
+            if(msg.hasSuppress())
+                user.setSuppressed(msg.getSuppress());
             if(msg.hasPrioritySpeaker())
                 user.setPrioritySpeaker(msg.getPrioritySpeaker());
 
