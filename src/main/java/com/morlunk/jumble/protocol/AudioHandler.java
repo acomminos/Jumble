@@ -308,8 +308,14 @@ public class AudioHandler extends JumbleNetworkListener {
         }
         if(mOutput != null) {
             mOutput.stopPlaying();
-            mContext.unregisterReceiver(mBluetoothReceiver);
             mOutput = null;
+        }
+        if(mInitialized) {
+            try {
+                mContext.unregisterReceiver(mBluetoothReceiver);
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace(); // Called if the registration failed, and we try and unregister nothing.
+            }
         }
         mInitialized = false;
         mBluetoothOn = false;
