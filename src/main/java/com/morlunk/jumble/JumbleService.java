@@ -115,13 +115,20 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private String mTrustStoreFormat;
     private boolean mHalfDuplex;
 
+    private PowerManager.WakeLock mWakeLock;
+    private Handler mHandler;
+    private RemoteCallbackList<IJumbleObserver> mObservers = new RemoteCallbackList<IJumbleObserver>();
+    private IJumbleService.Stub mBinder = new JumbleBinder();
+
     private JumbleConnection mConnection;
     private ChannelHandler mChannelHandler;
     private UserHandler mUserHandler;
     private TextMessageHandler mTextMessageHandler;
     private AudioHandler mAudioHandler;
-    private PowerManager.WakeLock mWakeLock;
-    private Handler mHandler;
+
+    private int mPermissions;
+    private List<Message> mMessageLog;
+    private boolean mReconnecting;
 
     private AudioInput.AudioInputListener mAudioInputListener = new AudioInput.AudioInputListener() {
         @Override
@@ -169,21 +176,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
     };
 
-    private int mPermissions;
-    private List<Message> mMessageLog = new ArrayList<Message>();
-    private boolean mReconnecting;
-
-    private RemoteCallbackList<IJumbleObserver> mObservers = new RemoteCallbackList<IJumbleObserver>();
-
-    /**
-     * Interface to communicate with observers through the service.
-     */
-    public interface ObserverRunnable {
-        public void run(IJumbleObserver observer) throws RemoteException;
-    }
-
-    private IJumbleService.Stub mBinder = new JumbleBinder();
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if(intent != null &&
@@ -215,26 +207,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
             mHalfDuplex = extras.getBoolean(EXTRAS_HALF_DUPLEX);
 
-            try {
-                mConnection.setTrustStore(mTrustStore, mTrustStorePassword, mTrustStoreFormat);
-
-                mAudioHandler.setAmplitudeBoost(mAmplitudeBoost);
-                mAudioHandler.setBitrate(mInputQuality);
-                mAudioHandler.setVADThreshold(mDetectionThreshold);
-                mAudioHandler.setTransmitMode(mTransmitMode);
-                mAudioHandler.setAudioSource(mAudioSource);
-                mAudioHandler.setAudioStream(mAudioStream);
-                mAudioHandler.setFramesPerPacket(mFramesPerPacket);
-                mAudioHandler.setSampleRate(mInputRate);
-                mAudioHandler.setHalfDuplex(mHalfDuplex);
-
-                connect();
-            } catch (AudioException e) {
-                // An AudioException will only be thrown in the reinitialization of input or output.
-                // As we make these calls before initialization, no audio input/output is ever
-                // created, so we don't have to worry about this catch clause.
-                onConnectionError(new JumbleException(e, false));
-            }
+            connect();
         }
         return START_NOT_STICKY;
     }
@@ -245,14 +218,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Jumble");
         mHandler = new Handler(getMainLooper());
-
-        mConnection = new JumbleConnection(this);
-        mChannelHandler = new ChannelHandler(this);
-        mUserHandler = new UserHandler(this);
-        mTextMessageHandler = new TextMessageHandler(this);
-        mAudioHandler = new AudioHandler(this, mAudioInputListener, mAudioOutputListener);
-        mConnection.addTCPMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioHandler);
-        mConnection.addUDPMessageHandlers(mAudioHandler);
     }
 
     @Override
@@ -271,17 +236,43 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     public void connect() {
         try {
-            mPermissions = 0;
             mReconnecting = false;
+            mMessageLog = new ArrayList<Message>();
+
+            mConnection = new JumbleConnection(this);
+            mChannelHandler = new ChannelHandler(this);
+            mUserHandler = new UserHandler(this);
+            mTextMessageHandler = new TextMessageHandler(this);
+            mAudioHandler = new AudioHandler(this, mAudioInputListener, mAudioOutputListener);
+
+            mAudioHandler.setAmplitudeBoost(mAmplitudeBoost);
+            mAudioHandler.setBitrate(mInputQuality);
+            mAudioHandler.setVADThreshold(mDetectionThreshold);
+            mAudioHandler.setTransmitMode(mTransmitMode);
+            mAudioHandler.setAudioSource(mAudioSource);
+            mAudioHandler.setAudioStream(mAudioStream);
+            mAudioHandler.setFramesPerPacket(mFramesPerPacket);
+            mAudioHandler.setSampleRate(mInputRate);
+            mAudioHandler.setHalfDuplex(mHalfDuplex);
+            mConnection.setTrustStore(mTrustStore, mTrustStorePassword, mTrustStoreFormat);
+            mConnection.addTCPMessageHandlers(mChannelHandler, mUserHandler, mTextMessageHandler, mAudioHandler);
+            mConnection.addUDPMessageHandlers(mAudioHandler);
 
             mConnection.connect(mServer.getHost(), mServer.getPort(), mForceTcp, mUseTor, mCertificate, mCertificatePassword);
         } catch (final JumbleException e) {
             e.printStackTrace();
-
             notifyObservers(new ObserverRunnable() {
                 @Override
                 public void run(IJumbleObserver observer) throws RemoteException {
                     observer.onConnectionError(e.getMessage(), e.isAutoReconnectAllowed());
+                }
+            });
+        } catch (final AudioException e) {
+            e.printStackTrace();
+            notifyObservers(new ObserverRunnable() {
+                @Override
+                public void run(IJumbleObserver observer) throws RemoteException {
+                    observer.onConnectionError(e.getMessage(), false);
                 }
             });
         }
@@ -357,10 +348,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         Log.v(Constants.TAG, "Disconnected");
         if(mWakeLock.isHeld()) mWakeLock.release();
 
-        mUserHandler.clear();
-        mChannelHandler.clear();
-        mMessageLog.clear();
         mAudioHandler.shutdown();
+
+        mPermissions = 0;
+        mUserHandler = null;
+        mChannelHandler = null;
+        mTextMessageHandler = null;
+        mMessageLog = null;
+        mAudioHandler = null;
 
         notifyObservers(new ObserverRunnable() {
             @Override
@@ -553,7 +548,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public boolean isConnected() throws RemoteException {
-            return mConnection.isConnected();
+            return mConnection != null && mConnection.isConnected();
         }
 
         @Override
@@ -765,12 +760,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void requestBanList() throws RemoteException {
-            // TODO
+            throw new UnsupportedOperationException("Not yet implemented"); // TODO
         }
 
         @Override
         public void requestUserList() throws RemoteException {
-            // TODO
+            throw new UnsupportedOperationException("Not yet implemented"); // TODO
         }
 
         @Override
@@ -902,5 +897,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         public void unregisterObserver(IJumbleObserver observer) throws RemoteException {
             mObservers.unregister(observer);
         }
+    }
+
+    /**
+     * Interface to communicate with observers through the service.
+     */
+    public static interface ObserverRunnable {
+        public void run(IJumbleObserver observer) throws RemoteException;
     }
 }
