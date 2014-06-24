@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<resources>
+  <string name="chat_notify_moved">%1$s перемещен(а) %3$s из %2$s.</string>
+  <string name="chat_notify_muted_deafened">Звук и микрофон отключен.</string>
+  <string name="chat_notify_muted">Микрофон отключен.</string>
+  <string name="chat_notify_unmuted">Микрофон включен.</string>
+  <string name="chat_notify_unmuted_undeafened">Микрофон и звук включен.</string>
+  <string name="chat_notify_now_muted_deafened">%s отключил(а) звук и микрофон.</string>
+  <string name="chat_notify_now_muted">%s выключил(а) микрофон.</string>
+  <string name="chat_notify_now_unmuted">%s включил(а) микрофон.</string>
+  <string name="chat_notify_now_unmuted_undeafened">%s включил(а) звук и микрофон.</string>
+  <string name="chat_notify_muted_deafened_self_by_actor">%s выключил(а) вам звук и микрофон.</string>
+  <string name="chat_notify_unmuted_undeafened_self_by_actor">%s включил(а) вам звук и микрофон.</string>
+  <string name="chat_notify_muted_self_by_actor">%s выключил(а) вам микрофон.</string>
+  <string name="chat_notify_unmuted_self_by_actor">%s включил(а) вам микрофон.</string>
+  <string name="chat_notify_undeafened_self_by_actor">%s включил(а) вам звук.</string>
+  <string name="chat_notify_suppressed_self">Вы были заглушены.</string>
+  <string name="chat_notify_unsuppressed_self">Оглушение снято.</string>
+  <string name="chat_notify_unsuppressed_self_by_actor">%s снял оглушение с вас.</string>
+  <string name="chat_notify_connected">%s соеденен(а).</string>
+  <string name="chat_notify_disconnected">%s отсоединен(а).</string>
+  <string name="chat_notify_kick_ban_self">Вы были исключены и заблокированы на сервера, %1$s: %2$s.</string>
+  <string name="chat_notify_kick_self">Вы были исключены с сервера, %1$s: %2$s.</string>
+  <string name="chat_notify_kick_ban">%3$s заблокирован(а) и исключен(а) с сервера, %1$s: %2$s.</string>
+  <string name="chat_notify_kick">%3$s исключен(а) с сервера, %1$s: %2$s.</string>
+  <string name="chat_notify_self_recording_started">Запись начата</string>
+  <string name="chat_notify_self_recording_stopped">Запись остановлена</string>
+  <string name="chat_notify_user_recording_started">%s начал(а) запись.</string>
+  <string name="chat_notify_user_recording_stopped">%s остановил(а) запись.</string>
+  <string name="chat_notify_user_joined_channel">%s вошел(а) в канал</string>
+  <string name="chat_notify_user_left_channel">%1$s перемещен(а) в %2$s.</string>
+  <string name="chat_notify_user_joined_channel_by">%1$s перемещен(а) %3$s из %2$s.</string>
+  <string name="chat_notify_user_left_channel_by">%1$s перемещен(а) %3$s в %2$s.</string>
+  <string name="bluetooth_connected">Bluetooth соединен</string>
+  <string name="bluetooth_disconnected">Bluetooth отсоединен</string>
+  <string name="deny_reason_channel_name">Отказано: Неверное имя канала.</string>
+  <string name="deny_reason_text_too_long">Отказано: Текстовое сообщение слишком длинное.</string>
+  <string name="deny_reason_no_operation_temp">Отказано: Операция не разрешена во временном канале.</string>
+  <string name="deny_reason_no_certificate">Вам нужен сертификат для выполнения данной операции.</string>
+  <string name="deny_reason_invalid_username">Неверное имя пользователя.</string>
+  <string name="deny_reason_channel_full">Канал переполнен.</string>
+  <string name="deny_reason_channel_nesting">Достигнул предел вложенности канала.</string>
+  <string name="deny_reason_other">Причина: %s</string>
+  <string name="perm_denied">Доступ запрещен.</string>
+  <string name="server">Сервер</string>
+  <string name="the_server">сервер</string>
+</resources>

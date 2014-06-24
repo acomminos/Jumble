@@ -1,30 +1,47 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
-  ~ Copyright (C) 2014 Andrew Comminos
-  ~
-  ~ Licensed under the Apache License, Version 2.0 (the "License");
-  ~ you may not use this file except in compliance with the License.
-  ~ You may obtain a copy of the License at
-  ~
-  ~ http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~ Unless required by applicable law or agreed to in writing, software
-  ~ distributed under the License is distributed on an "AS IS" BASIS,
-  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~ See the License for the specific language governing permissions and
-  ~ limitations under the License.
-  -->
-
+<?xml version='1.0' encoding='UTF-8'?>
 <resources>
-    <string name="chat_notify_moved">%1$s wurde von %3$s aus %2$s verschoben.</string>
-    <string name="chat_notify_muted_deafened">Stumm und taub.</string>
-    <string name="chat_notify_muted">Stumm.</string>
-    <string name="chat_notify_unmuted">Nicht stumm.</string>
-    <string name="chat_notify_unmuted_undeafened">Nicht stumm und nicht taub.</string>
-    <string name="chat_notify_now_muted_deafened">%s ist nun stumm und taub.</string>
-    <string name="chat_notify_now_muted">%s ist nun stumm.</string>
-    <string name="chat_notify_now_unmuted">%s ist nicht mehr stumm.</string>
-    <string name="chat_notify_now_unmuted_undeafened">%s ist nicht mehr stumm und nicht mehr taub.</string>
-    <string name="chat_notify_connected">%s ist verbunden.</string>
-    <string name="chat_notify_disconnected">%s hat den Server verlassen.</string>
+  <string name="chat_notify_moved">%1$s hinein verschoben von %2$s durch %3$s.</string>
+  <string name="chat_notify_muted_deafened">Stumm und taub.</string>
+  <string name="chat_notify_muted">Stumm.</string>
+  <string name="chat_notify_unmuted">Nicht stumm.</string>
+  <string name="chat_notify_unmuted_undeafened">Nicht mehr stumm und nicht taub.</string>
+  <string name="chat_notify_now_muted_deafened">%s ist nun stumm und taub.</string>
+  <string name="chat_notify_now_muted">%s ist jetzt stumm gestellt.</string>
+  <string name="chat_notify_now_unmuted">%s ist nicht mehr stumm.</string>
+  <string name="chat_notify_now_unmuted_undeafened">%s ist nicht mehr stumm und nicht mehr taub.</string>
+  <string name="chat_notify_muted_deafened_self_by_actor">Sie wurden stumm und taub gestellt durch %s.</string>
+  <string name="chat_notify_unmuted_undeafened_self_by_actor">Sie wurden entstummt und enttaubt durch %s.</string>
+  <string name="chat_notify_muted_self_by_actor">Sie wurden stumm gestellt durch %s.</string>
+  <string name="chat_notify_unmuted_self_by_actor">Stummstellung wurde deaktiviert durch %s.</string>
+  <string name="chat_notify_undeafened_self_by_actor">Sie wurden enttaubt durch %s.</string>
+  <string name="chat_notify_suppressed_self">Ihre Sprachunterdrückung wurde aktiviert.</string>
+  <string name="chat_notify_unsuppressed_self">Ihre Sprachunterdrückung wurde entfernt.</string>
+  <string name="chat_notify_unsuppressed_self_by_actor">Ihre Sprachunterdrückung wurde entfernt durch %s.</string>
+  <string name="chat_notify_connected">%s hat den Server betreten.</string>
+  <string name="chat_notify_disconnected">%s hat den Server verlassen.</string>
+  <string name="chat_notify_kick_ban_self">Sie wurden vom Server gekickt und gebannt von %1$s: %2$s.</string>
+  <string name="chat_notify_kick_self">Sie wurden vom Server gekickt durch %1$s: %2$s.</string>
+  <string name="chat_notify_kick_ban">%3$s wurde vom Server gekickt und gebannt durch %1$s: %2$s.</string>
+  <string name="chat_notify_kick">%3$s wurde vom Server gekickt durch %1$s: %2$s.</string>
+  <string name="chat_notify_self_recording_started">Aufnahme gestartet</string>
+  <string name="chat_notify_self_recording_stopped">Aufnahme beendet</string>
+  <string name="chat_notify_user_recording_started">%s nimmt jetzt auf.</string>
+  <string name="chat_notify_user_recording_stopped">%s hat die Aufnahme beendet.</string>
+  <string name="chat_notify_user_joined_channel">%s betrat den Kanal.</string>
+  <string name="chat_notify_user_left_channel">%1$s verschoben nach %2$s.</string>
+  <string name="chat_notify_user_joined_channel_by">%1$s wurde aus %2$s hinein verschoben durch %3$s.</string>
+  <string name="chat_notify_user_left_channel_by">%1$s wurde verschoben nach %2$s durch %3$s.</string>
+  <string name="bluetooth_connected">Bluetooth verbunden</string>
+  <string name="bluetooth_disconnected">Bluetooth wurde getrennt</string>
+  <string name="deny_reason_channel_name">Verweigert: Ungültiger Kanalname.</string>
+  <string name="deny_reason_text_too_long">Verweigert: Textnachricht zu lang.</string>
+  <string name="deny_reason_no_operation_temp">Verweigert: Operation nicht erlaubt in einem temporären Kanal.</string>
+  <string name="deny_reason_no_certificate">Sie benötigten ein Zertifikat, um diese Operation auszuführen.</string>
+  <string name="deny_reason_invalid_username">Ungültiger Benutzername.</string>
+  <string name="deny_reason_channel_full">Kanal ist voll.</string>
+  <string name="deny_reason_channel_nesting">Channel Nesting Limit erreicht.</string>
+  <string name="deny_reason_other">Grund: %s</string>
+  <string name="perm_denied">Erlaubnis verweigert.</string>
+  <string name="server">Server</string>
+  <string name="the_server">der Server</string>
 </resources>

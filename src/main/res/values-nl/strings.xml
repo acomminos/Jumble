@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<resources>
+  <string name="chat_notify_moved">%1$s verplaatst van %2$s door %3$s.</string>
+  <string name="chat_notify_muted_deafened">Gedempt en doof gemaakt.</string>
+  <string name="chat_notify_muted">Gedempt.</string>
+  <string name="chat_notify_unmuted">Dempen opgeheven.</string>
+  <string name="chat_notify_unmuted_undeafened">Dempen opgeheven en horend gemaakt.</string>
+  <string name="chat_notify_now_muted_deafened">%s is nu gedempt en doof gemaakt.</string>
+  <string name="chat_notify_now_muted">%s is nu gedempt.</string>
+  <string name="chat_notify_now_unmuted">%s is niet meer gedempt.</string>
+  <string name="chat_notify_now_unmuted_undeafened">%s is niet meer gedempt of doof.</string>
+  <string name="chat_notify_muted_deafened_self_by_actor">U bent gedempt en doof gemaakt door %s.</string>
+  <string name="chat_notify_unmuted_undeafened_self_by_actor">U bent niet meer gedempt en horend gemaakt door %s.</string>
+  <string name="chat_notify_muted_self_by_actor">U bent gedempt door %s.</string>
+  <string name="chat_notify_unmuted_self_by_actor">U bent niet meer gedempt door %s.</string>
+  <string name="chat_notify_undeafened_self_by_actor">U bent horend gemaakt door %s.</string>
+  <string name="chat_notify_suppressed_self">U werd onderdrukt</string>
+  <string name="chat_notify_unsuppressed_self">U bent niet meer onderdrukt</string>
+  <string name="chat_notify_unsuppressed_self_by_actor">U bent niet meer onderdrukt door %s.</string>
+  <string name="chat_notify_connected">%s verbonden.</string>
+  <string name="chat_notify_disconnected">%s verbinding verbroken.</string>
+  <string name="chat_notify_kick_ban_self">U bent verbannnen van de server door %1$s: %2$s.</string>
+  <string name="chat_notify_kick_self">U bent van de server geschopt door %1$s: %2$s.</string>
+  <string name="chat_notify_kick_ban">%3$s is van de server verbannen door %1$s: %2$s.</string>
+  <string name="chat_notify_kick">%3$s is van de server geschopt door %1$s: %2$s.</string>
+  <string name="chat_notify_self_recording_started">Opname gestart</string>
+  <string name="chat_notify_self_recording_stopped">Opname gestopt</string>
+  <string name="chat_notify_user_recording_started">%s heeft opname gestart.</string>
+  <string name="chat_notify_user_recording_stopped">%s heeft opname gestopt</string>
+  <string name="chat_notify_user_joined_channel">%s kanaal binnengekomen</string>
+  <string name="chat_notify_user_left_channel">%1$s verplaatst naar %2$s.</string>
+  <string name="chat_notify_user_joined_channel_by">%1$s verplaatst van %2$s door %3$s.</string>
+  <string name="chat_notify_user_left_channel_by">%1$s verplaatst van %2$s door %3$s.</string>
+  <string name="bluetooth_connected">Bluetooth verbonden</string>
+  <string name="bluetooth_disconnected">Bluetooth verbroken</string>
+  <string name="deny_reason_channel_name">Geweigerd: Ongeldige kanaal naam.</string>
+  <string name="deny_reason_text_too_long">Geweigerd: Tekst boodschap te lang.</string>
+  <string name="deny_reason_no_operation_temp">Geweigerd: Handeling niet toegestaan in tijdelijk kanaal.</string>
+  <string name="deny_reason_no_certificate">U hebt een certificaat nodig om deze handeling te voltooien.</string>
+  <string name="deny_reason_invalid_username">Ongeldige gebruikersnaam.</string>
+  <string name="deny_reason_channel_full">Kanaal is vol</string>
+  <string name="deny_reason_channel_nesting">Ingesloten kanaal limiet bereikt</string>
+  <string name="deny_reason_other">Reden: %s</string>
+  <string name="perm_denied">Geen toelating</string>
+  <string name="server">Server</string>
+  <string name="the_server">de server</string>
+</resources>
