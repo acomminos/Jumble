@@ -120,12 +120,12 @@ public class JumbleUDP extends JumbleNetworkThread {
     }
 
     public void sendMessage(final byte[] data, final int length) {
-        if(!mCryptState.isValid() || !mConnected)
-            return;
+        if(!mCryptState.isValid() || !mConnected) return;
         executeOnSendThread(new Runnable() {
             @Override
             public void run() {
                 try {
+                    if(!mCryptState.isValid() || !mConnected) return;
                     byte[] encryptedData = mCryptState.encrypt(data, length);
                     final DatagramPacket packet = new DatagramPacket(encryptedData, encryptedData.length);
                     packet.setAddress(mResolvedHost);

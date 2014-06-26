@@ -283,7 +283,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     }
 
     public boolean isConnected() {
-        return mConnection.isConnected();
+        return mConnection != null && mConnection.isConnected();
     }
 
     @Override
