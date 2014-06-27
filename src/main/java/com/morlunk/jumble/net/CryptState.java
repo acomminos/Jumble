@@ -40,9 +40,9 @@ import javax.crypto.spec.SecretKeySpec;
  * Created by andrew on 24/06/13.
  */
 public class CryptState {
-
     public static final int AES_BLOCK_SIZE = 16;
     private static final String AES_TRANSFORMATION = "AES/ECB/NoPadding";
+
     byte[] mRawKey = new byte[AES_BLOCK_SIZE];
     byte[] mEncryptIV = new byte[AES_BLOCK_SIZE];
     byte[] mDecryptIV = new byte[AES_BLOCK_SIZE];
@@ -77,6 +77,13 @@ public class CryptState {
      */
     public long getLastRequestElapsed() {
         return (System.nanoTime() - mLastRequestStart) / 1000;
+    }
+
+    /**
+     * Resets the recorded time of the last request to the current time.
+     */
+    public void resetLastRequestTime() {
+        mLastRequestStart = System.nanoTime();
     }
 
     public byte[] getEncryptIV() {

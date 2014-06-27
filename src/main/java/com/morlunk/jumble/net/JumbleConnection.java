@@ -573,6 +573,13 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         // TODO recover UDP thread automagically
     }
 
+    @Override
+    public void resyncCryptState() {
+        // Send an empty cryptstate message to resync.
+        Mumble.CryptSetup.Builder csb = Mumble.CryptSetup.newBuilder();
+        mTCP.sendMessage(csb.build(), JumbleTCPMessageType.CryptSetup);
+    }
+
     /**
      * Workaround for 1.2.2 servers that report the old types for CELT alpha and beta.
      * @param data The UDP data to be patched, if we're on a 1.2.2 server.

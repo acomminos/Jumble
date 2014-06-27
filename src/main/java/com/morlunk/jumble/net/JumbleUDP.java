@@ -98,12 +98,12 @@ public class JumbleUDP extends JumbleNetworkThread {
                 final byte[] data = packet.getData();
                 final int length = packet.getLength();
 
-                if(!mCryptState.isValid()) continue;
-                if(length < 5) continue;
+                if (!mCryptState.isValid()) continue;
+                if (length < 5) continue;
 
+                byte[] buffer = null;
                 try {
-                    final byte[] buffer = mCryptState.decrypt(data, length);
-                    if(mListener != null && buffer != null) mListener.onUDPDataReceived(buffer);
+                    buffer = mCryptState.decrypt(data, length);
                 } catch (BadPaddingException e) {
                     e.printStackTrace();
                 } catch (IllegalBlockSizeException e) {
@@ -111,6 +111,17 @@ public class JumbleUDP extends JumbleNetworkThread {
                 } catch (ShortBufferException e) {
                     e.printStackTrace();
                 }
+
+                if (mListener != null) {
+                    if (buffer != null) {
+                        mListener.onUDPDataReceived(buffer);
+                    } else if(mCryptState.getLastGoodElapsed() > 5000000 &&
+                            mCryptState.getLastRequestElapsed() > 5000000) {
+                        mCryptState.resetLastRequestTime();
+                        mListener.resyncCryptState();
+                    }
+                }
+
             } catch (IOException e) {
                 e.printStackTrace();
                 break;
@@ -159,5 +170,6 @@ public class JumbleUDP extends JumbleNetworkThread {
     public interface UDPConnectionListener {
         public void onUDPDataReceived(byte[] data);
         public void onUDPConnectionError(Exception e);
+        public void resyncCryptState();
     }
 }
