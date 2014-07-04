@@ -690,6 +690,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
+        public void setHalfDuplex(boolean enabled) throws RemoteException {
+            mAudioHandler.setHalfDuplex(enabled);
+        }
+
+        @Override
         public int getCodec() throws RemoteException {
             return mConnection.getCodec();
         }
