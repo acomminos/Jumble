@@ -26,6 +26,7 @@ import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
+import com.morlunk.jumble.protocol.AudioHandler;
 
 import java.util.Arrays;
 import java.util.Queue;
@@ -45,7 +46,7 @@ public class AudioOutputSpeech {
 
     private User mUser;
     private JumbleUDPMessageType mCodec;
-    private int mAudioBufferSize = Audio.FRAME_SIZE;
+    private int mAudioBufferSize = AudioHandler.FRAME_SIZE;
 
     // State-specific
     private float[] mBuffer;
@@ -70,13 +71,13 @@ public class AudioOutputSpeech {
         switch (codec) {
             case UDPVoiceOpus:
                 mAudioBufferSize *= 12;
-                mDecoder = new Opus.OpusDecoder(Audio.SAMPLE_RATE, 1);
+                mDecoder = new Opus.OpusDecoder(AudioHandler.SAMPLE_RATE, 1);
                 break;
             case UDPVoiceCELTBeta:
-                mDecoder = new CELT11.CELT11Decoder(Audio.SAMPLE_RATE, 1);
+                mDecoder = new CELT11.CELT11Decoder(AudioHandler.SAMPLE_RATE, 1);
                 break;
             case UDPVoiceCELTAlpha:
-                mDecoder = new CELT7.CELT7Decoder(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, 1);
+                mDecoder = new CELT7.CELT7Decoder(AudioHandler.SAMPLE_RATE, AudioHandler.FRAME_SIZE, 1);
                 break;
             case UDPVoiceSpeex:
                 mDecoder = new Speex.SpeexDecoder();
@@ -85,17 +86,17 @@ public class AudioOutputSpeech {
 
         mBuffer = new float[mAudioBufferSize*2]; // Make initial buffer size larger so we can save performance by not resizing at runtime.
         mOut = new float[mAudioBufferSize];
-        mFadeIn = new float[Audio.FRAME_SIZE];
-        mFadeOut = new float[Audio.FRAME_SIZE];
+        mFadeIn = new float[AudioHandler.FRAME_SIZE];
+        mFadeOut = new float[AudioHandler.FRAME_SIZE];
 
         // Sine function to represent fade in/out. Period is FRAME_SIZE.
-        float mul = (float)(Math.PI / (2.0 * (float)Audio.FRAME_SIZE));
-        for (int i = 0; i < Audio.FRAME_SIZE; i++)
-            mFadeIn[i] = mFadeOut[Audio.FRAME_SIZE-i-1] = (float) Math.sin((float) i * mul);
+        float mul = (float)(Math.PI / (2.0 * (float) AudioHandler.FRAME_SIZE));
+        for (int i = 0; i < AudioHandler.FRAME_SIZE; i++)
+            mFadeIn[i] = mFadeOut[AudioHandler.FRAME_SIZE-i-1] = (float) Math.sin((float) i * mul);
 
-        mJitterBuffer = new Speex.JitterBuffer(Audio.FRAME_SIZE);
+        mJitterBuffer = new Speex.JitterBuffer(AudioHandler.FRAME_SIZE);
         IntPointer margin = new IntPointer(1);
-        margin.put(10 * Audio.FRAME_SIZE);
+        margin.put(10 * AudioHandler.FRAME_SIZE);
         mJitterBuffer.control(Speex.JitterBuffer.JITTER_BUFFER_SET_MARGIN, margin);
     }
 
@@ -118,7 +119,7 @@ public class AudioOutputSpeech {
 
                     BytePointer packetPointer = new BytePointer(packet);
                     int frames = Opus.opus_packet_get_nb_frames(packetPointer, size);
-                    samples = frames * Opus.opus_packet_get_samples_per_frame(packetPointer, Audio.SAMPLE_RATE);
+                    samples = frames * Opus.opus_packet_get_samples_per_frame(packetPointer, AudioHandler.SAMPLE_RATE);
                     packetPointer.deallocate();
                 } else {
                     return;
@@ -127,13 +128,13 @@ public class AudioOutputSpeech {
                 int header;
                 do {
                     header = pds.next();
-                    samples += Audio.FRAME_SIZE;
+                    samples += AudioHandler.FRAME_SIZE;
                     pds.skip(header & 0x7f);
                 } while ((header & 0x80) > 0 && pds.isValid());
             }
 
             if(pds.isValid()) {
-                Speex.JitterBufferPacket packet = new Speex.JitterBufferPacket(data, data.length, Audio.FRAME_SIZE * seq, samples, 0);
+                Speex.JitterBufferPacket packet = new Speex.JitterBufferPacket(data, data.length, AudioHandler.FRAME_SIZE * seq, samples, 0);
                 mJitterBuffer.put(packet);
             }
         }
@@ -152,7 +153,7 @@ public class AudioOutputSpeech {
         boolean nextAlive = mLastAlive;
 
         while(mBufferFilled < num) {
-            int decodedSamples = Audio.FRAME_SIZE;
+            int decodedSamples = AudioHandler.FRAME_SIZE;
             resizeBuffer(mBufferFilled + mAudioBufferSize);
 
             if(!mLastAlive)
@@ -249,25 +250,25 @@ public class AudioOutputSpeech {
                         if(mFrames.isEmpty() && mHasTerminator)
                             nextAlive = false;
                     } else {
-                        decodedSamples = mDecoder.decodeFloat(null, 0, mOut, Audio.FRAME_SIZE);
+                        decodedSamples = mDecoder.decodeFloat(null, 0, mOut, AudioHandler.FRAME_SIZE);
                     }
                 } catch (NativeAudioException e) {
                     e.printStackTrace();
-                    decodedSamples = Audio.FRAME_SIZE;
+                    decodedSamples = AudioHandler.FRAME_SIZE;
                 }
 
                 if (!nextAlive) {
-                    for (int i = 0; i < Audio.FRAME_SIZE; i++) {
+                    for (int i = 0; i < AudioHandler.FRAME_SIZE; i++) {
                         mOut[i] *= mFadeOut[i];
                     }
                 } else if (ts == 0) {
-                    for (int i = 0; i < Audio.FRAME_SIZE; i++) {
+                    for (int i = 0; i < AudioHandler.FRAME_SIZE; i++) {
                         mOut[i] *= mFadeIn[i];
                     }
                 }
 
                 synchronized (mJitterLock) {
-                    for(int i = decodedSamples / Audio.FRAME_SIZE; i > 0; i--)
+                    for(int i = decodedSamples / AudioHandler.FRAME_SIZE; i > 0; i--)
                         mJitterBuffer.tick();
                 }
             }

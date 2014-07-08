@@ -30,6 +30,7 @@ import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
+import com.morlunk.jumble.protocol.AudioHandler;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -64,14 +65,14 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
         if(mRunning)
             return;
 
-        int minBufferSize = AudioTrack.getMinBufferSize(Audio.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        int minBufferSize = AudioTrack.getMinBufferSize(AudioHandler.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
         mBufferSize = minBufferSize;
 //        mBufferSize = Math.max(minBufferSize, Audio.FRAME_SIZE * 12); // Make the buffer size a multiple of the largest possible frame.
         Log.v(Constants.TAG, "Using buffer size "+mBufferSize+", system's min buffer size: "+minBufferSize);
 
         // Force STREAM_VOICE_CALL for Bluetooth, as it's all that will work.
         mAudioTrack = new AudioTrack(scoEnabled ? AudioManager.STREAM_VOICE_CALL : mAudioStream,
-                Audio.SAMPLE_RATE,
+                AudioHandler.SAMPLE_RATE,
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
                 mBufferSize,
@@ -115,7 +116,7 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
         mRunning = true;
         mAudioTrack.play();
 
-        final short[] mix = new short[Audio.FRAME_SIZE];
+        final short[] mix = new short[AudioHandler.FRAME_SIZE];
 
         while(mRunning) {
             Arrays.fill(mix, (short)0);

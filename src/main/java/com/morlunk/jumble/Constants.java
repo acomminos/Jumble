@@ -18,9 +18,9 @@ package com.morlunk.jumble;
 
 import com.googlecode.javacpp.IntPointer;
 import com.googlecode.javacpp.Pointer;
-import com.morlunk.jumble.audio.Audio;
 import com.morlunk.jumble.audio.javacpp.CELT11;
 import com.morlunk.jumble.audio.javacpp.CELT7;
+import com.morlunk.jumble.protocol.AudioHandler;
 
 public class Constants {
     /** Set dynamically by JNI calls. */
@@ -30,8 +30,8 @@ public class Constants {
 
     static {
         // Load CELT bitstream versions from JNI.
-        Pointer celt11Mode = CELT11.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, null);
-        Pointer celt7Mode = CELT7.celt_mode_create(Audio.SAMPLE_RATE, Audio.FRAME_SIZE, null);
+        Pointer celt11Mode = CELT11.celt_mode_create(AudioHandler.SAMPLE_RATE, AudioHandler.FRAME_SIZE, null);
+        Pointer celt7Mode = CELT7.celt_mode_create(AudioHandler.SAMPLE_RATE, AudioHandler.FRAME_SIZE, null);
 
         IntPointer celt11Version = new IntPointer();
         IntPointer celt7Version = new IntPointer();

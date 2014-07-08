@@ -29,7 +29,6 @@ import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.util.Log;
 
-import com.morlunk.jumble.audio.Audio;
 import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.exception.AudioException;
@@ -192,7 +191,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mDetectionThreshold = extras.getFloat(EXTRAS_DETECTION_THRESHOLD, 0.5f);
             mAmplitudeBoost = extras.getFloat(EXTRAS_AMPLITUDE_BOOST, 1.0f);
             mTransmitMode = extras.getInt(EXTRAS_TRANSMIT_MODE, Constants.TRANSMIT_VOICE_ACTIVITY);
-            mInputRate = extras.getInt(EXTRAS_INPUT_RATE, Audio.SAMPLE_RATE);
+            mInputRate = extras.getInt(EXTRAS_INPUT_RATE, AudioHandler.SAMPLE_RATE);
             mInputQuality = extras.getInt(EXTRAS_INPUT_QUALITY, 40000);
             mUseOpus = extras.getBoolean(EXTRAS_USE_OPUS, true);
             mUseTor = extras.getBoolean(EXTRAS_USE_TOR, false);

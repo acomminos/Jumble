@@ -43,6 +43,9 @@ import com.morlunk.jumble.util.JumbleNetworkListener;
  * Created by andrew on 23/04/14.
  */
 public class AudioHandler extends JumbleNetworkListener {
+    public static final int SAMPLE_RATE = 48000;
+    public static final int FRAME_SIZE = SAMPLE_RATE/100;
+
     private Context mContext;
     private AudioManager mAudioManager;
     private AudioInput mInput;

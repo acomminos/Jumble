@@ -31,8 +31,7 @@ import com.morlunk.jumble.exception.AudioInitializationException;
 import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketDataStream;
-
-import java.util.Arrays;
+import com.morlunk.jumble.protocol.AudioHandler;
 
 /**
  * Created by andrew on 23/08/13.
@@ -68,8 +67,8 @@ public class AudioInput implements Runnable {
     private AudioInputListener mListener;
     private AudioRecord mAudioRecord;
     private int mSampleRate = -1;
-    private int mFrameSize = Audio.FRAME_SIZE;
-    private int mMicFrameSize = Audio.FRAME_SIZE;
+    private int mFrameSize = AudioHandler.FRAME_SIZE;
+    private int mMicFrameSize = AudioHandler.FRAME_SIZE;
 
     // Preferences
     private int mAudioSource;
@@ -111,11 +110,11 @@ public class AudioInput implements Runnable {
         mEncoder = createEncoder(mCodec);
 
         mOpusBuffer = new short[mFrameSize * mFramesPerPacket];
-        mCELTBuffer = new byte[mFramesPerPacket][Audio.SAMPLE_RATE / 800];
+        mCELTBuffer = new byte[mFramesPerPacket][AudioHandler.SAMPLE_RATE / 800];
 
-        if(mSampleRate != Audio.SAMPLE_RATE) {
-            mResampler = new Speex.SpeexResampler(1, mSampleRate, Audio.SAMPLE_RATE, SPEEX_RESAMPLE_QUALITY);
-            mMicFrameSize = (mSampleRate * mFrameSize) / Audio.SAMPLE_RATE;
+        if(mSampleRate != AudioHandler.SAMPLE_RATE) {
+            mResampler = new Speex.SpeexResampler(1, mSampleRate, AudioHandler.SAMPLE_RATE, SPEEX_RESAMPLE_QUALITY);
+            mMicFrameSize = (mSampleRate * mFrameSize) / AudioHandler.SAMPLE_RATE;
             mResampleBuffer = new short[mMicFrameSize];
         }
 
@@ -155,7 +154,7 @@ public class AudioInput implements Runnable {
     private void configurePreprocessState() {
         if(mPreprocessState != null) mPreprocessState.destroy();
 
-        mPreprocessState = new Speex.SpeexPreprocessState(mFrameSize, Audio.SAMPLE_RATE);
+        mPreprocessState = new Speex.SpeexPreprocessState(mFrameSize, AudioHandler.SAMPLE_RATE);
 
         IntPointer arg = new IntPointer(1);
 
@@ -188,7 +187,7 @@ public class AudioInput implements Runnable {
             // when provided with an invalid buffer size.
             e.printStackTrace();
             Log.w(Constants.TAG, "Checks for input sample rate failed, defaulting to 48000hz");
-            mSampleRate = Audio.SAMPLE_RATE;
+            mSampleRate = AudioHandler.SAMPLE_RATE;
             return createAudioRecord();
         }
 
@@ -207,13 +206,13 @@ public class AudioInput implements Runnable {
         IEncoder encoder;
         switch (codec) {
             case UDPVoiceOpus:
-                encoder = new Opus.OpusEncoder(Audio.SAMPLE_RATE, 1);
+                encoder = new Opus.OpusEncoder(AudioHandler.SAMPLE_RATE, 1);
                 break;
             case UDPVoiceCELTBeta:
-                encoder = new CELT11.CELT11Encoder(Audio.SAMPLE_RATE, 1);
+                encoder = new CELT11.CELT11Encoder(AudioHandler.SAMPLE_RATE, 1);
                 break;
             case UDPVoiceCELTAlpha:
-                encoder = new CELT7.CELT7Encoder(Audio.SAMPLE_RATE, mFrameSize, 1);
+                encoder = new CELT7.CELT7Encoder(AudioHandler.SAMPLE_RATE, mFrameSize, 1);
                 break;
 //            case UDPVoiceSpeex:
                 // TODO
@@ -409,7 +408,7 @@ public class AudioInput implements Runnable {
                     case UDPVoiceCELTBeta:
                     case UDPVoiceCELTAlpha:
                         try {
-                            mEncoder.encode(mAudioBuffer, mFrameSize, mCELTBuffer[mBufferedFrames], Audio.SAMPLE_RATE/800);
+                            mEncoder.encode(mAudioBuffer, mFrameSize, mCELTBuffer[mBufferedFrames], AudioHandler.SAMPLE_RATE/800);
                             mBufferedFrames++;
                             encoded = mBufferedFrames >= mFramesPerPacket || (!mRecording && mBufferedFrames > 0);
                         } catch (NativeAudioException e) {
