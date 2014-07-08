@@ -477,8 +477,12 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
      * @param force Whether to avoid tunneling this data over TCP.
      */
     public void sendUDPMessage(final byte[] data, final int length, final boolean force) {
-        if(!mConnected) return;
-        if(mServerVersion == 0x10202) applyLegacyCodecWorkaround(data);
+        if (!mConnected) return;
+        if (length > data.length) {
+            throw new IllegalArgumentException("Requested length " + length + " is longer than " +
+                    "available data length " + data.length + "!");
+        }
+        if (mServerVersion == 0x10202) applyLegacyCodecWorkaround(data);
         if (!force && (mForceTCP || !mUsingUDP))
             mTCP.sendMessage(data, length, JumbleTCPMessageType.UDPTunnel);
         else if (!mForceTCP)

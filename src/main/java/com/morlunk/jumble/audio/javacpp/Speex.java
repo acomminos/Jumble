@@ -221,6 +221,49 @@ public class Speex {
         Loader.load();
     }
 
+    // Resampler
+    private static native Pointer speex_resampler_init(int channels, int inSampleRate, int outSampleRate, int quality, IntPointer error);
+    private static native int speex_resampler_process_int(@Cast("SpeexResamplerState*") Pointer state, int channelIndex, @Cast("short*") short[] in, @Cast("unsigned int*") int[] inLen, @Cast("short*") short[] out, @Cast("unsigned int*") int[] outLen);
+    private static native void speex_resampler_destroy(@Cast("SpeexResamplerState*") Pointer state);
+
+    // Jitter buffer
+    private static native Pointer jitter_buffer_init(int tick);
+    private static native void jitter_buffer_reset(@Cast("JitterBuffer*") Pointer jitterBuffer);
+    private static native void jitter_buffer_destroy(@Cast("JitterBuffer*") Pointer jitterBuffer);
+    private static native void jitter_buffer_put(@Cast("JitterBuffer*") Pointer jitterBuffer, JitterBufferPacket packet);
+    private static native int jitter_buffer_get(@Cast("JitterBuffer*") Pointer jitterBuffer, JitterBufferPacket packet, int frameSize, IntPointer startOffset);
+    private static native int jitter_buffer_get_pointer_timestamp(@Cast("JitterBuffer*") Pointer jitterBuffer);
+    private static native void jitter_buffer_tick(@Cast("JitterBuffer*") Pointer jitterBuffer);
+    private static native int jitter_buffer_ctl(@Cast("JitterBuffer*") Pointer jitterBuffer, int request, @Cast("void *") Pointer pointer);
+    private static native int jitter_buffer_update_delay(@Cast("JitterBuffer*") Pointer jitterBuffer, JitterBufferPacket packet, IntPointer startOffset);
+
+    // Preprocessor
+    private static native Pointer speex_preprocess_state_init(int frameSize, int samplingRate);
+    private static native void speex_preprocess_state_destroy(@Cast("SpeexPreprocessState*") Pointer state);
+    private static native int speex_preprocess_run(@Cast("SpeexPreprocessState*") Pointer state, short x[]);
+    private static native int speex_preprocess(@Cast("SpeexPreprocessState*") Pointer state, short[] x, int[] echo);
+    private static native void speex_preprocess_estimate_update(@Cast("SpeexPreprocessState*") Pointer state, short[] x);
+    private static native int speex_preprocess_ctl(@Cast("SpeexPreprocessState*") Pointer state, int request, Pointer ptr);
+
+    // Bits
+    private static native void speex_bits_init(@Cast("SpeexBits*") SpeexBits bits);
+    private static native void speex_bits_read_from(@Cast("SpeexBits*") SpeexBits bits, @Cast("const char*") byte[] data, int size);
+    private static native void speex_bits_destroy(@Cast("SpeexBits*") SpeexBits bits);
+
+    // Modes
+    public static native @Cast("const void*") Pointer speex_lib_get_mode(int mode);
+
+    // Decoder
+    public static native Pointer speex_decoder_init(@Cast("const SpeexMode*") Pointer mode);
+    public static native void speex_decoder_ctl(Pointer state, int request, Pointer value);
+    public static native int speex_decode(Pointer state, @Cast("SpeexBits*") SpeexBits bits, float[] out);
+    public static native void speex_decoder_destroy(Pointer state);
+
+    // Encoder
+    public static native Pointer speex_encoder_init(@Cast("const SpeexMode*") Pointer mode);
+    public static native void speex_encoder_ctl(Pointer state, int request, Pointer value);
+    public static native void speex_encoder_destroy(Pointer state);
+
     @Name("_JitterBufferPacket")
     public static class JitterBufferPacket extends Pointer {
 
@@ -449,48 +492,4 @@ public class Speex {
             speex_bits_destroy(mBits);
         }
     }
-
-    // Resampler
-    private static native Pointer speex_resampler_init(int channels, int inSampleRate, int outSampleRate, int quality, IntPointer error);
-    private static native int speex_resampler_process_int(@Cast("SpeexResamplerState*") Pointer state, int channelIndex, @Cast("short*") short[] in, @Cast("unsigned int*") int[] inLen, @Cast("short*") short[] out, @Cast("unsigned int*") int[] outLen);
-    private static native void speex_resampler_destroy(@Cast("SpeexResamplerState*") Pointer state);
-
-    // Jitter buffer
-    private static native Pointer jitter_buffer_init(int tick);
-    private static native void jitter_buffer_reset(@Cast("JitterBuffer*") Pointer jitterBuffer);
-    private static native void jitter_buffer_destroy(@Cast("JitterBuffer*") Pointer jitterBuffer);
-    private static native void jitter_buffer_put(@Cast("JitterBuffer*") Pointer jitterBuffer, JitterBufferPacket packet);
-    private static native int jitter_buffer_get(@Cast("JitterBuffer*") Pointer jitterBuffer, JitterBufferPacket packet, int frameSize, IntPointer startOffset);
-    private static native int jitter_buffer_get_pointer_timestamp(@Cast("JitterBuffer*") Pointer jitterBuffer);
-    private static native void jitter_buffer_tick(@Cast("JitterBuffer*") Pointer jitterBuffer);
-    private static native int jitter_buffer_ctl(@Cast("JitterBuffer*") Pointer jitterBuffer, int request, @Cast("void *") Pointer pointer);
-    private static native int jitter_buffer_update_delay(@Cast("JitterBuffer*") Pointer jitterBuffer, JitterBufferPacket packet, IntPointer startOffset);
-
-    // Preprocessor
-    private static native Pointer speex_preprocess_state_init(int frameSize, int samplingRate);
-    private static native void speex_preprocess_state_destroy(@Cast("SpeexPreprocessState*") Pointer state);
-    private static native int speex_preprocess_run(@Cast("SpeexPreprocessState*") Pointer state, short x[]);
-    private static native int speex_preprocess(@Cast("SpeexPreprocessState*") Pointer state, short[] x, int[] echo);
-    private static native void speex_preprocess_estimate_update(@Cast("SpeexPreprocessState*") Pointer state, short[] x);
-    private static native int speex_preprocess_ctl(@Cast("SpeexPreprocessState*") Pointer state, int request, Pointer ptr);
-
-    // Bits
-    private static native void speex_bits_init(@Cast("SpeexBits*") SpeexBits bits);
-    private static native void speex_bits_read_from(@Cast("SpeexBits*") SpeexBits bits, @Cast("const char*") byte[] data, int size);
-    private static native void speex_bits_destroy(@Cast("SpeexBits*") SpeexBits bits);
-
-    // Modes
-    public static native @Cast("const void*") Pointer speex_lib_get_mode(int mode);
-
-    // Decoder
-    public static native Pointer speex_decoder_init(@Cast("const SpeexMode*") Pointer mode);
-    public static native void speex_decoder_ctl(Pointer state, int request, Pointer value);
-    public static native int speex_decode(Pointer state, @Cast("SpeexBits*") SpeexBits bits, float[] out);
-    public static native void speex_decoder_destroy(Pointer state);
-
-    // Encoder
-    public static native Pointer speex_encoder_init(@Cast("const SpeexMode*") Pointer mode);
-    public static native void speex_encoder_ctl(Pointer state, int request, Pointer value);
-    public static native void speex_encoder_destroy(Pointer state);
-
 }

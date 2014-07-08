@@ -31,7 +31,6 @@ import com.morlunk.jumble.exception.NativeAudioException;
  */
 @Platform(library="celt11", cinclude={"<celt.h>","<celt_types.h>"})
 public class CELT11 {
-
     public static final int CELT_GET_BITSTREAM_VERSION = 2000;
     public static final int CELT_SET_BITRATE_REQUEST = 6;
     public static final int CELT_SET_PREDICTION_REQUEST = 4;
@@ -39,6 +38,22 @@ public class CELT11 {
     static {
         Loader.load();
     }
+
+    public static native @NoDeallocator Pointer celt_mode_create(int sampleRate, int frameSize, IntPointer error);
+    public static native int celt_mode_info(@Cast("const CELTMode*") Pointer mode, int request, IntPointer value);
+    public static native void celt_mode_destroy(@Cast("CELTMode*") Pointer mode);
+
+    public static native @NoDeallocator Pointer celt_decoder_create(int sampleRate, int channels, IntPointer error);
+    public static native int celt_decode(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") byte[] data, int len, short[] pcm, int frameSize);
+    public static native int celt_decode_float(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") byte[] data, int len, float[] pcm, int frameSize);
+    public static native int celt_decoder_ctl(@Cast("CELTDecoder*") Pointer st, int request, Pointer val);
+    public static native void celt_decoder_destroy(@Cast("CELTDecoder*") Pointer st);
+
+    public static native @NoDeallocator Pointer celt_encoder_create(int sampleRate, int channels, IntPointer error);
+    public static native int celt_encoder_ctl(@Cast("CELTEncoder*")Pointer state, int request, Pointer val);
+    public static native int celt_encoder_ctl(@Cast("CELTEncoder*")Pointer state, int request, int val);
+    public static native int celt_encode(@Cast("CELTEncoder*") Pointer state, @Cast("const short*") short[] pcm, int frameSize, @Cast("unsigned char*") byte[] compressed, int maxCompressedBytes);
+    public static native void celt_encoder_destroy(@Cast("CELTEncoder*") Pointer state);
 
     public static class CELT11Encoder implements IEncoder {
 
@@ -101,20 +116,4 @@ public class CELT11 {
             celt_decoder_destroy(mState);
         }
     }
-
-    public static native @NoDeallocator Pointer celt_mode_create(int sampleRate, int frameSize, IntPointer error);
-    public static native int celt_mode_info(@Cast("const CELTMode*") Pointer mode, int request, IntPointer value);
-    public static native void celt_mode_destroy(@Cast("CELTMode*") Pointer mode);
-
-    public static native @NoDeallocator Pointer celt_decoder_create(int sampleRate, int channels, IntPointer error);
-    public static native int celt_decode(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") byte[] data, int len, short[] pcm, int frameSize);
-    public static native int celt_decode_float(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") byte[] data, int len, float[] pcm, int frameSize);
-    public static native int celt_decoder_ctl(@Cast("CELTDecoder*") Pointer st, int request, Pointer val);
-    public static native void celt_decoder_destroy(@Cast("CELTDecoder*") Pointer st);
-
-    public static native @NoDeallocator Pointer celt_encoder_create(int sampleRate, int channels, IntPointer error);
-    public static native int celt_encoder_ctl(@Cast("CELTEncoder*")Pointer state, int request, Pointer val);
-    public static native int celt_encoder_ctl(@Cast("CELTEncoder*")Pointer state, int request, int val);
-    public static native int celt_encode(@Cast("CELTEncoder*") Pointer state, @Cast("const short*") short[] pcm, int frameSize, @Cast("unsigned char*") byte[] compressed, int maxCompressedBytes);
-    public static native void celt_encoder_destroy(@Cast("CELTEncoder*") Pointer state);
 }
