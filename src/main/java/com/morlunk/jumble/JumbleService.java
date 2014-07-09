@@ -705,6 +705,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void setTalkingState(boolean talking) throws RemoteException {
+            if(getSessionUser() != null &&
+                    (getSessionUser().isSelfMuted() || getSessionUser().isMuted())) {
+                return;
+            }
+
             if(talking) {
                 try {
                     mAudioHandler.startRecording();
