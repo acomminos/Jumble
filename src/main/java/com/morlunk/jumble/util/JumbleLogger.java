@@ -17,22 +17,12 @@
 
 package com.morlunk.jumble.util;
 
+import com.morlunk.jumble.model.Message;
+
 /**
- * Formats strings into HTML.
- * Created by andrew on 24/08/13.
+ * Created by andrew on 12/07/14.
  */
-public class MessageFormatter {
-
-    public static final String HIGHLIGHT_COLOR = "33b5e5";
-
-    private static final String HTML_FONT_COLOR_FORMAT = "<font color=\"#%s\">%s</font>";
-
-    /**
-     * Highlights the passed string using the service's defined color {@link MessageFormatter#HIGHLIGHT_COLOR}.
-     * @param string The string to highlight.
-     * @return The passed string enclosed with HTML font tags specifying the color.
-     */
-    public static String highlightString(String string) {
-        return String.format(HTML_FONT_COLOR_FORMAT, HIGHLIGHT_COLOR, string);
-    }
+public interface JumbleLogger {
+    public void log(Message.Type type, String message);
+    public void log(Message message);
 }
