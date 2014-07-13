@@ -74,7 +74,7 @@ public class AudioInput implements Runnable {
     // Preferences
     private int mAudioSource;
     private int mBitrate;
-    private int mFramesPerPacket;
+    private final int mFramesPerPacket;
     private int mTransmitMode;
     private float mVADThreshold;
     private float mAmplitudeBoost = 1.0f;
@@ -92,7 +92,6 @@ public class AudioInput implements Runnable {
 
     private JumbleUDPMessageType mCodec = null;
 
-    private final Object mRecordLock = new Object(); // Make sure we don't get calls to start and stop recording more than once at a time.
     private Thread mRecordThread;
     private boolean mRecording;
 
@@ -227,29 +226,22 @@ public class AudioInput implements Runnable {
 
     /**
      * Starts the recording thread.
+     * Not thread-safe.
      */
     public void startRecording() {
-        synchronized (mRecordLock) {
-            if(mRecording) {
-                Log.w(Constants.TAG, "Attempted to start recording while already recording!");
-                return;
-            }
-
-            mRecording = true;
-            mRecordThread = new Thread(this);
-            mRecordThread.start();
-        }
+        mRecording = true;
+        mRecordThread = new Thread(this);
+        mRecordThread.start();
     }
 
     /**
      * Stops the record loop after the current iteration.
+     * Not thread-safe.
      */
     public void stopRecording() {
-        synchronized (mRecordLock) {
-            if(!mRecording) return;
-            mRecording = false;
-            mRecordThread = null;
-        }
+        if(!mRecording) return;
+        mRecording = false;
+        mRecordThread = null;
     }
 
     public void setVADThreshold(float threshold) {
@@ -273,14 +265,12 @@ public class AudioInput implements Runnable {
      * @throws InterruptedException
      */
     public void shutdown() {
-        synchronized (mRecordLock) {
-            if(mRecording) {
-                mRecording = false;
-                try {
-                    mRecordThread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+        if(mRecording) {
+            mRecording = false;
+            try {
+                mRecordThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
 
@@ -310,9 +300,7 @@ public class AudioInput implements Runnable {
     }
 
     public boolean isRecording() {
-        synchronized (mRecordLock) {
-            return mRecording;
-        }
+        return mRecording;
     }
 
     @Override

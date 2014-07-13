@@ -334,8 +334,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         Log.v(Constants.TAG, "Disconnected");
         if(mWakeLock.isHeld()) mWakeLock.release();
 
-        mAudioHandler.shutdown();
+        if (mAudioHandler != null) {
+            mAudioHandler.shutdown();
+        }
 
+        mConnection = null;
         mModelHandler = null;
         mMessageLog = null;
         mAudioHandler = null;

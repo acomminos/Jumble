@@ -125,7 +125,7 @@ public class AudioHandler extends JumbleNetworkListener {
      * haven't been created yet. If the codec information has not yet been received from the server,
      * we'll initialize input once we receive that.
      */
-    public void initialize() throws AudioException {
+    public synchronized void initialize() throws AudioException {
         if(mInitialized) return;
         if(mOutput == null) createAudioOutput();
         if(mInput == null && mCodec != null) createAudioInput();
@@ -134,7 +134,7 @@ public class AudioHandler extends JumbleNetworkListener {
         mInitialized = true;
     }
 
-    public void startRecording() throws AudioException {
+    public synchronized void startRecording() throws AudioException {
         if(mInput == null) createAudioInput();
         mInput.startRecording();
         if(mHalfDuplex && mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK) {
@@ -142,7 +142,7 @@ public class AudioHandler extends JumbleNetworkListener {
         }
     }
 
-    public void stopRecording() {
+    public synchronized void stopRecording() {
         if(mInput == null) return;
         mInput.stopRecording();
         if(mHalfDuplex && mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK) {
@@ -303,7 +303,7 @@ public class AudioHandler extends JumbleNetworkListener {
      * Shuts down the audio handler, halting input and output.
      * The handler may still be reinitialized with {@link AudioHandler#initialize()} after.
      */
-    public void shutdown() {
+    public synchronized void shutdown() {
         if(mInput != null) {
             mInput.shutdown();
             mInput = null;
