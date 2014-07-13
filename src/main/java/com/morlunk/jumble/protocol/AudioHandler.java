@@ -29,8 +29,11 @@ import com.morlunk.jumble.R;
 import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.exception.AudioException;
+import com.morlunk.jumble.exception.AudioInitializationException;
+import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.protobuf.Mumble;
+import com.morlunk.jumble.util.JumbleLogger;
 import com.morlunk.jumble.util.JumbleNetworkListener;
 
 /**
@@ -46,6 +49,7 @@ public class AudioHandler extends JumbleNetworkListener {
     public static final int FRAME_SIZE = SAMPLE_RATE/100;
 
     private Context mContext;
+    private JumbleLogger mLogger;
     private AudioManager mAudioManager;
     private AudioInput mInput;
     private AudioOutput mOutput;
@@ -75,22 +79,33 @@ public class AudioHandler extends JumbleNetworkListener {
                     Toast.makeText(mContext, R.string.bluetooth_connected, Toast.LENGTH_LONG).show();
                     mOutput.stopPlaying();
                     mBluetoothOn = true;
-                    mOutput.startPlaying(true);
+                    try {
+                        mOutput.startPlaying(true);
+                    } catch (AudioInitializationException e) {
+                        e.printStackTrace();
+                        mLogger.log(Message.Type.WARNING, e.getLocalizedMessage());
+                    }
                     break;
                 case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
                 case AudioManager.SCO_AUDIO_STATE_ERROR:
                     if(mOutput.isPlaying() && mBluetoothOn)
                         Toast.makeText(mContext, R.string.bluetooth_disconnected, Toast.LENGTH_LONG).show();
                     mOutput.stopPlaying();
-                    mOutput.startPlaying(false);
+                    try {
+                        mOutput.startPlaying(false);
+                    } catch (AudioInitializationException e) {
+                        e.printStackTrace();
+                        mLogger.log(Message.Type.WARNING, e.getLocalizedMessage());
+                    }
                     mBluetoothOn = false;
                     break;
             }
         }
     };
 
-    public AudioHandler(Context context, AudioInput.AudioInputListener inputListener, AudioOutput.AudioOutputListener outputListener) {
+    public AudioHandler(Context context, JumbleLogger logger, AudioInput.AudioInputListener inputListener, AudioOutput.AudioOutputListener outputListener) {
         mContext = context;
+        mLogger = logger;
         mInputListener = inputListener;
         mOutputListener = outputListener;
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);

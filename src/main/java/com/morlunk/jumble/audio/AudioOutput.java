@@ -27,6 +27,7 @@ import android.util.Log;
 import android.util.SparseArray;
 
 import com.morlunk.jumble.Constants;
+import com.morlunk.jumble.exception.AudioInitializationException;
 import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
@@ -62,7 +63,7 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
         mMainHandler = new Handler(Looper.getMainLooper());
     }
 
-    public void startPlaying(boolean scoEnabled) {
+    public void startPlaying(boolean scoEnabled) throws AudioInitializationException {
         if(mRunning)
             return;
 
@@ -72,12 +73,16 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
         Log.v(Constants.TAG, "Using buffer size "+mBufferSize+", system's min buffer size: "+minBufferSize);
 
         // Force STREAM_VOICE_CALL for Bluetooth, as it's all that will work.
-        mAudioTrack = new AudioTrack(scoEnabled ? AudioManager.STREAM_VOICE_CALL : mAudioStream,
-                AudioHandler.SAMPLE_RATE,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                mBufferSize,
-                AudioTrack.MODE_STREAM);
+        try {
+            mAudioTrack = new AudioTrack(scoEnabled ? AudioManager.STREAM_VOICE_CALL : mAudioStream,
+                    AudioHandler.SAMPLE_RATE,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    mBufferSize,
+                    AudioTrack.MODE_STREAM);
+        } catch (IllegalArgumentException e) {
+            throw new AudioInitializationException(e);
+        }
 
         mThread = new Thread(this);
         mThread.start();

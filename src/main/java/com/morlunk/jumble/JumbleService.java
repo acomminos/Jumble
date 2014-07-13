@@ -236,7 +236,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
             mConnection = new JumbleConnection(this);
             mModelHandler = new ModelHandler(this, mCallbacks, this);
-            mAudioHandler = new AudioHandler(this, mAudioInputListener, mAudioOutputListener);
+            mAudioHandler = new AudioHandler(this, this, mAudioInputListener, mAudioOutputListener);
             mAudioHandler.setAmplitudeBoost(mAmplitudeBoost);
             mAudioHandler.setBitrate(mInputQuality);
             mAudioHandler.setVADThreshold(mDetectionThreshold);
