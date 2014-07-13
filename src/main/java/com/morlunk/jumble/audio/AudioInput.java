@@ -186,9 +186,13 @@ public class AudioInput implements Runnable {
             // chosen sample rate. Unfortunately, some devices don't properly fail calling that method
             // when provided with an invalid buffer size.
             e.printStackTrace();
-            Log.w(Constants.TAG, "Checks for input sample rate failed, defaulting to 48000hz");
-            mSampleRate = AudioHandler.SAMPLE_RATE;
-            return createAudioRecord();
+            if (mSampleRate != AudioHandler.SAMPLE_RATE) {
+                Log.w(Constants.TAG, "Checks for input sample rate failed, defaulting to 48000hz");
+                mSampleRate = AudioHandler.SAMPLE_RATE;
+                return createAudioRecord();
+            } else {
+                throw new AudioInitializationException(e);
+            }
         }
 
         if(audioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
