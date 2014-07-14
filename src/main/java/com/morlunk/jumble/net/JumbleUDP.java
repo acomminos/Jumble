@@ -75,11 +75,15 @@ public class JumbleUDP extends JumbleNetworkThread {
         try {
             mResolvedHost = InetAddress.getByName(mHost);
             mUDPSocket = new DatagramSocket();
-        } catch (SocketException e) {
-            if(mListener != null) mListener.onUDPConnectionError(e);
-            return;
-        } catch (UnknownHostException e) {
-            if(mListener != null) mListener.onUDPConnectionError(e);
+        } catch (final IOException e) {
+            if(mListener != null) {
+                executeOnMainThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListener.onUDPConnectionError(e);
+                    }
+                });
+            }
             return;
         }
 
@@ -115,12 +119,25 @@ public class JumbleUDP extends JumbleNetworkThread {
                     } else if(mCryptState.getLastGoodElapsed() > 5000000 &&
                             mCryptState.getLastRequestElapsed() > 5000000) {
                         mCryptState.resetLastRequestTime();
-                        mListener.resyncCryptState();
+                        executeOnMainThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mListener.resyncCryptState();
+                            }
+                        });
                     }
                 }
 
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (final IOException e) {
+                // If a UDP exception is thrown while connected, notify the listener to fall back to TCP.
+                if(mConnected && mListener != null) {
+                    executeOnMainThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mListener.onUDPConnectionError(e);
+                        }
+                    });
+                }
                 break;
             }
         }
@@ -164,6 +181,10 @@ public class JumbleUDP extends JumbleNetworkThread {
         });
     }
 
+    /**
+     * Note that all connection state related calls are made on the main thread.
+     * onUDPDataReceived is always called on the UDP receive thread.
+     */
     public interface UDPConnectionListener {
         public void onUDPDataReceived(byte[] data);
         public void onUDPConnectionError(Exception e);
