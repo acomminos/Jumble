@@ -384,7 +384,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void log(Message message) {
         // Only log non-fatal (~INFO) messages post-connect.
-        if (mConnection.isSynchronized() || message.getType() != Message.Type.INFO) {
+        if (mConnection != null &&
+                (mConnection.isSynchronized() || message.getType() != Message.Type.INFO)) {
                 mMessageLog.add(message);
             try {
                 mCallbacks.onMessageLogged(message);
