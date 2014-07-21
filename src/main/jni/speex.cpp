@@ -442,18 +442,6 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_BytePointer_get___3BII(JNI
     if (arg0 != NULL) env->ReleasePrimitiveArrayCritical(arg0, ptr0, 0);
     return rarg;
 }
-JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_BytePointer_put__IB(JNIEnv* env, jobject obj, jint arg0, jbyte arg1) {
-    signed char* ptr = (signed char*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
-    if (ptr == NULL) {
-        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
-        return 0;
-    }
-    jint position = env->GetIntField(obj, JavaCPP_positionFID);
-    ptr += position;
-    jobject rarg = obj;
-    ptr[arg0] = arg1;
-    return rarg;
-}
 JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_BytePointer_put___3BII(JNIEnv* env, jobject obj, jbyteArray arg0, jint arg1, jint arg2) {
     signed char* ptr = (signed char*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
     if (ptr == NULL) {
@@ -466,6 +454,18 @@ JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_BytePointer_put___3BII(JNI
     jobject rarg = obj;
     memcpy(ptr, ptr0 + arg1, arg2 * sizeof(*ptr0));
     if (arg0 != NULL) env->ReleasePrimitiveArrayCritical(arg0, ptr0, 0);
+    return rarg;
+}
+JNIEXPORT jobject JNICALL Java_com_googlecode_javacpp_BytePointer_put__IB(JNIEnv* env, jobject obj, jint arg0, jbyte arg1) {
+    signed char* ptr = (signed char*)jlong_to_ptr(env->GetLongField(obj, JavaCPP_addressFID));
+    if (ptr == NULL) {
+        env->ThrowNew(JavaCPP_getClass(env, 2), "This pointer address is NULL.");
+        return 0;
+    }
+    jint position = env->GetIntField(obj, JavaCPP_positionFID);
+    ptr += position;
+    jobject rarg = obj;
+    ptr[arg0] = arg1;
     return rarg;
 }
 
@@ -1677,6 +1677,24 @@ JNIEXPORT jobject JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_speex_1dec
     }
     return rarg;
 }
+JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_speex_1decoder_1ctl(JNIEnv* env, jclass cls, jobject arg0, jint arg1, jobject arg2) {
+    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
+    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
+    ptr0 += position0;
+    char* ptr2 = arg2 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg2, JavaCPP_addressFID));
+    jint position2 = arg2 == NULL ? 0 : env->GetIntField(arg2, JavaCPP_positionFID);
+    ptr2 += position2;
+    jthrowable exc = NULL;
+    try {
+        speex_decoder_ctl(ptr0, arg1, ptr2);
+    } catch (...) {
+        exc = JavaCPP_handleException(env, 15);
+    }
+
+    if (exc != NULL) {
+        env->Throw(exc);
+    }
+}
 JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_speex_1decode(JNIEnv* env, jclass cls, jobject arg0, jobject arg1, jfloatArray arg2) {
     char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
     jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
@@ -1699,24 +1717,6 @@ JNIEXPORT jint JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_speex_1decode
         env->Throw(exc);
     }
     return rarg;
-}
-JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_speex_1decoder_1ctl(JNIEnv* env, jclass cls, jobject arg0, jint arg1, jobject arg2) {
-    char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
-    jint position0 = arg0 == NULL ? 0 : env->GetIntField(arg0, JavaCPP_positionFID);
-    ptr0 += position0;
-    char* ptr2 = arg2 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg2, JavaCPP_addressFID));
-    jint position2 = arg2 == NULL ? 0 : env->GetIntField(arg2, JavaCPP_positionFID);
-    ptr2 += position2;
-    jthrowable exc = NULL;
-    try {
-        speex_decoder_ctl(ptr0, arg1, ptr2);
-    } catch (...) {
-        exc = JavaCPP_handleException(env, 15);
-    }
-
-    if (exc != NULL) {
-        env->Throw(exc);
-    }
 }
 JNIEXPORT void JNICALL Java_com_morlunk_jumble_audio_javacpp_Speex_speex_1decoder_1destroy(JNIEnv* env, jclass cls, jobject arg0) {
     char* ptr0 = arg0 == NULL ? NULL : (char*)jlong_to_ptr(env->GetLongField(arg0, JavaCPP_addressFID));
