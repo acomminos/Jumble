@@ -742,6 +742,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             usb.setSession(session);
             usb.setMute(mute);
             usb.setDeaf(deaf);
+            if (!mute) usb.setSuppress(false);
             mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
         }
 
