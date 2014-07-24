@@ -213,6 +213,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Jumble");
         mHandler = new Handler(getMainLooper());
         mCallbacks = new JumbleCallbacks();
+        mMessageLog = new ArrayList<Message>();
     }
 
     @Override
@@ -232,7 +233,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void connect() {
         try {
             mReconnecting = false;
-            mMessageLog = new ArrayList<Message>();
 
             mConnection = new JumbleConnection(this);
             mModelHandler = new ModelHandler(this, mCallbacks, this);
@@ -338,9 +338,10 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mAudioHandler.shutdown();
         }
 
+        mMessageLog.clear();
+
         mConnection = null;
         mModelHandler = null;
-        mMessageLog = null;
         mAudioHandler = null;
 
         try {
