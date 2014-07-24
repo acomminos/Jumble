@@ -463,7 +463,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public int getSession() throws RemoteException {
-            return mConnection.getSession();
+            return mConnection != null ? mConnection.getSession() : -1;
         }
 
         @Override
