@@ -87,6 +87,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     /** The trust store's format. */
     public static final String EXTRAS_TRUST_STORE_FORMAT = "trust_store_format";
     public static final String EXTRAS_HALF_DUPLEX = "half_duplex";
+    /** A list of users that should be local muted upon connection. */
+    public static final String EXTRAS_LOCAL_MUTE_HISTORY = "local_mute_history";
 
     public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
 
@@ -113,6 +115,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private String mTrustStorePassword;
     private String mTrustStoreFormat;
     private boolean mHalfDuplex;
+    private List<Integer> mLocalMuteHistory;
 
     private PowerManager.WakeLock mWakeLock;
     private Handler mHandler;
@@ -200,6 +203,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mTrustStorePassword = extras.getString(EXTRAS_TRUST_STORE_PASSWORD);
             mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
             mHalfDuplex = extras.getBoolean(EXTRAS_HALF_DUPLEX);
+            mLocalMuteHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_MUTE_HISTORY);
 
             connect();
         }
@@ -235,7 +239,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mReconnecting = false;
 
             mConnection = new JumbleConnection(this);
-            mModelHandler = new ModelHandler(this, mCallbacks, this);
+            mModelHandler = new ModelHandler(this, mCallbacks, this, mLocalMuteHistory);
             mAudioHandler = new AudioHandler(this, this, mAudioInputListener, mAudioOutputListener);
             mAudioHandler.setAmplitudeBoost(mAmplitudeBoost);
             mAudioHandler.setBitrate(mInputQuality);

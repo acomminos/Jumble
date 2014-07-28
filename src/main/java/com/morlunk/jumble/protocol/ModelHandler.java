@@ -31,6 +31,8 @@ import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.util.JumbleLogger;
 import com.morlunk.jumble.util.MessageFormatter;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -68,15 +70,17 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
     private final Context mContext;
     private final Map<Integer, Channel> mChannels;
     private final Map<Integer, User> mUsers;
+    private final List<Integer> mLocalMuteHistory;
     private final IJumbleObserver mObserver;
     private final JumbleLogger mLogger;
     private int mPermissions;
     private int mSession;
 
-    public ModelHandler(Context context, IJumbleObserver observer, JumbleLogger logger) {
+    public ModelHandler(Context context, IJumbleObserver observer, JumbleLogger logger, @Nullable List<Integer> localMuteHistory) {
         mContext = context;
         mChannels = new HashMap<Integer, Channel>();
         mUsers = new HashMap<Integer, User>();
+        mLocalMuteHistory = localMuteHistory;
         mObserver = observer;
         mLogger = logger;
     }
@@ -276,8 +280,13 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
 
         final User finalUser = user;
 
-        if(msg.hasUserId())
+        if(msg.hasUserId()) {
             user.setUserId(msg.getUserId());
+            // Restore local mute state from history
+            if (mLocalMuteHistory != null && mLocalMuteHistory.contains(user.getUserId())) {
+                user.setLocalMuted(true);
+            }
+        }
 
         if(msg.hasHash()) {
             user.setHash(msg.getHash());

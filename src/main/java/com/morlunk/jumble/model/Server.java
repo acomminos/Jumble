@@ -132,4 +132,11 @@ public class Server implements Parcelable {
         this.mPassword = mPassword;
     }
 
+    /**
+     * Returns whether or not the server is stored in a database.
+     * @return true if the server's ID is in the database.
+     */
+    public boolean isSaved() {
+        return mId != -1;
+    }
 }

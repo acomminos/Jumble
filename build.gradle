@@ -36,6 +36,7 @@ dependencies {
     compile 'com.madgag.spongycastle:prov:1.50.0.0'
     compile 'com.madgag.spongycastle:pkix:1.50.0.0'
     compile 'com.googlecode.javacpp:javacpp:0.7'
+    compile 'com.intellij:annotations:+@jar'
 }
 
 android {
