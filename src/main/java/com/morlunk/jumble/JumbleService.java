@@ -239,6 +239,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mReconnecting = false;
 
             mConnection = new JumbleConnection(this);
+            mConnection.setForceTCP(mForceTcp);
+            mConnection.setUseTor(mUseTor);
+            mConnection.setKeys(mCertificate, mCertificatePassword);
+            mConnection.setTrustStore(mTrustStore, mTrustStorePassword, mTrustStoreFormat);
+
             mModelHandler = new ModelHandler(this, mCallbacks, this, mLocalMuteHistory);
             mAudioHandler = new AudioHandler(this, this, mAudioInputListener, mAudioOutputListener);
             mAudioHandler.setAmplitudeBoost(mAmplitudeBoost);
@@ -250,11 +255,10 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mAudioHandler.setFramesPerPacket(mFramesPerPacket);
             mAudioHandler.setSampleRate(mInputRate);
             mAudioHandler.setHalfDuplex(mHalfDuplex);
-            mConnection.setTrustStore(mTrustStore, mTrustStorePassword, mTrustStoreFormat);
             mConnection.addTCPMessageHandlers(mModelHandler, mAudioHandler);
             mConnection.addUDPMessageHandlers(mAudioHandler);
 
-            mConnection.connect(mServer.getHost(), mServer.getPort(), mForceTcp, mUseTor, mCertificate, mCertificatePassword);
+            mConnection.connect(mServer.getHost(), mServer.getPort());
         } catch (JumbleException e) {
             e.printStackTrace();
             try {

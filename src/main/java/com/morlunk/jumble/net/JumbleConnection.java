@@ -71,7 +71,8 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
     public static final int TOR_PORT = 9050;
 
     // Authentication
-    private JumbleSSLSocketFactory mSocketFactory;
+    private byte[] mCertificate;
+    private String mCertificatePassword;
     private String mTrustStorePath;
     private String mTrustStorePassword;
     private String mTrustStoreFormat;
@@ -122,7 +123,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         @Override
         public void messageServerSync(Mumble.ServerSync msg) {
             // Protocol says we're supposed to send a dummy UDPTunnel packet here to let the server know we don't like UDP.
-            if(mForceTCP) {
+            if (shouldForceTCP()) {
                 enableForceTCP();
             }
 
@@ -215,7 +216,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
 
             if(((mCryptState.mUiRemoteGood == 0) || (mCryptState.mUiGood == 0)) && mUsingUDP && elapsed > 20000000) {
                 mUsingUDP = false;
-                if(!mForceTCP && mListener != null) {
+                if(!shouldForceTCP() && mListener != null) {
                     if((mCryptState.mUiRemoteGood == 0) && (mCryptState.mUiGood == 0))
                         mListener.onConnectionWarning("UDP packets cannot be sent to or received from the server. Switching to TCP mode.");
                     else if(mCryptState.mUiRemoteGood == 0)
@@ -225,7 +226,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
                 }
             } else if (!mUsingUDP && (mCryptState.mUiRemoteGood > 3) && (mCryptState.mUiGood > 3)) {
                 mUsingUDP = true;
-                if (!mForceTCP && mListener != null)
+                if (!shouldForceTCP() && mListener != null)
                     mListener.onConnectionWarning("UDP packets can be sent to and received from the server. Switching back to UDP mode.");
             }
         }
@@ -256,7 +257,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
             // In microseconds
             long t = getElapsed();
 
-            if(!mForceTCP) {
+            if (!shouldForceTCP()) {
                 ByteBuffer buffer = ByteBuffer.allocate(16);
                 buffer.put((byte) ((JumbleUDPMessageType.UDPPing.ordinal() << 5) & 0xFF));
                 buffer.putLong(t);
@@ -286,24 +287,23 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         mUDPHandlers.add(mUDPPingListener);
     }
 
-    public void connect(String host, int port, boolean forceTCP, boolean useTor, byte[] certificate, String certificatePassword) throws JumbleException {
+    public void connect(String host, int port) throws JumbleException {
         mHost = host;
         mPort = port;
         mConnected = false;
         mSynchronized = false;
         mExceptionHandled = false;
-        mForceTCP = forceTCP;
-        mUseTor = useTor;
-        mUsingUDP = !mForceTCP;
+        mUsingUDP = !shouldForceTCP();
         mStartTimestamp = System.nanoTime();
 
         mPingExecutorService = Executors.newSingleThreadScheduledExecutor();
 
+        JumbleSSLSocketFactory socketFactory = createSocketFactory();
+
         try {
-            setupSocketFactory(certificate, certificatePassword);
-            mTCP = new JumbleTCP(mSocketFactory);
+            mTCP = new JumbleTCP(socketFactory);
             mTCP.setTCPConnectionListener(this);
-            mTCP.connect(host, port, useTor);
+            mTCP.connect(host, port, mUseTor);
             // UDP thread is formally started after TCP connection.
         } catch (ConnectException e) {
             throw new JumbleException(e, false);
@@ -340,6 +340,34 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
 
     public void removeUDPMessageHandler(JumbleUDPMessageListener handler) {
         mUDPHandlers.remove(handler);
+    }
+
+    /**
+     * Set whether to proxy all connections over a local Orbot instance.
+     * This will force TCP tunneling for voice packets.
+     * @param useTor true if Tor should be enabled and TCP forced.
+     */
+    public void setUseTor(boolean useTor) {
+        mUseTor = useTor;
+    }
+
+    /**
+     * Set whether to tunnel all voice packets over TCP, disabling the UDP thread.
+     * @param forceTcp true if voice packets should tunnel over TCP.
+     * @see #setUseTor
+     */
+    public void setForceTCP(boolean forceTcp) {
+        mForceTCP = forceTcp;
+    }
+
+    /**
+     * Sets the PKCS12 certificate data and password to use when authenticating.
+     * @param certificate A PKCS12-formatted certificate.
+     * @param password An optional password used to encrypt the certificate.
+     */
+    public void setKeys(byte[] certificate, String password) {
+        mCertificate = certificate;
+        mCertificatePassword = password;
     }
 
     public void setTrustStore(String path, String password, String format) {
@@ -385,6 +413,14 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
     }
 
     /**
+     * Return whether or not voice packets should be tunneled over TCP.
+     * @return true if TCP is manually forced or Tor has been disabled.
+     */
+    public boolean shouldForceTCP() {
+        return mForceTCP || mUseTor;
+    }
+
+    /**
      * Gracefully shuts down all networking. Blocks until all network threads have stopped.
      */
     public void disconnect() {
@@ -419,21 +455,22 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
     }
 
     /**
-     * Attempts to load the PKCS12 certificate from the passed data, and sets up an SSL socket factory.
-     * You must call this method before establishing a TCP connection.
-     * @param certificate The binary representation of a PKCS12 (.p12) certificate. May be null.
-     * @param certificatePassword The password to decrypt the key store. May be null.
+     * Attempts to create a socket factory using the JumbleConnection's certificate and trust
+     * store configuration.
+     * @return A socket factory set to authenticate with a certificate and trust store, if set.
      */
-    protected void setupSocketFactory(byte[] certificate, String certificatePassword) throws JumbleException {
+    private JumbleSSLSocketFactory createSocketFactory() throws JumbleException {
         try {
             KeyStore keyStore = null;
-            if(certificate != null) {
+            if(mCertificate != null) {
                 keyStore = KeyStore.getInstance("PKCS12");
-                ByteArrayInputStream inputStream = new ByteArrayInputStream(certificate);
-                keyStore.load(inputStream, certificatePassword != null ? certificatePassword.toCharArray() : new char[0]);
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(mCertificate);
+                keyStore.load(inputStream, mCertificatePassword != null ?
+                        mCertificatePassword.toCharArray() : new char[0]);
             }
 
-            mSocketFactory = new JumbleSSLSocketFactory(keyStore, certificatePassword, mTrustStorePath, mTrustStorePassword, mTrustStoreFormat);
+            return new JumbleSSLSocketFactory(keyStore, mCertificatePassword, mTrustStorePath,
+                    mTrustStorePassword, mTrustStoreFormat);
         } catch (KeyManagementException e) {
             throw new JumbleException("Could not recover keys from certificate", e, false);
         } catch (KeyStoreException e) {
@@ -484,9 +521,9 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
                     "available data length " + data.length + "!");
         }
         if (mServerVersion == 0x10202) applyLegacyCodecWorkaround(data);
-        if (!force && (mForceTCP || !mUsingUDP))
+        if (!force && (shouldForceTCP() || !mUsingUDP))
             mTCP.sendMessage(data, length, JumbleTCPMessageType.UDPTunnel);
-        else if (!mForceTCP)
+        else if (!shouldForceTCP())
             mUDP.sendMessage(data, length);
     }
 
@@ -525,7 +562,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         mConnected = true;
 
         // Attempt to start UDP thread once connected.
-        if(!mForceTCP) {
+        if(!shouldForceTCP()) {
             try {
                 mUDP = new JumbleUDP(mCryptState);
                 mUDP.setUDPConnectionListener(this);
