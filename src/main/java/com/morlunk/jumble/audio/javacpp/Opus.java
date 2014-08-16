@@ -32,7 +32,7 @@ import com.morlunk.jumble.exception.NativeAudioException;
  * Created by andrew on 18/10/13.
  */
 
-@Platform(library= "opus", link= "opus", cinclude={"<opus.h>","<opus_types.h>"})
+@Platform(library= "jniopus", cinclude={"<opus.h>","<opus_types.h>"})
 public class Opus {
     public static final int OPUS_APPLICATION_VOIP = 2048;
 
@@ -41,7 +41,7 @@ public class Opus {
     public static final int OPUS_SET_VBR_REQUEST = 4006;
 
     public static native int opus_decoder_get_size(int channels);
-    public static native @NoDeallocator Pointer opus_decoder_create(int fs, int channels, IntPointer error);
+    public static native Pointer opus_decoder_create(int fs, int channels, IntPointer error);
     public static native int opus_decoder_init(@Cast("OpusDecoder*") Pointer st, int fs, int channels);
     public static native int opus_decode(@Cast("OpusDecoder*") Pointer st, @Cast("const unsigned char*") byte[] data, int len, short[] out, int frameSize, int decodeFec);
     public static native int opus_decode_float(@Cast("OpusDecoder*") Pointer st, @Cast("const unsigned char*") byte[] data, int len, float[] out, int frameSize, int decodeFec);
@@ -56,7 +56,7 @@ public class Opus {
 
 
     public static native int opus_encoder_get_size(int channels);
-    public static native @NoDeallocator Pointer opus_encoder_create(int fs, int channels, int application, IntPointer error);
+    public static native Pointer opus_encoder_create(int fs, int channels, int application, IntPointer error);
     public static native int opus_encoder_init(@Cast("OpusEncoder*") Pointer st, int fs, int channels, int application);
     public static native int opus_encode(@Cast("OpusEncoder*") Pointer st, @Cast("const short*") short[] pcm, int frameSize, @Cast("unsigned char*") byte[] data, int maxDataBytes);
     public static native int opus_encode_float(@Cast("OpusEncoder*") Pointer st, @Cast("const float*") float[] pcm, int frameSize, @Cast("unsigned char*") byte[] data, int maxDataBytes);

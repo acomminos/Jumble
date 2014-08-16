@@ -19,7 +19,7 @@ ROOT := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_PATH          := $(ROOT)/speex/libspeex
-LOCAL_MODULE        := speex
+LOCAL_MODULE        := jnispeex
 LOCAL_C_INCLUDES    := $(ROOT)/speex/include/
 LOCAL_SRC_FILES		:= cb_search.c		exc_10_32_table.c 	exc_8_128_table.c 	filters.c \
 					   gain_table.c 	hexc_table.c 		high_lsp_tables.c 	lsp.c \
@@ -31,7 +31,7 @@ LOCAL_SRC_FILES		:= cb_search.c		exc_10_32_table.c 	exc_8_128_table.c 	filters.c
 					   window.c			resample.c			jitter.c            preprocess.c \
 					   mdf.c            kiss_fft.c          kiss_fftr.c         fftwrap.c \
 					   filterbank.c     scal.c \
-					   $(ROOT)/speex.cpp
+					   $(ROOT)/jnispeex.cpp
 LOCAL_CFLAGS		:= -D__EMX__ -DUSE_KISS_FFT -DFIXED_POINT -DEXPORT=''
 LOCAL_CPP_FEATURES := exceptions
 LOCAL_LDLIBS := -llog
@@ -39,8 +39,10 @@ include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_PATH			:= $(ROOT)/celt-0.11.0-src/libcelt
-LOCAL_MODULE		:= libcelt11
-LOCAL_SRC_FILES		:= bands.c celt.c cwrs.c entcode.c entdec.c entenc.c header.c kiss_fft.c laplace.c mathops.c mdct.c modes.c pitch.c plc.c quant_bands.c rate.c vq.c $(ROOT)/celt11.cpp
+LOCAL_MODULE		:= jnicelt11
+LOCAL_SRC_FILES		:= bands.c celt.c cwrs.c entcode.c entdec.c entenc.c header.c kiss_fft.c \
+                       laplace.c mathops.c mdct.c modes.c pitch.c plc.c quant_bands.c rate.c vq.c \
+                       $(ROOT)/jnicelt11.cpp
 LOCAL_C_INCLUDES    := $(ROOT)/celt-0.11.0-src/libcelt/
 LOCAL_CFLAGS		:= -I$(ROOT)/celt-0.11.0-build -DHAVE_CONFIG_H -fvisibility=hidden
 LOCAL_CPP_FEATURES := exceptions
@@ -49,8 +51,10 @@ include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_PATH			:= $(ROOT)/celt-0.7.0-src/libcelt
-LOCAL_MODULE		:= libcelt7
-LOCAL_SRC_FILES		:= bands.c celt.c cwrs.c entcode.c entdec.c entenc.c header.c kiss_fft.c kiss_fftr.c laplace.c mdct.c modes.c pitch.c psy.c quant_bands.c rangedec.c rangeenc.c rate.c vq.c $(ROOT)/celt7.cpp
+LOCAL_MODULE		:= jnicelt7
+LOCAL_SRC_FILES		:= bands.c celt.c cwrs.c entcode.c entdec.c entenc.c header.c kiss_fft.c \
+                       kiss_fftr.c laplace.c mdct.c modes.c pitch.c psy.c quant_bands.c rangedec.c \
+                       rangeenc.c rate.c vq.c $(ROOT)/jnicelt7.cpp
 LOCAL_C_INCLUDES    := $(ROOT)/celt-0.7.0-src/libcelt/
 LOCAL_CFLAGS		:= -I$(ROOT)/celt-0.7.0-build -DHAVE_CONFIG_H -fvisibility=hidden
 LOCAL_CPP_FEATURES := exceptions
@@ -59,7 +63,7 @@ include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_PATH			:= $(ROOT)/opus
-LOCAL_MODULE		:= libopus
+LOCAL_MODULE		:= jniopus
 
 include $(LOCAL_PATH)/celt_sources.mk
 include $(LOCAL_PATH)/silk_sources.mk
@@ -75,8 +79,9 @@ SILK_SOURCES += $(SILK_SOURCES_FIXED)
 OPUS_SOURCES += $(OPUS_SOURCES_FLOAT)
 # end fixed point
 
-LOCAL_C_INCLUDES	:= $(LOCAL_PATH)/include $(LOCAL_PATH)/celt $(LOCAL_PATH)/silk $(LOCAL_PATH)/silk/float $(LOCAL_PATH)/silk/fixed
-LOCAL_SRC_FILES     := $(CELT_SOURCES) $(SILK_SOURCES) $(OPUS_SOURCES) $(ROOT)/opus.cpp
+LOCAL_C_INCLUDES	:= $(LOCAL_PATH)/include $(LOCAL_PATH)/celt $(LOCAL_PATH)/silk \
+                       $(LOCAL_PATH)/silk/float $(LOCAL_PATH)/silk/fixed
+LOCAL_SRC_FILES     := $(CELT_SOURCES) $(SILK_SOURCES) $(OPUS_SOURCES) $(ROOT)/jniopus.cpp
 LOCAL_CFLAGS		:= -DOPUS_BUILD -DVAR_ARRAYS -Wno-traditional -DFIXED_POINT
 LOCAL_CPP_FEATURES  := exceptions
 LOCAL_LDLIBS        := -llog
