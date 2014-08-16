@@ -71,16 +71,20 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
     private final Map<Integer, Channel> mChannels;
     private final Map<Integer, User> mUsers;
     private final List<Integer> mLocalMuteHistory;
+    private final List<Integer> mLocalIgnoreHistory;
     private final IJumbleObserver mObserver;
     private final JumbleLogger mLogger;
     private int mPermissions;
     private int mSession;
 
-    public ModelHandler(Context context, IJumbleObserver observer, JumbleLogger logger, @Nullable List<Integer> localMuteHistory) {
+    public ModelHandler(Context context, IJumbleObserver observer, JumbleLogger logger,
+                        @Nullable List<Integer> localMuteHistory,
+                        @Nullable List<Integer> localIgnoreHistory) {
         mContext = context;
         mChannels = new HashMap<Integer, Channel>();
         mUsers = new HashMap<Integer, User>();
         mLocalMuteHistory = localMuteHistory;
+        mLocalIgnoreHistory = localIgnoreHistory;
         mObserver = observer;
         mLogger = logger;
     }
@@ -282,9 +286,12 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
 
         if(msg.hasUserId()) {
             user.setUserId(msg.getUserId());
-            // Restore local mute state from history
+            // Restore local mute and ignore from history
             if (mLocalMuteHistory != null && mLocalMuteHistory.contains(user.getUserId())) {
                 user.setLocalMuted(true);
+            }
+            if (mLocalIgnoreHistory != null && mLocalIgnoreHistory.contains(user.getUserId())) {
+                user.setLocalIgnored(true);
             }
         }
 

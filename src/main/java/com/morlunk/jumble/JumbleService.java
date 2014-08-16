@@ -89,6 +89,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_HALF_DUPLEX = "half_duplex";
     /** A list of users that should be local muted upon connection. */
     public static final String EXTRAS_LOCAL_MUTE_HISTORY = "local_mute_history";
+    /** A list of users that should be local ignored upon connection. */
+    public static final String EXTRAS_LOCAL_IGNORE_HISTORY = "local_ignore_history";
 
     public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
 
@@ -116,6 +118,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private String mTrustStoreFormat;
     private boolean mHalfDuplex;
     private List<Integer> mLocalMuteHistory;
+    private List<Integer> mLocalIgnoreHistory;
 
     private PowerManager.WakeLock mWakeLock;
     private Handler mHandler;
@@ -204,6 +207,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
             mHalfDuplex = extras.getBoolean(EXTRAS_HALF_DUPLEX);
             mLocalMuteHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_MUTE_HISTORY);
+            mLocalIgnoreHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_IGNORE_HISTORY);
 
             connect();
         }
@@ -244,7 +248,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mConnection.setKeys(mCertificate, mCertificatePassword);
             mConnection.setTrustStore(mTrustStore, mTrustStorePassword, mTrustStoreFormat);
 
-            mModelHandler = new ModelHandler(this, mCallbacks, this, mLocalMuteHistory);
+            mModelHandler = new ModelHandler(this, mCallbacks, this,
+                    mLocalMuteHistory, mLocalIgnoreHistory);
             mAudioHandler = new AudioHandler(this, this, mAudioInputListener, mAudioOutputListener);
             mAudioHandler.setAmplitudeBoost(mAmplitudeBoost);
             mAudioHandler.setBitrate(mInputQuality);
