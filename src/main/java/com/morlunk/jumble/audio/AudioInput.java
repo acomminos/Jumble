@@ -118,9 +118,7 @@ public class AudioInput implements Runnable {
             mResampleBuffer = new short[mMicFrameSize];
         }
 
-        if(mUsePreprocessor) {
-            configurePreprocessState();
-        }
+        configurePreprocessState();
     }
 
     /**
@@ -262,6 +260,10 @@ public class AudioInput implements Runnable {
         if(mEncoder != null) mEncoder.setBitrate(bitrate);
     }
 
+    public void setPreprocessorEnabled(boolean preprocessorEnabled) {
+        mUsePreprocessor = preprocessorEnabled;
+    }
+
     /**
      * Stops the record loop and waits on it to finish.
      * Releases native audio resources.
@@ -338,10 +340,14 @@ public class AudioInput implements Runnable {
                 mFrameCounter++;
 
                 // Resample if necessary
-                if(mResampler != null) mResampler.resample(mResampleBuffer, mAudioBuffer);
+                if(mResampler != null) {
+                    mResampler.resample(mResampleBuffer, mAudioBuffer);
+                }
 
                 // Run preprocessor on audio data. TODO echo!
-                mPreprocessState.preprocess(mAudioBuffer);
+                if (mUsePreprocessor) {
+                    mPreprocessState.preprocess(mAudioBuffer);
+                }
 
                 // Boost/reduce amplitude based on user preference
                 if(mAmplitudeBoost != 1.0f) {

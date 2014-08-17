@@ -91,6 +91,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_LOCAL_MUTE_HISTORY = "local_mute_history";
     /** A list of users that should be local ignored upon connection. */
     public static final String EXTRAS_LOCAL_IGNORE_HISTORY = "local_ignore_history";
+    public static final String EXTRAS_ENABLE_PREPROCESSOR = "enable_preprocessor";
 
     public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
 
@@ -119,6 +120,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private boolean mHalfDuplex;
     private List<Integer> mLocalMuteHistory;
     private List<Integer> mLocalIgnoreHistory;
+    private boolean mEnablePreprocessor;
 
     private PowerManager.WakeLock mWakeLock;
     private Handler mHandler;
@@ -208,6 +210,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mHalfDuplex = extras.getBoolean(EXTRAS_HALF_DUPLEX);
             mLocalMuteHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_MUTE_HISTORY);
             mLocalIgnoreHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_IGNORE_HISTORY);
+            mEnablePreprocessor = extras.getBoolean(EXTRAS_ENABLE_PREPROCESSOR, true);
 
             connect();
         }
@@ -260,6 +263,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mAudioHandler.setFramesPerPacket(mFramesPerPacket);
             mAudioHandler.setSampleRate(mInputRate);
             mAudioHandler.setHalfDuplex(mHalfDuplex);
+            mAudioHandler.setPreprocessorEnabled(mEnablePreprocessor);
             mConnection.addTCPMessageHandlers(mModelHandler, mAudioHandler);
             mConnection.addUDPMessageHandlers(mAudioHandler);
 

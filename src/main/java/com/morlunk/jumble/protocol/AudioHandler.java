@@ -69,6 +69,7 @@ public class AudioHandler extends JumbleNetworkListener {
     private boolean mInitialized;
     private boolean mBluetoothOn;
     private boolean mHalfDuplex;
+    private boolean mPreprocessorEnabled;
 
     private BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
         @Override
@@ -312,6 +313,16 @@ public class AudioHandler extends JumbleNetworkListener {
      */
     public void setHalfDuplex(boolean halfDuplex) {
         mHalfDuplex = halfDuplex;
+    }
+
+    /**
+     * Sets whether to enable the Speex preprocessor.
+     * Does not require input thread recreation.
+     * @param preprocessorEnabled Whether to enable the Speex preprocessor.
+     */
+    public void setPreprocessorEnabled(boolean preprocessorEnabled) {
+        mPreprocessorEnabled = preprocessorEnabled;
+        if (mInitialized) mInput.setPreprocessorEnabled(preprocessorEnabled);
     }
 
     /**
