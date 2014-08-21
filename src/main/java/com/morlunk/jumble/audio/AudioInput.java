@@ -95,7 +95,9 @@ public class AudioInput implements Runnable {
     private Thread mRecordThread;
     private boolean mRecording;
 
-    public AudioInput(AudioInputListener listener, JumbleUDPMessageType codec, int audioSource, int targetSampleRate, int bitrate, int framesPerPacket, int transmitMode, float vadThreshold, float amplitudeBoost) throws NativeAudioException, AudioInitializationException {
+    public AudioInput(AudioInputListener listener, JumbleUDPMessageType codec, int audioSource,
+                      int targetSampleRate, int bitrate, int framesPerPacket, int transmitMode,
+                      float vadThreshold, float amplitudeBoost, boolean preprocessorEnabled) throws NativeAudioException, AudioInitializationException {
         mListener = listener;
         mCodec = codec;
         mAudioSource = audioSource;
@@ -105,6 +107,7 @@ public class AudioInput implements Runnable {
         mTransmitMode = transmitMode;
         mVADThreshold = vadThreshold;
         mAmplitudeBoost = amplitudeBoost;
+        mUsePreprocessor = preprocessorEnabled;
 
         mAudioRecord = createAudioRecord();
         mEncoder = createEncoder(mCodec);

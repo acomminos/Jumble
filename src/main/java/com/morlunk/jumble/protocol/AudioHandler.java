@@ -121,7 +121,8 @@ public class AudioHandler extends JumbleNetworkListener {
     private void createAudioInput() throws AudioException {
         if(mInput != null) mInput.shutdown();
 
-        mInput = new AudioInput(mInputListener, mCodec, mAudioSource, mSampleRate, mBitrate, mFramesPerPacket, mTransmitMode, mVADThreshold, mAmplitudeBoost);
+        mInput = new AudioInput(mInputListener, mCodec, mAudioSource, mSampleRate, mBitrate,
+                mFramesPerPacket, mTransmitMode, mVADThreshold, mAmplitudeBoost, mPreprocessorEnabled);
         if(mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY || mTransmitMode == Constants.TRANSMIT_CONTINUOUS) {
             mInput.startRecording();
         }
