@@ -136,7 +136,9 @@ public class AudioOutputSpeech {
 
             if(pds.isValid()) {
                 Speex.JitterBufferPacket packet = new Speex.JitterBufferPacket(data, data.length, AudioHandler.FRAME_SIZE * seq, samples, 0);
-                mJitterBuffer.put(packet);
+                synchronized (mJitterLock) {
+                    mJitterBuffer.put(packet);
+                }
             }
         }
     }
