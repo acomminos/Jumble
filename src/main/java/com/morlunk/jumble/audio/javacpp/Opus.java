@@ -77,13 +77,14 @@ public class Opus {
             error.put(0);
             mState = opus_encoder_create(sampleRate, channels, OPUS_APPLICATION_VOIP, error);
             if(error.get() < 0) throw new NativeAudioException("Opus encoder initialization failed with error: "+error.get());
-//            Opus.opus_encoder_ctl(mState, Opus.OPUS_SET_VBR_REQUEST, 0);
+            Opus.opus_encoder_ctl(mState, Opus.OPUS_SET_VBR_REQUEST, 0); // enable CBR
         }
 
         @Override
-        public void encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException {
+        public int encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException {
             int result = Opus.opus_encode(mState, input, inputSize, output, outputSize);
             if(result < 0) throw new NativeAudioException("Opus encoding failed with error: "+result);
+            return result;
         }
 
         @Override

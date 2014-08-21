@@ -23,7 +23,16 @@ import com.morlunk.jumble.exception.NativeAudioException;
  * Created by andrew on 07/03/14.
  */
 public interface IEncoder {
-    public void encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException;
+    /**
+     * Encodes the provided input and returns the number of bytes encoded.
+     * @param input The short PCM data to encode.
+     * @param inputSize The number of samples to encode.
+     * @param output The output buffer.
+     * @param outputSize The size of the output buffer.
+     * @return The number of bytes encoded.
+     * @throws NativeAudioException if there was an error encoding.
+     */
+    public int encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException;
     public void setBitrate(int bitrate);
     public void destroy();
 }

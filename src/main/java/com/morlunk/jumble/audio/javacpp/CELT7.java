@@ -69,9 +69,10 @@ public class CELT7 {
         }
 
         @Override
-        public void encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException {
+        public int encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException {
             int result = celt_encode(mState, input, null, output, outputSize);
             if(result < 0) throw new NativeAudioException("CELT 0.7.0 encoding failed with error: "+result);
+            return result;
         }
 
         @Override

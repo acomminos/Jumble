@@ -37,9 +37,9 @@ public class ResamplingEncoder implements IEncoder {
     }
 
     @Override
-    public void encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException {
+    public int encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException {
         mResampler.resample(input, input);
-        mEncoder.encode(input, inputSize, output, outputSize);
+        return mEncoder.encode(input, inputSize, output, outputSize);
     }
 
     @Override

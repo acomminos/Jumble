@@ -57,7 +57,7 @@ public class AudioInput implements Runnable {
 
     public static final int[] SAMPLE_RATES = { 48000, 44100, 22050, 16000, 11025, 8000 };
     private static final int SPEEX_RESAMPLE_QUALITY = 3;
-    private static final int OPUS_MAX_BYTES = 512; // Opus specifies 4000 bytes as a recommended value for encoding, but the official mumble project uses 512.
+    private static final int OPUS_MAX_BYTES = 960; // Opus specifies 4000 bytes as a recommended value for encoding, but the official mumble project uses 512.
     private static final int SPEECH_DETECT_THRESHOLD = (int) (0.25 * Math.pow(10, 9)); // Continue speech for 250ms to prevent dropping
 
     private IEncoder mEncoder;
@@ -335,7 +335,7 @@ public class AudioInput implements Runnable {
         while(mRecording) {
             int shortsRead = mAudioRecord.read(mResampler != null ? mResampleBuffer : mAudioBuffer, 0, mResampler != null ? mMicFrameSize : mFrameSize);
             if(shortsRead > 0) {
-                int len;
+                int len = 0;
                 boolean encoded = false;
                 mFrameCounter++;
 
@@ -396,7 +396,7 @@ public class AudioInput implements Runnable {
                                 mBufferedFrames = mFramesPerPacket; // If recording was stopped early, encode remaining empty frames too.
 
                             try {
-                                mEncoder.encode(mOpusBuffer, mFrameSize * mBufferedFrames, mEncodedBuffer, OPUS_MAX_BYTES);
+                                len = mEncoder.encode(mOpusBuffer, mFrameSize * mBufferedFrames, mEncodedBuffer, OPUS_MAX_BYTES);
                                 encoded = true;
                             } catch (NativeAudioException e) {
                                 mBufferedFrames = 0;
@@ -407,7 +407,7 @@ public class AudioInput implements Runnable {
                     case UDPVoiceCELTBeta:
                     case UDPVoiceCELTAlpha:
                         try {
-                            mEncoder.encode(mAudioBuffer, mFrameSize, mCELTBuffer[mBufferedFrames], AudioHandler.SAMPLE_RATE/800);
+                            len = mEncoder.encode(mAudioBuffer, mFrameSize, mCELTBuffer[mBufferedFrames], AudioHandler.SAMPLE_RATE/800);
                             mBufferedFrames++;
                             encoded = mBufferedFrames >= mFramesPerPacket || (!mRecording && mBufferedFrames > 0);
                         } catch (NativeAudioException e) {
@@ -419,7 +419,7 @@ public class AudioInput implements Runnable {
                         break;
                 }
 
-                if(encoded) sendFrame(!mRecording);
+                if(encoded) sendFrame(!mRecording, len);
             } else {
                 Log.e(Constants.TAG, "Error fetching audio! AudioRecord error "+shortsRead);
                 mBufferedFrames = 0;
@@ -435,7 +435,7 @@ public class AudioInput implements Runnable {
      * Sends the encoded frame to the server.
      * Volatile; depends on class state and must not be called concurrently.
      */
-    private void sendFrame(boolean terminator) {
+    private void sendFrame(boolean terminator, int length) {
         int frames = mBufferedFrames;
         mBufferedFrames = 0;
 
@@ -451,11 +451,11 @@ public class AudioInput implements Runnable {
 
         if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
             byte[] frame = mEncodedBuffer;
-            long size = frame.length;
+            long size = length;
             if(terminator)
                 size |= 1 << 13;
             ds.writeLong(size);
-            ds.append(frame, frame.length);
+            ds.append(frame, length);
         } else {
             for (int x=0;x<frames;x++) {
                 byte[] frame = mCELTBuffer[x];
