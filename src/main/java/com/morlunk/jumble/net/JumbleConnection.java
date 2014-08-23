@@ -29,6 +29,8 @@ import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.protocol.JumbleTCPMessageListener;
 import com.morlunk.jumble.protocol.JumbleUDPMessageListener;
 
+import org.spongycastle.jce.provider.BouncyCastleProvider;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.ConnectException;
@@ -463,7 +465,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         try {
             KeyStore keyStore = null;
             if(mCertificate != null) {
-                keyStore = KeyStore.getInstance("PKCS12");
+                keyStore = KeyStore.getInstance("PKCS12", new BouncyCastleProvider());
                 ByteArrayInputStream inputStream = new ByteArrayInputStream(mCertificate);
                 keyStore.load(inputStream, mCertificatePassword != null ?
                         mCertificatePassword.toCharArray() : new char[0]);

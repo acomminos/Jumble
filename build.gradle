@@ -32,9 +32,12 @@ repositories {
 dependencies {
     compile 'com.android.support:support-v4:19.1.+'
     compile 'com.google.protobuf:protobuf-java:2.5.0'
-    compile 'com.madgag.spongycastle:core:1.50.0.0'
-    compile 'com.madgag.spongycastle:prov:1.50.0.0'
-    compile 'com.madgag.spongycastle:pkix:1.50.0.0'
+    compile 'com.madgag.spongycastle:core:1.51.0.0'
+
+    // Custom PKCS12 keybag parse modifications to support Mumble unencrypted certificates
+    // Source: https://github.com/Morlunk/spongycastle/tree/pkcs12-keybag-fixes
+    compile files('libs/sc-morlunk-prov-1.51.0.0.jar', 'libs/sc-morlunk-pkix-1.51.0.0.jar')
+
     compile 'com.googlecode.javacpp:javacpp:0.7'
     compile 'com.intellij:annotations:+@jar'
 }
