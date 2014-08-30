@@ -184,7 +184,7 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
         if(!mRunning)
             return;
 
-        int msgFlags = data[0] & 0x1f;
+        byte msgFlags = (byte) (data[0] & 0x1f);
         PacketBuffer pds = new PacketBuffer(data, data.length);
         pds.skip(1);
         int session = (int) pds.readLong();
@@ -192,9 +192,6 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
         if(user != null && !user.isLocalMuted()) {
             // TODO check for whispers here
             int seq = (int) pds.readLong();
-            ByteBuffer packet = ByteBuffer.allocate(pds.left() + 1);
-            packet.put((byte)msgFlags);
-            packet.put(pds.dataBlock(pds.left()));
 
             // Synchronize so we don't destroy an output while we add a buffer to it.
             synchronized (mPacketLock) {
@@ -215,7 +212,8 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
                     mAudioOutputs.put(session, aop);
                 }
 
-                aop.addFrameToBuffer(packet.array(), seq);
+                PacketBuffer dataBuffer = new PacketBuffer(pds.bufferBlock(pds.left()));
+                aop.addFrameToBuffer(dataBuffer, msgFlags, seq);
             }
 
             synchronized (mInactiveLock) {

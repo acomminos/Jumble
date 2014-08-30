@@ -27,6 +27,9 @@ import com.googlecode.javacpp.annotation.Name;
 import com.googlecode.javacpp.annotation.Platform;
 import com.morlunk.jumble.audio.IDecoder;
 import com.morlunk.jumble.exception.NativeAudioException;
+import com.morlunk.jumble.net.PacketBuffer;
+
+import java.nio.ByteBuffer;
 
 /**
  * JavaCPP interface for Speex JNI.
@@ -268,7 +271,7 @@ public class Speex {
     @Name("_JitterBufferPacket")
     public static class JitterBufferPacket extends Pointer {
 
-        public JitterBufferPacket(byte[] data, int length, int timestamp, int span, int sequence) {
+        public JitterBufferPacket(byte[] data, int length, int timestamp, int span, int sequence, int userData) {
             allocate();
             if(data != null)
                 setData(data);
@@ -278,6 +281,7 @@ public class Speex {
             setTimestamp(timestamp);
             setSpan(span);
             setSequence(sequence);
+            setUserData(userData);
         }
 
         private native void allocate();
@@ -292,6 +296,8 @@ public class Speex {
         @MemberSetter @Name("span") public native void setSpan(int span);
         @MemberGetter @Name("sequence") public native int sequence();
         @MemberSetter @Name("sequence") public native void setSequence(int sequence);
+        @MemberGetter @Name("user_data") public native int getUserData();
+        @MemberSetter @Name("user_data") public native void setUserData(int userData);
     }
 
     /**

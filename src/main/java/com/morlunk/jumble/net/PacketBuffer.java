@@ -163,7 +163,7 @@ public class PacketBuffer {
     }
 
     public void rewind() {
-        mBuffer.position(0);
+        mBuffer.rewind();
     }
 
     public void writeBool(boolean b) {

@@ -48,11 +48,11 @@ public class Opus {
     //public static native int opus_decoder_ctl(@Cast("OpusDecoder*") Pointer st,  int request);
     public static native void opus_decoder_destroy(@Cast("OpusDecoder*") Pointer st);
     //public static native int opus_packet_parse(@Cast("const unsigned char*") BytePointer data, int len, ...
-    public static native int opus_packet_get_bandwidth(@Cast("const unsigned char*") BytePointer data);
-    public static native int opus_packet_get_samples_per_frame(@Cast("const unsigned char*") BytePointer data, int fs);
-    public static native int opus_packet_get_nb_channels(@Cast("const unsigned char*") BytePointer data);
-    public static native int opus_packet_get_nb_frames(@Cast("const unsigned char*") BytePointer packet, int len);
-    public static native int opus_packet_get_nb_samples(@Cast("const unsigned char*") BytePointer packet, int len, int fs);
+    public static native int opus_packet_get_bandwidth(@Cast("const unsigned char*") byte[] data);
+    public static native int opus_packet_get_samples_per_frame(@Cast("const unsigned char*") byte[] data, int fs);
+    public static native int opus_packet_get_nb_channels(@Cast("const unsigned char*") byte[] data);
+    public static native int opus_packet_get_nb_frames(@Cast("const unsigned char*") byte[] packet, int len);
+    public static native int opus_packet_get_nb_samples(@Cast("const unsigned char*") byte[] packet, int len, int fs);
 
 
     public static native int opus_encoder_get_size(int channels);
