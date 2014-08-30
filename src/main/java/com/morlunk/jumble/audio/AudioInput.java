@@ -31,7 +31,7 @@ import com.morlunk.jumble.audio.javacpp.Speex;
 import com.morlunk.jumble.exception.AudioInitializationException;
 import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
-import com.morlunk.jumble.net.PacketDataStream;
+import com.morlunk.jumble.net.PacketBuffer;
 import com.morlunk.jumble.protocol.AudioHandler;
 
 /**
@@ -448,7 +448,7 @@ public class AudioInput implements Runnable {
         final byte[] packetBuffer = new byte[1024];
         packetBuffer[0] = (byte) (flags & 0xFF);
 
-        PacketDataStream ds = new PacketDataStream(packetBuffer, 1024);
+        PacketBuffer ds = new PacketBuffer(packetBuffer, 1024);
         ds.skip(1);
         ds.writeLong(mFrameCounter - frames);
 

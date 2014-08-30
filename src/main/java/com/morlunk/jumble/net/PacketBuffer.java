@@ -17,105 +17,97 @@
 
 package com.morlunk.jumble.net;
 
-import java.util.Arrays;
+import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
 
 /**
- * Based directly off of the Mumble project's PacketDataStream.h file.
- * Created by andrew on 14/07/13.
+ * A {@link java.nio.ByteBuffer} based class for constructing Mumble protocol messages.
  */
-public class PacketDataStream {
-    private byte[] mData;
-    private int mMaxSize;
-    private int mOffset;
-    private int mOvershoot;
-    private boolean mOk;
+public class PacketBuffer {
+    private ByteBuffer mBuffer;
 
-    public PacketDataStream(byte[] data, int len) {
-        mOk = true;
-        mData = data;
-        mMaxSize = len;
+    public static PacketBuffer allocate(int len) {
+        return new PacketBuffer(ByteBuffer.allocate(len));
     }
 
+    public static PacketBuffer allocateDirect(int len) {
+        return new PacketBuffer(ByteBuffer.allocateDirect(len));
+    }
+
+    public PacketBuffer(ByteBuffer buffer) {
+        mBuffer = buffer;
+    }
+
+    public PacketBuffer(byte[] data, int len) {
+        mBuffer = ByteBuffer.wrap(data);
+        mBuffer.limit(len);
+    }
+
+    /**
+     * Returns the current size of the packet.
+     * @return The number of bytes written to the packet buffer.
+     */
     public int size() {
-        return mOffset;
+        return mBuffer.position();
     }
 
+    /**
+     * Returns the maximum size this packet can contain.
+     * @return The capacity of this packet buffer.
+     */
     public int capacity() {
-        return mMaxSize;
-    }
-
-    public boolean isValid() {
-        return mOk;
+        return mBuffer.limit();
     }
 
     public int left() {
-        return mMaxSize - mOffset;
-    }
-
-    public int undersize() {
-        return mOvershoot;
+        return mBuffer.limit() - mBuffer.position();
     }
 
     public void append(long v) {
-        if(mOffset < mMaxSize) {
-            mData[mOffset] = (byte) v;
-            mOffset++;
-        } else {
-            mOk = false;
-            mOvershoot++;
-        }
+        mBuffer.put((byte) v);
     }
 
     public void append(byte[] d, int len) {
-        if(left() >= len) {
-            System.arraycopy(d, 0, mData, mOffset, len);
-            mOffset += len;
-        } else {
-            int l = left();
-            Arrays.fill(mData, mOffset, mOffset+1, (byte)0);
-            mOffset++;
-            mOvershoot += len - 1;
-            mOk = false;
-        }
+        mBuffer.put(d, 0, len);
     }
 
     public void skip(int len) {
-        if(left() >= len)
-            mOffset += len;
-        else
-            mOk = false;
+        mBuffer.position(mBuffer.position() + len);
     }
 
     public int next() {
-        if(mOffset < mMaxSize)
-            return mData[mOffset++] & 0xFF;
-        else {
-            mOk = false;
-            return 0;
-        }
+        return mBuffer.get() & 0xFF;
     }
 
+    /**
+     * Slices the underlying byte buffer at the current position and limits it to size.
+     * @param size The limit of the buffer to obtain.
+     * @return The sliced byte buffer.
+     */
+    public ByteBuffer bufferBlock(int size) {
+        ByteBuffer buffer = mBuffer.slice();
+        buffer.limit(size);
+        return buffer;
+    }
+
+    /**
+     * Retrieves a block of data at the current position from the underlying byte buffer.
+     * @param size The size of the data block to allocate.
+     * @return The allocated data block.
+     */
     public byte[] dataBlock(int size) {
-        if(left() >= size) {
-            byte[] block = new byte[size];
-            System.arraycopy(mData, mOffset, block, 0, size);
-            mOffset += size;
-            return block;
-        } else {
-            mOk = false;
-            return new byte[0];
-        }
+        byte[] block = new byte[size];
+        mBuffer.get(block, 0, size);
+        return block;
     }
 
     public boolean readBool() {
-        final boolean b = ((int) readLong() > 0) ? true : false;
-        return b;
+        return ((int) readLong() > 0);
     }
 
     public double readDouble() {
         if (left() < 8) {
-            mOk = false;
-            return 0;
+            throw new BufferUnderflowException();
         }
 
         final long i = next() | next() << 8 | next() << 16 | next() << 24 |
@@ -126,8 +118,7 @@ public class PacketDataStream {
 
     public float readFloat() {
         if (left() < 4) {
-            mOk = false;
-            return 0;
+            throw new BufferUnderflowException();
         }
 
         final int i = next() | next() << 8 | next() << 16 | next() << 24;
@@ -161,9 +152,7 @@ public class PacketDataStream {
                     i = ~i;
                     break;
                 default:
-                    mOk = false;
-                    i = 0;
-                    break;
+                    throw new BufferUnderflowException();
             }
         } else if ((v & 0xF0) == 0xE0) {
             i = (v & 0x0F) << 24 | next() << 16 | next() << 8 | next();
@@ -174,14 +163,7 @@ public class PacketDataStream {
     }
 
     public void rewind() {
-        mOffset = 0;
-    }
-
-    public void setBuffer(byte[] d) {
-        mData = d;
-        mOk = true;
-        mOffset = 0;
-        mMaxSize = d.length;
+        mBuffer.position(0);
     }
 
     public void writeBool(boolean b) {

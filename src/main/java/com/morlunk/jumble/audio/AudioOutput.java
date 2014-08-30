@@ -31,7 +31,7 @@ import com.morlunk.jumble.exception.AudioInitializationException;
 import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
-import com.morlunk.jumble.net.PacketDataStream;
+import com.morlunk.jumble.net.PacketBuffer;
 import com.morlunk.jumble.protocol.AudioHandler;
 
 import java.nio.ByteBuffer;
@@ -185,7 +185,7 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
             return;
 
         int msgFlags = data[0] & 0x1f;
-        PacketDataStream pds = new PacketDataStream(data, data.length);
+        PacketBuffer pds = new PacketBuffer(data, data.length);
         pds.skip(1);
         int session = (int) pds.readLong();
         User user = mListener.getUser(session);

@@ -26,9 +26,10 @@ import com.morlunk.jumble.audio.javacpp.Speex;
 import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
-import com.morlunk.jumble.net.PacketDataStream;
+import com.morlunk.jumble.net.PacketBuffer;
 import com.morlunk.jumble.protocol.AudioHandler;
 
+import java.nio.BufferOverflowException;
 import java.util.Arrays;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -106,39 +107,41 @@ public class AudioOutputSpeech {
             return;
 
         synchronized (mJitterLock) {
-            PacketDataStream pds = new PacketDataStream(data, data.length);
-            pds.next(); // skip flags
+            try {
+                PacketBuffer pds = new PacketBuffer(data, data.length);
+                pds.next(); // skip flags
 
-            int samples = 0;
-            if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
-                long header = pds.readLong();
-                int size = (int) (header & ((1 << 13) - 1));
+                int samples = 0;
+                if (mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
+                    long header = pds.readLong();
+                    int size = (int) (header & ((1 << 13) - 1));
 
-                if(size > 0) {
-                    byte[] packet = pds.dataBlock(size);
-                    if(!pds.isValid() || packet.length != size) return;
+                    if (size > 0) {
+                        byte[] packet = pds.dataBlock(size);
+                        if (packet.length != size) return;
 
-                    BytePointer packetPointer = new BytePointer(packet);
-                    int frames = Opus.opus_packet_get_nb_frames(packetPointer, size);
-                    samples = frames * Opus.opus_packet_get_samples_per_frame(packetPointer, AudioHandler.SAMPLE_RATE);
-                    packetPointer.deallocate();
+                        BytePointer packetPointer = new BytePointer(packet);
+                        int frames = Opus.opus_packet_get_nb_frames(packetPointer, size);
+                        samples = frames * Opus.opus_packet_get_samples_per_frame(packetPointer, AudioHandler.SAMPLE_RATE);
+                        packetPointer.deallocate();
+                    } else {
+                        return;
+                    }
                 } else {
-                    return;
+                    int header;
+                    do {
+                        header = pds.next();
+                        samples += AudioHandler.FRAME_SIZE;
+                        pds.skip(header & 0x7f);
+                    } while ((header & 0x80) > 0);
                 }
-            } else {
-                int header;
-                do {
-                    header = pds.next();
-                    samples += AudioHandler.FRAME_SIZE;
-                    pds.skip(header & 0x7f);
-                } while ((header & 0x80) > 0 && pds.isValid());
-            }
 
-            if(pds.isValid()) {
                 Speex.JitterBufferPacket packet = new Speex.JitterBufferPacket(data, data.length, AudioHandler.FRAME_SIZE * seq, samples, 0);
                 synchronized (mJitterLock) {
                     mJitterBuffer.put(packet);
                 }
+            } catch (BufferOverflowException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -199,28 +202,32 @@ public class AudioOutputSpeech {
                     if(result == Speex.JitterBuffer.JITTER_BUFFER_OK) {
                         byte[] data = new byte[jbp.getLength()];
                         jbp.getData(data, 0, jbp.getLength());
-                        PacketDataStream pds = new PacketDataStream(data, jbp.getLength());
+                        PacketBuffer pds = new PacketBuffer(data, jbp.getLength());
 
                         mMissCount = 0;
                         ucFlags = pds.next();
 
                         mHasTerminator = false;
-                        if(mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
-                            long header = pds.readLong();
-                            int size = (int) (header & ((1 << 13) - 1));
-                            mHasTerminator = (header & (1 << 13)) > 0;
+                        try {
+                            if (mCodec == JumbleUDPMessageType.UDPVoiceOpus) {
+                                long header = pds.readLong();
+                                int size = (int) (header & ((1 << 13) - 1));
+                                mHasTerminator = (header & (1 << 13)) > 0;
 
-                            byte[] audioData = pds.dataBlock(size);
-                            mFrames.add(audioData);
-                        } else {
-                            int header;
-                            do {
-                                header = pds.next() & 0xFF;
-                                if(header > 0)
-                                    mFrames.add(pds.dataBlock(header & 0x7f));
-                                else
-                                    mHasTerminator = true;
-                            } while ((header & 0x80) > 0 && pds.isValid());
+                                byte[] audioData = pds.dataBlock(size);
+                                mFrames.add(audioData);
+                            } else {
+                                int header;
+                                do {
+                                    header = pds.next() & 0xFF;
+                                    if (header > 0)
+                                        mFrames.add(pds.dataBlock(header & 0x7f));
+                                    else
+                                        mHasTerminator = true;
+                                } while ((header & 0x80) > 0);
+                            }
+                        } catch (BufferOverflowException e) {
+                            e.printStackTrace();
                         }
 
                         if(availPackets >= mUser.getAverageAvailable())
