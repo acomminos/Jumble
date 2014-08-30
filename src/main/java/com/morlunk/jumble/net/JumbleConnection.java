@@ -435,11 +435,11 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         if(mPingTask != null) mPingTask.cancel(true);
         if(mTCP != null) mTCP.disconnect();
         if(mUDP != null) mUDP.disconnect();
+        mPingExecutorService.shutdown();
 
         mTCP = null;
         mUDP = null;
         mPingTask = null;
-        mPingExecutorService.shutdownNow();
     }
 
     /**
