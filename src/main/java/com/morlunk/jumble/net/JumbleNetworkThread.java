@@ -19,6 +19,9 @@ package com.morlunk.jumble.net;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
+
+import com.morlunk.jumble.Constants;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -31,30 +34,50 @@ import java.util.concurrent.Executors;
  */
 public abstract class JumbleNetworkThread implements Runnable {
 
-    private final ExecutorService mExecutor;
-    private final Executor mSendExecutor;
-    private final Handler mMainHandler;
+    private ExecutorService mExecutor;
+    private ExecutorService mSendExecutor;
+    private ExecutorService mReceiveExecutor;
+    private Handler mMainHandler;
+    private boolean mInitialized;
 
     public JumbleNetworkThread() {
-        mExecutor = Executors.newSingleThreadExecutor();
-        mSendExecutor = Executors.newSingleThreadExecutor();
         mMainHandler = new Handler(Looper.getMainLooper());
     }
 
-    protected void startThread() {
+    protected void startThreads() {
+        if (mInitialized) {
+            throw new IllegalArgumentException("Threads already initialized.");
+        }
+        mExecutor = Executors.newSingleThreadExecutor();
+        mSendExecutor = Executors.newSingleThreadExecutor();
+        mReceiveExecutor = Executors.newSingleThreadExecutor();
         mExecutor.execute(this);
+        mInitialized = true;
+    }
+
+    protected void stopThreads() {
+        if (!mInitialized) {
+            throw new IllegalArgumentException("Threads already shutdown.");
+        }
+        mSendExecutor.shutdown();
+        mReceiveExecutor.shutdown();
+        mExecutor.shutdown();
+        mSendExecutor = null;
+        mReceiveExecutor = null;
+        mExecutor = null;
+        mInitialized = false;
     }
 
     protected void executeOnSendThread(Runnable r) {
         mSendExecutor.execute(r);
     }
 
-    protected void executeOnMainThread(Runnable r) {
-        mMainHandler.post(r);
+    protected void executeOnReceiveThread(Runnable r) {
+        mSendExecutor.execute(r);
     }
 
-    protected void stopReadThread() {
-        mExecutor.shutdownNow();
+    protected void executeOnMainThread(Runnable r) {
+        mMainHandler.post(r);
     }
 
     protected Handler getMainHandler() {

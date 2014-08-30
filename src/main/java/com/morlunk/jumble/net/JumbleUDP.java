@@ -63,7 +63,7 @@ public class JumbleUDP extends JumbleNetworkThread {
         if(mConnected) throw new ConnectException("UDP connection already established!");
         mHost = host;
         mPort = port;
-        startThread();
+        startThreads();
     }
 
     public boolean isRunning() {
@@ -102,9 +102,28 @@ public class JumbleUDP extends JumbleNetworkThread {
                 if (!mCryptState.isValid()) continue;
                 if (length < 5) continue;
 
-                byte[] buffer = null;
                 try {
-                    buffer = mCryptState.decrypt(data, length);
+                    final byte[] buffer = mCryptState.decrypt(data, length);
+
+                    if (mListener != null) {
+                        if (buffer != null) {
+                            executeOnReceiveThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mListener.onUDPDataReceived(buffer);
+                                }
+                            });
+                        } else if(mCryptState.getLastGoodElapsed() > 5000000 &&
+                                mCryptState.getLastRequestElapsed() > 5000000) {
+                            mCryptState.resetLastRequestTime();
+                            executeOnMainThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mListener.resyncCryptState();
+                                }
+                            });
+                        }
+                    }
                 } catch (BadPaddingException e) {
                     e.printStackTrace();
                 } catch (IllegalBlockSizeException e) {
@@ -112,22 +131,6 @@ public class JumbleUDP extends JumbleNetworkThread {
                 } catch (ShortBufferException e) {
                     e.printStackTrace();
                 }
-
-                if (mListener != null) {
-                    if (buffer != null) {
-                        mListener.onUDPDataReceived(buffer);
-                    } else if(mCryptState.getLastGoodElapsed() > 5000000 &&
-                            mCryptState.getLastRequestElapsed() > 5000000) {
-                        mCryptState.resetLastRequestTime();
-                        executeOnMainThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                mListener.resyncCryptState();
-                            }
-                        });
-                    }
-                }
-
             } catch (final IOException e) {
                 // If a UDP exception is thrown while connected, notify the listener to fall back to TCP.
                 if(mConnected && mListener != null) {
@@ -179,6 +182,7 @@ public class JumbleUDP extends JumbleNetworkThread {
                 mUDPSocket.close();
             }
         });
+        stopThreads();
     }
 
     /**

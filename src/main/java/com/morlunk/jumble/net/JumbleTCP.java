@@ -62,7 +62,7 @@ public class JumbleTCP extends JumbleNetworkThread {
         mHost = host;
         mPort = port;
         mUseTor = useTor;
-        startThread();
+        startThreads();
     }
 
     public boolean isRunning() {
@@ -236,6 +236,7 @@ public class JumbleTCP extends JumbleNetworkThread {
                 }
             }
         });
+        stopThreads();
     }
 
     public interface TCPConnectionListener {
