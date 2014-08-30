@@ -19,6 +19,8 @@ package com.morlunk.jumble.audio;
 
 import com.morlunk.jumble.exception.NativeAudioException;
 
+import java.nio.ByteBuffer;
+
 /**
  * Created by andrew on 07/03/14.
  */
@@ -32,7 +34,7 @@ public interface IDecoder {
      * @return The number of decoded samples.
      * @throws com.morlunk.jumble.exception.NativeAudioException if encoding failed.
      */
-    public int decodeFloat(byte[] input, int inputSize, float[] output, int frameSize) throws NativeAudioException;
+    public int decodeFloat(ByteBuffer input, int inputSize, float[] output, int frameSize) throws NativeAudioException;
 
     /**
      * Decodes the encoded data provided into short PCM data.
@@ -43,7 +45,7 @@ public interface IDecoder {
      * @return The number of decoded samples.
      * @throws NativeAudioException if encoding failed.
      */
-    public int decodeShort(byte[] input, int inputSize, short[] output, int frameSize) throws NativeAudioException;
+    public int decodeShort(ByteBuffer input, int inputSize, short[] output, int frameSize) throws NativeAudioException;
 
     /**
      * Deallocates native resources. The decoder must no longer be called after this.

@@ -27,7 +27,6 @@ import com.googlecode.javacpp.annotation.Name;
 import com.googlecode.javacpp.annotation.Platform;
 import com.morlunk.jumble.audio.IDecoder;
 import com.morlunk.jumble.exception.NativeAudioException;
-import com.morlunk.jumble.net.PacketBuffer;
 
 import java.nio.ByteBuffer;
 
@@ -251,7 +250,7 @@ public class Speex {
 
     // Bits
     private static native void speex_bits_init(@Cast("SpeexBits*") SpeexBits bits);
-    private static native void speex_bits_read_from(@Cast("SpeexBits*") SpeexBits bits, @Cast("const char*") byte[] data, int size);
+    private static native void speex_bits_read_from(@Cast("SpeexBits*") SpeexBits bits, @Cast("const char*") ByteBuffer data, int size);
     private static native void speex_bits_destroy(@Cast("SpeexBits*") SpeexBits bits);
 
     // Modes
@@ -271,12 +270,19 @@ public class Speex {
     @Name("_JitterBufferPacket")
     public static class JitterBufferPacket extends Pointer {
 
+        public JitterBufferPacket(ByteBuffer data, int length, int timestamp, int span, int sequence, int userData) {
+            allocate();
+            setData(data);
+            setLength(length);
+            setTimestamp(timestamp);
+            setSpan(span);
+            setSequence(sequence);
+            setUserData(userData);
+        }
+
         public JitterBufferPacket(byte[] data, int length, int timestamp, int span, int sequence, int userData) {
             allocate();
-            if(data != null)
-                setData(data);
-            else
-                setData(new byte[length]);
+            setData(data);
             setLength(length);
             setTimestamp(timestamp);
             setSpan(span);
@@ -286,8 +292,9 @@ public class Speex {
 
         private native void allocate();
 
-        @MemberGetter @Name("data") public native @Cast("char *") void getData(byte[] data, int offset, int length);
-        @MemberSetter @Name("data") public native void setData(@Cast("char *") byte[] pointer);
+        @MemberGetter @Name("data") public native @Cast("char *") void getData(ByteBuffer data);
+        @MemberSetter @Name("data") public native void setData(@Cast("char *") ByteBuffer data);
+        @MemberSetter @Name("data") public native void setData(@Cast("char *") byte[] data);
         @MemberGetter @Name("len") public native int getLength();
         @MemberSetter @Name("len") public native void setLength(int length);
         @MemberGetter @Name("timestamp") public native int getTimestamp();
@@ -448,7 +455,7 @@ public class Speex {
 
         private native void allocate();
 
-        public void read(byte[] data, int len) {
+        public void read(ByteBuffer data, int len) {
             speex_bits_read_from(this, data, len);
         }
 
@@ -471,7 +478,7 @@ public class Speex {
         }
 
         @Override
-        public int decodeFloat(byte[] input, int inputSize, float[] output, int frameSize) throws NativeAudioException {
+        public int decodeFloat(ByteBuffer input, int inputSize, float[] output, int frameSize) throws NativeAudioException {
             speex_bits_read_from(mBits, input, inputSize);
             int result = speex_decode(mState, mBits, output);
             if(result < 0) throw new NativeAudioException("Speex decoding failed with error: "+result);
@@ -482,7 +489,7 @@ public class Speex {
         }
 
         @Override
-        public int decodeShort(byte[] input, int inputSize, short[] output, int frameSize) throws NativeAudioException {
+        public int decodeShort(ByteBuffer input, int inputSize, short[] output, int frameSize) throws NativeAudioException {
             float[] foutput = new float[frameSize];
             speex_bits_read_from(mBits, input, inputSize);
             int result = speex_decode(mState, mBits, foutput);

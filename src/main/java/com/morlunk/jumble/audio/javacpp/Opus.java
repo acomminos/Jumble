@@ -28,6 +28,8 @@ import com.morlunk.jumble.audio.IDecoder;
 import com.morlunk.jumble.audio.IEncoder;
 import com.morlunk.jumble.exception.NativeAudioException;
 
+import java.nio.ByteBuffer;
+
 /**
  * Created by andrew on 18/10/13.
  */
@@ -43,8 +45,8 @@ public class Opus {
     public static native int opus_decoder_get_size(int channels);
     public static native Pointer opus_decoder_create(int fs, int channels, IntPointer error);
     public static native int opus_decoder_init(@Cast("OpusDecoder*") Pointer st, int fs, int channels);
-    public static native int opus_decode(@Cast("OpusDecoder*") Pointer st, @Cast("const unsigned char*") byte[] data, int len, short[] out, int frameSize, int decodeFec);
-    public static native int opus_decode_float(@Cast("OpusDecoder*") Pointer st, @Cast("const unsigned char*") byte[] data, int len, float[] out, int frameSize, int decodeFec);
+    public static native int opus_decode(@Cast("OpusDecoder*") Pointer st, @Cast("const unsigned char*") ByteBuffer data, int len, short[] out, int frameSize, int decodeFec);
+    public static native int opus_decode_float(@Cast("OpusDecoder*") Pointer st, @Cast("const unsigned char*") ByteBuffer data, int len, float[] out, int frameSize, int decodeFec);
     //public static native int opus_decoder_ctl(@Cast("OpusDecoder*") Pointer st,  int request);
     public static native void opus_decoder_destroy(@Cast("OpusDecoder*") Pointer st);
     //public static native int opus_packet_parse(@Cast("const unsigned char*") BytePointer data, int len, ...
@@ -116,14 +118,14 @@ public class Opus {
         }
 
         @Override
-        public int decodeFloat(byte[] input, int inputSize, float[] output, int frameSize) throws NativeAudioException {
+        public int decodeFloat(ByteBuffer input, int inputSize, float[] output, int frameSize) throws NativeAudioException {
             int result = opus_decode_float(mState, input, inputSize, output, frameSize, 0);
             if(result < 0) throw new NativeAudioException("Opus decoding failed with error: "+result);
             return result;
         }
 
         @Override
-        public int decodeShort(byte[] input, int inputSize, short[] output, int frameSize) throws NativeAudioException {
+        public int decodeShort(ByteBuffer input, int inputSize, short[] output, int frameSize) throws NativeAudioException {
             int result = opus_decode(mState, input, inputSize, output, frameSize, 0);
             if(result < 0) throw new NativeAudioException("Opus decoding failed with error: "+result);
             return result;

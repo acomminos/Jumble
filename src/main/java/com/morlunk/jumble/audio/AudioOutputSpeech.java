@@ -17,7 +17,6 @@
 
 package com.morlunk.jumble.audio;
 
-import com.googlecode.javacpp.BytePointer;
 import com.googlecode.javacpp.IntPointer;
 import com.morlunk.jumble.audio.javacpp.CELT11;
 import com.morlunk.jumble.audio.javacpp.CELT7;
@@ -31,6 +30,7 @@ import com.morlunk.jumble.protocol.AudioHandler;
 
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -56,7 +56,7 @@ public class AudioOutputSpeech {
     private float[] mOut;
     private float[] mFadeOut;
     private float[] mFadeIn;
-    private Queue<byte[]> mFrames = new ConcurrentLinkedQueue<byte[]>();
+    private Queue<ByteBuffer> mFrames = new ConcurrentLinkedQueue<ByteBuffer>();
     private int mMissCount = 0;
     private boolean mHasTerminator = false;
     private boolean mLastAlive = true;
@@ -191,7 +191,8 @@ public class AudioOutputSpeech {
                 }
 
                 if(mFrames.isEmpty()) {
-                    Speex.JitterBufferPacket jbp = new Speex.JitterBufferPacket(null, 4096, 0, 0, 0, 0);
+                    ByteBuffer packet = ByteBuffer.allocateDirect(4096);
+                    Speex.JitterBufferPacket jbp = new Speex.JitterBufferPacket(packet, 4096, 0, 0, 0, 0);
                     int result;
 
                     synchronized (mJitterLock) {
@@ -199,10 +200,8 @@ public class AudioOutputSpeech {
                     }
 
                     if(result == Speex.JitterBuffer.JITTER_BUFFER_OK) {
-                        int length = jbp.getLength();
-                        byte[] data = new byte[length];
-                        jbp.getData(data, 0, length);
-                        PacketBuffer pb = new PacketBuffer(data, length);
+                        packet.limit(jbp.getLength());
+                        PacketBuffer pb = new PacketBuffer(packet);
 
                         mMissCount = 0;
                         ucFlags = jbp.getUserData();
@@ -214,14 +213,14 @@ public class AudioOutputSpeech {
                                 int size = (int) (header & ((1 << 13) - 1));
                                 mHasTerminator = (header & (1 << 13)) > 0;
 
-                                byte[] audioData = pb.dataBlock(size);
+                                ByteBuffer audioData = pb.bufferBlock(size);
                                 mFrames.add(audioData);
                             } else {
                                 int header;
                                 do {
                                     header = pb.next() & 0xFF;
                                     if (header > 0)
-                                        mFrames.add(pb.dataBlock(header & 0x7f));
+                                        mFrames.add(pb.bufferBlock(header & 0x7f));
                                     else
                                         mHasTerminator = true;
                                 } while ((header & 0x80) > 0);
@@ -250,9 +249,9 @@ public class AudioOutputSpeech {
 
                 try {
                     if(!mFrames.isEmpty()) {
-                        byte[] data = mFrames.poll();
+                        ByteBuffer data = mFrames.poll();
 
-                        decodedSamples = mDecoder.decodeFloat(data, data.length, mOut, mAudioBufferSize);
+                        decodedSamples = mDecoder.decodeFloat(data, data.limit(), mOut, mAudioBufferSize);
 
                         if(mFrames.isEmpty())
                             synchronized (mJitterLock) {

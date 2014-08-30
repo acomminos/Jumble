@@ -27,6 +27,8 @@ import com.morlunk.jumble.audio.IDecoder;
 import com.morlunk.jumble.audio.IEncoder;
 import com.morlunk.jumble.exception.NativeAudioException;
 
+import java.nio.ByteBuffer;
+
 /**
  * Created by andrew on 20/10/13.
  */
@@ -45,8 +47,8 @@ public class CELT11 {
     public static native void celt_mode_destroy(@Cast("CELTMode*") Pointer mode);
 
     public static native Pointer celt_decoder_create(int sampleRate, int channels, IntPointer error);
-    public static native int celt_decode(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") byte[] data, int len, short[] pcm, int frameSize);
-    public static native int celt_decode_float(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") byte[] data, int len, float[] pcm, int frameSize);
+    public static native int celt_decode(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") ByteBuffer data, int len, short[] pcm, int frameSize);
+    public static native int celt_decode_float(@Cast("CELTDecoder*") Pointer st, @Cast("const unsigned char*") ByteBuffer data, int len, float[] pcm, int frameSize);
     public static native int celt_decoder_ctl(@Cast("CELTDecoder*") Pointer st, int request, Pointer val);
     public static native void celt_decoder_destroy(@Cast("CELTDecoder*") Pointer st);
 
@@ -100,14 +102,14 @@ public class CELT11 {
         }
 
         @Override
-        public int decodeFloat(byte[] input, int inputSize, float[] output, int frameSize) throws NativeAudioException {
+        public int decodeFloat(ByteBuffer input, int inputSize, float[] output, int frameSize) throws NativeAudioException {
             int result = celt_decode_float(mState, input, inputSize, output, frameSize);
             if(result < 0) throw new NativeAudioException("CELT 0.11.0 decoding failed with error: "+result);
             return frameSize;
         }
 
         @Override
-        public int decodeShort(byte[] input, int inputSize, short[] output, int frameSize) throws NativeAudioException {
+        public int decodeShort(ByteBuffer input, int inputSize, short[] output, int frameSize) throws NativeAudioException {
             int result = celt_decode(mState, input, inputSize, output, frameSize);
             if(result < 0) throw new NativeAudioException("CELT 0.11.0 decoding failed with error: "+result);
             return frameSize;
