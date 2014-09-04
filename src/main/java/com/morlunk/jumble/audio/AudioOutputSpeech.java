@@ -33,12 +33,15 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Queue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.RunnableFuture;
 
 /**
  * Created by andrew on 16/07/13.
  */
-public class AudioOutputSpeech {
+public class AudioOutputSpeech implements Callable<AudioOutputSpeech.Result> {
+
     interface TalkStateListener {
         public void onTalkStateUpdated(int session, User.TalkState state);
     }
@@ -50,6 +53,7 @@ public class AudioOutputSpeech {
     private User mUser;
     private JumbleUDPMessageType mCodec;
     private int mAudioBufferSize = AudioHandler.FRAME_SIZE;
+    private int mRequestedSamples; // Number of samples requested
 
     // State-specific
     private float[] mBuffer;
@@ -66,10 +70,11 @@ public class AudioOutputSpeech {
 
     private TalkStateListener mTalkStateListener;
 
-    public AudioOutputSpeech(User user, JumbleUDPMessageType codec, TalkStateListener listener) throws NativeAudioException {
+    public AudioOutputSpeech(User user, JumbleUDPMessageType codec, int requestedSamples, TalkStateListener listener) throws NativeAudioException {
         // TODO: consider implementing resampling if some Android devices not support 48kHz?
         mUser = user;
         mCodec = codec;
+        mRequestedSamples = requestedSamples;
         mTalkStateListener = listener;
         switch (codec) {
             case UDPVoiceOpus:
@@ -145,19 +150,20 @@ public class AudioOutputSpeech {
         }
     }
 
-    public boolean needSamples(int num) {
+    @Override
+    public Result call() throws Exception {
         for(int i = mLastConsume; i < mBufferFilled; ++i)
             mBuffer[i-mLastConsume] = mBuffer[i];
         mBufferFilled -= mLastConsume;
 
-        mLastConsume = num;
+        mLastConsume = mRequestedSamples;
 
-        if(mBufferFilled >= num)
-            return mLastAlive;
+        if(mBufferFilled >= mRequestedSamples)
+            return new Result(this, mLastAlive, mBuffer, mBufferFilled);
 
         boolean nextAlive = mLastAlive;
 
-        while(mBufferFilled < num) {
+        while(mBufferFilled < mRequestedSamples) {
             int decodedSamples = AudioHandler.FRAME_SIZE;
             resizeBuffer(mBufferFilled + mAudioBufferSize);
 
@@ -311,18 +317,22 @@ public class AudioOutputSpeech {
         boolean tmp = mLastAlive;
         mLastAlive = nextAlive;
 
-        return tmp;
+        return new Result(this, tmp, mBuffer, mBufferFilled);
     }
 
-    public void resizeBuffer(int newSize) {
+    private void resizeBuffer(int newSize) {
         if(newSize > mBuffer.length) {
             float[] newBuffer = Arrays.copyOf(mBuffer, newSize);
             mBuffer = newBuffer;
         }
     }
 
-    public float[] getBuffer() {
-        return mBuffer;
+    /**
+     * Sets the preferred number of samples to return when the callable is executed.
+     * @param samples The number of floating point samples to retrieve.
+     */
+    public void setRequestedSamples(int samples) {
+        mRequestedSamples = samples;
     }
 
     public JumbleUDPMessageType getCodec() {
@@ -344,5 +354,41 @@ public class AudioOutputSpeech {
     public void destroy() {
         if(mDecoder != null) mDecoder.destroy();
         mJitterBuffer.destroy();
+    }
+
+    /**
+     * The outcome of a decoding pass.
+     */
+    protected static class Result {
+        private AudioOutputSpeech mSpeechOutput;
+        private boolean mAlive;
+        private float[] mSamples;
+        private int mNumSamples;
+
+        private Result(AudioOutputSpeech speechOutput,
+                      boolean alive,
+                      float[] samples,
+                      int numSamples) {
+            mSpeechOutput = speechOutput;
+            mAlive = alive;
+            mSamples = samples;
+            mNumSamples = numSamples;
+        }
+
+        public AudioOutputSpeech getSpeechOutput() {
+            return mSpeechOutput;
+        }
+
+        public boolean isAlive() {
+            return mAlive;
+        }
+
+        public float[] getSamples() {
+            return mSamples;
+        }
+
+        public int getNumSamples() {
+            return mNumSamples;
+        }
     }
 }
