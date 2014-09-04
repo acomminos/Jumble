@@ -143,11 +143,16 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
             } else {
                 Log.v(Constants.TAG, "Pausing audio output thread.");
                 synchronized (mInactiveLock) {
+                    mAudioTrack.flush();
+                    mAudioTrack.pause();
+
                     try {
                         mInactiveLock.wait();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
+
+                    mAudioTrack.play();
                 }
                 Log.v(Constants.TAG, "Resuming audio output thread.");
             }
