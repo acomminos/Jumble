@@ -152,8 +152,10 @@ public class AudioOutputSpeech implements Callable<AudioOutputSpeech.Result> {
 
     @Override
     public Result call() throws Exception {
-        for(int i = mLastConsume; i < mBufferFilled; ++i)
-            mBuffer[i-mLastConsume] = mBuffer[i];
+        if (mBufferFilled - mLastConsume > 0) {
+            // Shift over the remaining unconsumed data in the buffer.
+            System.arraycopy(mBuffer, mLastConsume, mBuffer, 0, mBufferFilled - mLastConsume);
+        }
         mBufferFilled -= mLastConsume;
 
         mLastConsume = mRequestedSamples;
