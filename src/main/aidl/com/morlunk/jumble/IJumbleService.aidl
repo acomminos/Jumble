@@ -53,8 +53,7 @@ interface IJumbleService {
     Server getConnectedServer();
     User getUser(int id);
     Channel getChannel(int id);
-    List getUserList();
-    List getChannelList();
+    Channel getRootChannel();
     int getPermissions();
     List getMessageLog();
     void clearMessageLog();
@@ -84,6 +83,7 @@ interface IJumbleService {
     //void requestACL(int channel);
     void requestPermissions(int channel);
     void requestComment(int session);
+    void requestAvatar(int session);
     void requestChannelDescription(int channel);
     void registerUser(int session);
     void kickBanUser(int session, String reason, boolean ban);

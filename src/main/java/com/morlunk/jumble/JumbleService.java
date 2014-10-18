@@ -514,13 +514,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
-        public List getUserList() throws RemoteException {
-            return mModelHandler.getUsers();
-        }
-
-        @Override
-        public List getChannelList() throws RemoteException {
-            return mModelHandler.getChannels();
+        public Channel getRootChannel() throws RemoteException {
+            return mModelHandler.getChannel(0);
         }
 
         @Override
@@ -670,6 +665,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         public void requestComment(int session) throws RemoteException {
             Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
             rbb.addSessionComment(session);
+            mConnection.sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
+        }
+
+        @Override
+        public void requestAvatar(int session) throws RemoteException {
+            Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
+            rbb.addSessionTexture(session);
             mConnection.sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
         }
 

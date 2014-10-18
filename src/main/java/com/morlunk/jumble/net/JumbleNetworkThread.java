@@ -19,11 +19,7 @@ package com.morlunk.jumble.net;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 
-import com.morlunk.jumble.Constants;
-
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 

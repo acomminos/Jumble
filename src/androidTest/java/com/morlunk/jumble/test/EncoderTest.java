@@ -20,10 +20,10 @@ package com.morlunk.jumble.test;
 import android.test.AndroidTestCase;
 
 import com.googlecode.javacpp.Loader;
-import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.audio.javacpp.CELT11;
 import com.morlunk.jumble.audio.javacpp.CELT7;
 import com.morlunk.jumble.audio.javacpp.Opus;
+import com.morlunk.jumble.exception.NativeAudioException;
 
 /**
  * This class tests the Opus and CELT encoders with blank PCM data.

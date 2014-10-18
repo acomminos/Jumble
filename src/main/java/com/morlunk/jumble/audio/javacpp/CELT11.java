@@ -21,7 +21,6 @@ import com.googlecode.javacpp.IntPointer;
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacpp.Pointer;
 import com.googlecode.javacpp.annotation.Cast;
-import com.googlecode.javacpp.annotation.NoDeallocator;
 import com.googlecode.javacpp.annotation.Platform;
 import com.morlunk.jumble.audio.IDecoder;
 import com.morlunk.jumble.audio.IEncoder;

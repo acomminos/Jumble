@@ -17,6 +17,7 @@
 
 package com.morlunk.jumble.model;
 
+import android.graphics.Bitmap;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -36,6 +37,8 @@ public class User implements Parcelable {
     private String mName;
     private String mComment;
     private ByteString mCommentHash;
+    private Bitmap mTexture;
+    private ByteString mTextureHash;
     private String mHash;
 
     private boolean mMuted;
@@ -176,6 +179,22 @@ public class User implements Parcelable {
 
     public void setCommentHash(ByteString commentHash) {
         mCommentHash = commentHash;
+    }
+
+    public Bitmap getTexture() {
+        return mTexture;
+    }
+
+    public void setTexture(Bitmap texture) {
+        mTexture = texture;
+    }
+
+    public ByteString getTextureHash() {
+        return mTextureHash;
+    }
+
+    public void setTextureHash(ByteString textureHash) {
+        mTextureHash = textureHash;
     }
 
     public String getHash() {

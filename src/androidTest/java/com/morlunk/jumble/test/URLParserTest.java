@@ -17,8 +17,6 @@
 
 package com.morlunk.jumble.test;
 
-import android.test.suitebuilder.annotation.MediumTest;
-
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.util.MumbleURLParser;

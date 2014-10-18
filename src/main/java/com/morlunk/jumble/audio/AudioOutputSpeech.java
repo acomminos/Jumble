@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.RunnableFuture;
 
 /**
  * Created by andrew on 16/07/13.

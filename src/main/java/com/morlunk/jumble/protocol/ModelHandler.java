@@ -18,6 +18,8 @@
 package com.morlunk.jumble.protocol;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -109,12 +111,12 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
         return channel;
     }
 
-    public List<Channel> getChannels() {
-        return new ArrayList<Channel>(mChannels.values());
+    public Map<Integer, Channel> getChannels() {
+        return Collections.unmodifiableMap(mChannels);
     }
 
-    public List<User> getUsers() {
-        return new ArrayList<User>(mUsers.values());
+    public Map<Integer, User> getUsers() {
+        return Collections.unmodifiableMap(mUsers);
     }
 
     /**
@@ -435,9 +437,15 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
         if(msg.hasName())
             user.setName(msg.getName());
 
-        /*
-         * Maybe support textures in the future here? I don't know. TODO?
-         */
+        if (msg.hasTextureHash())
+            user.setTextureHash(msg.getTextureHash());
+
+        if (msg.hasTexture()) {
+            // FIXME: is it reasonable to create a bitmap here? How expensive?
+            byte[] textureData = msg.getTexture().toByteArray();
+            Bitmap texture = BitmapFactory.decodeByteArray(textureData, 0, textureData.length);
+            user.setTexture(texture);
+        }
 
         if(msg.hasCommentHash())
             user.setCommentHash(msg.getCommentHash());
