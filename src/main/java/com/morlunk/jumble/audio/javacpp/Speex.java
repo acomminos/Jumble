@@ -292,7 +292,7 @@ public class Speex {
 
         private native void allocate();
 
-        @MemberGetter @Name("data") public native @Cast("char *") void getData(ByteBuffer data);
+        @MemberGetter @Name("data") public native @Cast("char *") ByteBuffer getData();
         @MemberSetter @Name("data") public native void setData(@Cast("char *") ByteBuffer data);
         @MemberSetter @Name("data") public native void setData(@Cast("char *") byte[] data);
         @MemberGetter @Name("len") public native int getLength();

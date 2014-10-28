@@ -85,8 +85,12 @@ public class PacketBuffer {
      * @return The sliced byte buffer.
      */
     public ByteBuffer bufferBlock(int size) {
+        if (size > mBuffer.remaining()) {
+            throw new BufferUnderflowException();
+        }
         ByteBuffer buffer = mBuffer.slice();
         buffer.limit(size);
+        skip(size);
         return buffer;
     }
 

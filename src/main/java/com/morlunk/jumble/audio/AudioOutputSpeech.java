@@ -128,12 +128,16 @@ public class AudioOutputSpeech implements Callable<AudioOutputSpeech.Result> {
                         return;
                     }
                 } else {
-                    int header;
-                    do {
-                        header = pb.next();
-                        samples += AudioHandler.FRAME_SIZE;
-                        pb.skip(header & 0x7f);
-                    } while ((header & 0x80) > 0);
+                    try {
+                        int header;
+                        do {
+                            header = pb.next();
+                            samples += AudioHandler.FRAME_SIZE;
+                            pb.skip(header & 0x7f);
+                        } while ((header & 0x80) > 0);
+                    } catch (BufferUnderflowException e) {
+                        // reached end of buffer
+                    }
                 }
                 pb.rewind();
 
@@ -225,11 +229,13 @@ public class AudioOutputSpeech implements Callable<AudioOutputSpeech.Result> {
                             } else {
                                 int header;
                                 do {
-                                    header = pb.next() & 0xFF;
-                                    if (header > 0)
-                                        mFrames.add(pb.bufferBlock(header & 0x7f));
-                                    else
+                                    header = pb.next();
+                                    int size = header & 0x7f;
+                                    if (header > 0) {
+                                        mFrames.add(pb.bufferBlock(size));
+                                    } else {
                                         mHasTerminator = true;
+                                    }
                                 } while ((header & 0x80) > 0);
                             }
                         } catch (BufferOverflowException e) {
