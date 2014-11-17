@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<resources>
+  <string name="chat_notify_moved">%1$s fue movido a este canal desde %2$s por %3$s.</string>
+  <string name="chat_notify_muted_deafened">Mudo y sordo.</string>
+  <string name="chat_notify_muted">Mudo.</string>
+  <string name="chat_notify_unmuted">Con voz</string>
+  <string name="chat_notify_unmuted_undeafened">Con voz y escucha.</string>
+  <string name="chat_notify_now_muted_deafened">%s está ahora enmudecido y ensordecido</string>
+  <string name="chat_notify_now_muted">%s está ahora enmudecido.</string>
+  <string name="chat_notify_now_unmuted">%s ahora tiene voz.</string>
+  <string name="chat_notify_now_unmuted_undeafened">%s ahora tiene voz y escucha.</string>
+  <string name="chat_notify_muted_deafened_self_by_actor">Has sido enmudecido y ensordecido por %s</string>
+  <string name="chat_notify_unmuted_undeafened_self_by_actor">%s te ha desenmudecido y dado escucha</string>
+  <string name="chat_notify_muted_self_by_actor">Has sido enmudecido por %s</string>
+  <string name="chat_notify_unmuted_self_by_actor">Has sido desenmudecido por %s</string>
+  <string name="chat_notify_undeafened_self_by_actor">%s te ha dado escucha</string>
+  <string name="chat_notify_suppressed_self">Has sido suprimido.</string>
+  <string name="chat_notify_unsuppressed_self">Ya no estás suprimido.</string>
+  <string name="chat_notify_unsuppressed_self_by_actor">%s ha cesado tu supresión.</string>
+  <string name="chat_notify_connected">%s se ha conectado.</string>
+  <string name="chat_notify_disconnected">%s se ha desconectado.</string>
+  <string name="chat_notify_kick_ban_self">Has sido expulsado y prohibido del servidor por %1$s: %2$s.</string>
+  <string name="chat_notify_kick_self">Has sido expulsado del servidor por %1$s: %2$s.</string>
+  <string name="chat_notify_kick_ban">%3$s fue expulsado y prohibido del servidor por %1$s: %2$s.</string>
+  <string name="chat_notify_kick">%3$s ha sido expulsado del servidor por %1$s: %2$s.</string>
+  <string name="chat_notify_self_recording_started">Grabación iniciada</string>
+  <string name="chat_notify_self_recording_stopped">Grabación parada</string>
+  <string name="chat_notify_user_recording_started">%s ha empezado a grabar.</string>
+  <string name="chat_notify_user_recording_stopped">%s ha parado de grabar.</string>
+  <string name="chat_notify_user_joined_channel">%s entró al canal.</string>
+  <string name="chat_notify_user_left_channel">%1$s fue movido a %2$s.</string>
+  <string name="chat_notify_user_joined_channel_by">%1$s fue movido a este canal desde %2$s por %3$s.</string>
+  <string name="chat_notify_user_left_channel_by">%1$s fue movido a %2$s por %3$s.</string>
+  <string name="bluetooth_connected">Bluetooth conectado</string>
+  <string name="bluetooth_disconnected">Bluetooth desconectado</string>
+  <string name="deny_reason_channel_name">Denegado: Nombre de canal inválido.</string>
+  <string name="deny_reason_text_too_long">Denegado: Mensaje de texto demasiado largo.</string>
+  <string name="deny_reason_no_operation_temp">Denegado: Acción no permitida en un canal temporal.</string>
+  <string name="deny_reason_no_certificate">Necesitas un certificado para realizar esta operación.</string>
+  <string name="deny_reason_invalid_username">Nombre de usuario inválido.</string>
+  <string name="deny_reason_channel_full">El canal está lleno.</string>
+  <string name="deny_reason_channel_nesting">Límite de canales anidados alcanzado.</string>
+  <string name="deny_reason_other">Razón: %s</string>
+  <string name="perm_denied">Permiso denegado.</string>
+  <string name="server">Servidor</string>
+  <string name="the_server">el servidor</string>
+</resources>

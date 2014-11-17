@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<resources>
+  <string name="chat_notify_moved">%1$s は %2$s から %3$s で移動しました。</string>
+  <string name="chat_notify_muted_deafened">ミュートおよび防音</string>
+  <string name="chat_notify_muted">ミュートしました。</string>
+  <string name="chat_notify_unmuted">ミュートを解除しました。</string>
+  <string name="chat_notify_unmuted_undeafened">ミュート解除および防音解除しました。</string>
+  <string name="chat_notify_now_muted_deafened">%s がミュートおよび防音されました。</string>
+  <string name="chat_notify_now_muted">%s がミュートされました。</string>
+  <string name="chat_notify_now_unmuted">%s がミュート解除されました。</string>
+  <string name="chat_notify_now_unmuted_undeafened">%s がミュート解除および防音解除されました。</string>
+  <string name="chat_notify_muted_deafened_self_by_actor">あなたは %s によってミュートおよび防音されました。</string>
+  <string name="chat_notify_unmuted_undeafened_self_by_actor">あなたは %s によってミュート解除および防音解除されました。</string>
+  <string name="chat_notify_muted_self_by_actor">あなたは %s によってミュートされました。</string>
+  <string name="chat_notify_unmuted_self_by_actor">あなたは %s によってミュート解除されました。</string>
+  <string name="chat_notify_undeafened_self_by_actor">あなたは %s によって防音解除されました。</string>
+  <string name="chat_notify_suppressed_self">あなたはサプレスされました。</string>
+  <string name="chat_notify_unsuppressed_self">あなたはサプレス解除されました。</string>
+  <string name="chat_notify_unsuppressed_self_by_actor">あなたは %s によってサプレス解除されました。</string>
+  <string name="chat_notify_connected">%s が接続しました。</string>
+  <string name="chat_notify_disconnected">%s が切断しました。</string>
+  <string name="chat_notify_kick_ban_self">あなたは %1$s によって、サーバーからキックおよび禁止されました: %2$s.</string>
+  <string name="chat_notify_kick_self">あなたは %1$s によって、サーバーからキックされました: %2$s.</string>
+  <string name="chat_notify_kick_ban">%3$s は %1$s によって、サーバーからキックおよび禁止されました: %2$s.</string>
+  <string name="chat_notify_kick">%3$s は %1$s によって、サーバーからキックされました: %2$s.</string>
+  <string name="chat_notify_self_recording_started">録音が開始しました</string>
+  <string name="chat_notify_self_recording_stopped">録音が停止しました</string>
+  <string name="chat_notify_user_recording_started">%s が録音を開始しました。</string>
+  <string name="chat_notify_user_recording_stopped">%s が録音を停止しました。</string>
+  <string name="chat_notify_user_joined_channel">%s がチャンネルに入りました。</string>
+  <string name="chat_notify_user_left_channel">%1$s が %2$s に移動しました。</string>
+  <string name="chat_notify_user_joined_channel_by">%1$s は %2$s から %3$s で移動しました。</string>
+  <string name="chat_notify_user_left_channel_by">%1$s が %3$s によって %2$s に移動しました。</string>
+  <string name="bluetooth_connected">Bluetooth が接続しました</string>
+  <string name="bluetooth_disconnected">Bluetooth が切断しました</string>
+  <string name="deny_reason_channel_name">拒否されました: チャンネル名が正しくありません。</string>
+  <string name="deny_reason_text_too_long">拒否されました: テキストメッセージが長すぎます。</string>
+  <string name="deny_reason_no_operation_temp">拒否されました: 一時チャンネルで操作が許可されていません。</string>
+  <string name="deny_reason_no_certificate">この操作を実行するには証明書が必要です。</string>
+  <string name="deny_reason_invalid_username">ユーザー名が正しくありません。</string>
+  <string name="deny_reason_channel_full">チャンネルが一杯です。</string>
+  <string name="deny_reason_channel_nesting">チャンネルがネストの上限に達しました。</string>
+  <string name="deny_reason_other">理由: %s</string>
+  <string name="perm_denied">権限が拒否されました。</string>
+  <string name="server">サーバー</string>
+  <string name="the_server">サーバー</string>
+</resources>
