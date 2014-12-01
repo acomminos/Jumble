@@ -19,6 +19,7 @@ package com.morlunk.jumble.audio;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
+import android.media.MediaRecorder;
 import android.util.Log;
 
 import com.googlecode.javacpp.IntPointer;
@@ -67,12 +68,10 @@ public class AudioInput implements Runnable {
     // AudioRecord state
     private AudioInputListener mListener;
     private AudioRecord mAudioRecord;
-    private int mSampleRate = -1;
-    private int mFrameSize = AudioHandler.FRAME_SIZE;
-    private int mMicFrameSize = AudioHandler.FRAME_SIZE;
+    private final int mFrameSize;
+    private final int mMicFrameSize;
 
     // Preferences
-    private int mAudioSource;
     private int mBitrate;
     private final int mFramesPerPacket;
     private int mTransmitMode;
@@ -81,7 +80,7 @@ public class AudioInput implements Runnable {
     private boolean mUsePreprocessor = true;
 
     // Encoder state
-    final short[] mAudioBuffer = new short[mFrameSize];
+    final short[] mAudioBuffer;
     final short[] mOpusBuffer;
     final byte[][] mCELTBuffer;
     short[] mResampleBuffer;
@@ -97,55 +96,55 @@ public class AudioInput implements Runnable {
 
     public AudioInput(AudioInputListener listener, JumbleUDPMessageType codec, int audioSource,
                       int targetSampleRate, int bitrate, int framesPerPacket, int transmitMode,
-                      float vadThreshold, float amplitudeBoost, boolean preprocessorEnabled) throws NativeAudioException, AudioInitializationException {
+                      float vadThreshold, float amplitudeBoost, boolean preprocessorEnabled) throws
+            NativeAudioException, AudioInitializationException {
         mListener = listener;
         mCodec = codec;
-        mAudioSource = audioSource;
-        mSampleRate = getSupportedSampleRate(targetSampleRate);
         mBitrate = bitrate;
         mFramesPerPacket = framesPerPacket;
         mTransmitMode = transmitMode;
         mVADThreshold = vadThreshold;
         mAmplitudeBoost = amplitudeBoost;
         mUsePreprocessor = preprocessorEnabled;
-
-        mAudioRecord = createAudioRecord();
         mEncoder = createEncoder(mCodec);
+        mFrameSize = AudioHandler.FRAME_SIZE;
 
+        mAudioBuffer = new short[mFrameSize];
         mOpusBuffer = new short[mFrameSize * mFramesPerPacket];
         mCELTBuffer = new byte[mFramesPerPacket][AudioHandler.SAMPLE_RATE / 800];
 
-        if(mSampleRate != AudioHandler.SAMPLE_RATE) {
-            mResampler = new Speex.SpeexResampler(1, mSampleRate, AudioHandler.SAMPLE_RATE, SPEEX_RESAMPLE_QUALITY);
-            mMicFrameSize = (mSampleRate * mFrameSize) / AudioHandler.SAMPLE_RATE;
-            mResampleBuffer = new short[mMicFrameSize];
-        }
-
-        configurePreprocessState();
-    }
-
-    /**
-     * Checks if the preferred sample rate is supported, and use it if so. Otherwise, automatically find a supported rate.
-     * @param preferredSampleRate The preferred sample rate.
-     * @return The preferred sample rate if supported, otherwise the next best one.
-     */
-    private int getSupportedSampleRate(int preferredSampleRate) {
-        // Attempt to use preferred rate first
-        if(preferredSampleRate != -1) {
-            int bufferSize = AudioRecord.getMinBufferSize(preferredSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-            if(bufferSize > 0) return preferredSampleRate;
-        }
-
-        // Use the highest sample rate we can get.
-        for(int rate : SAMPLE_RATES) {
-            if(AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT) > 0) {
-                Log.w(Constants.TAG, "Failed to use desired sample rate, falling back to "+rate+"Hz.");
-                return rate;
+        // Attempt to construct an AudioRecord with the target sample rate first.
+        // If it fails, keep producing AudioRecord instances until we find one that initializes
+        // correctly. Maybe one day Android will let us probe for supported sample rates, as we
+        // aren't even guaranteed that 44100hz will work across all devices.
+        for (int i = 0; i < SAMPLE_RATES.length + 1; i++) {
+            int sampleRate = i == 0 ? targetSampleRate : SAMPLE_RATES[i - 1];
+            try {
+                mAudioRecord = setupAudioRecord(sampleRate, audioSource);
+                break;
+            } catch (AudioInitializationException e) {
+                // Continue iteration, probing for a supported sample rate.
             }
         }
 
-        // If all else fails, return the android default.
-        return 48000;
+        if (mAudioRecord == null) {
+            throw new AudioInitializationException("Unable to initialize AudioInput.");
+        }
+
+        int sampleRate = mAudioRecord.getSampleRate();
+        if(sampleRate != AudioHandler.SAMPLE_RATE) {
+            mResampler = new Speex.SpeexResampler(1, sampleRate, AudioHandler.SAMPLE_RATE,
+                                                         SPEEX_RESAMPLE_QUALITY);
+            mMicFrameSize = (sampleRate * mFrameSize) / AudioHandler.SAMPLE_RATE;
+            mResampleBuffer = new short[mMicFrameSize];
+        } else {
+            mMicFrameSize = mFrameSize;
+        }
+
+        configurePreprocessState();
+
+        Log.i(Constants.TAG, "AudioInput: " + mBitrate + "bps, " + mFramesPerPacket +
+                                     " frames/packet, " + mAudioRecord.getSampleRate() + "hz");
     }
 
     /**
@@ -176,31 +175,21 @@ public class AudioInput implements Runnable {
         mPreprocessState.control(Speex.SpeexPreprocessState.SPEEX_PREPROCESS_GET_PROB_START, arg);
     }
 
-    private AudioRecord createAudioRecord() throws AudioInitializationException {
-        int minBufferSize = AudioRecord.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+    private static AudioRecord setupAudioRecord(int sampleRate, int audioSource) throws AudioInitializationException {
+        int minBufferSize = AudioRecord.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_IN_MONO,
+                                                                AudioFormat.ENCODING_PCM_16BIT);
         AudioRecord audioRecord;
         try {
-            audioRecord = new AudioRecord(mAudioSource, mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
+            audioRecord = new AudioRecord(audioSource, sampleRate, AudioFormat.CHANNEL_IN_MONO,
+                                                 AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
         } catch (IllegalArgumentException e) {
-            // This is almost always caused by an invalid sample rate specified.
-            // Ideally, this should have been caught by checking for failed calls to getMinBufferSize with the
-            // chosen sample rate. Unfortunately, some devices don't properly fail calling that method
-            // when provided with an invalid buffer size.
-            e.printStackTrace();
-            if (mSampleRate != AudioHandler.SAMPLE_RATE) {
-                Log.w(Constants.TAG, "Checks for input sample rate failed, defaulting to 48000hz");
-                mSampleRate = AudioHandler.SAMPLE_RATE;
-                return createAudioRecord();
-            } else {
-                throw new AudioInitializationException(e);
-            }
+            throw new AudioInitializationException(e);
         }
 
         if(audioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
+            audioRecord.release();
             throw new AudioInitializationException("AudioRecord failed to initialize!");
         }
-
-        Log.i(Constants.TAG, "AudioInput: " + mBitrate + "bps, " + mFramesPerPacket + " frames/packet, " + mSampleRate + "hz");
 
         return audioRecord;
     }
@@ -265,6 +254,10 @@ public class AudioInput implements Runnable {
 
     public void setPreprocessorEnabled(boolean preprocessorEnabled) {
         mUsePreprocessor = preprocessorEnabled;
+    }
+
+    public boolean isResampling() {
+        return mResampler != null;
     }
 
     /**
@@ -336,14 +329,15 @@ public class AudioInput implements Runnable {
 
         // We loop when the 'recording' instance var is true instead of checking audio record state because we want to always cleanly shutdown.
         while(mRecording) {
-            int shortsRead = mAudioRecord.read(mResampler != null ? mResampleBuffer : mAudioBuffer, 0, mResampler != null ? mMicFrameSize : mFrameSize);
+            short[] targetBuffer = isResampling() ? mResampleBuffer : mAudioBuffer;
+            int shortsRead = mAudioRecord.read(targetBuffer, 0, mMicFrameSize);
             if(shortsRead > 0) {
                 int len = 0;
                 boolean encoded = false;
                 mFrameCounter++;
 
                 // Resample if necessary
-                if(mResampler != null) {
+                if(isResampling()) {
                     mResampler.resample(mResampleBuffer, mAudioBuffer);
                 }
 
