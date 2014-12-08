@@ -20,7 +20,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.12.+'
+        classpath 'com.android.tools.build:gradle:1.0.0'
     }
 }
 apply plugin: 'com.android.library'
@@ -44,13 +44,13 @@ dependencies {
 
 android {
     compileSdkVersion 19
-    buildToolsVersion "19.1"
+    buildToolsVersion "21.1.1"
 
     sourceSets.main.jniLibs.srcDir 'src/main/libs/'
     sourceSets.main.jni.srcDirs = [] // Disable NDK build support until it supports multiple modules.
 
     defaultConfig {
-        testPackageName "com.morlunk.jumble.test"
+        testApplicationId "com.morlunk.jumble.test"
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
         minSdkVersion 9
         targetSdkVersion 19

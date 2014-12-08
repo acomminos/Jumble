@@ -83,7 +83,7 @@ public class AudioInput implements Runnable {
     final short[] mAudioBuffer;
     final short[] mOpusBuffer;
     final byte[][] mCELTBuffer;
-    short[] mResampleBuffer;
+    final short[] mResampleBuffer;
 
     private final byte[] mEncodedBuffer = new byte[OPUS_MAX_BYTES];
     private int mBufferedFrames = 0;
@@ -139,6 +139,7 @@ public class AudioInput implements Runnable {
             mResampleBuffer = new short[mMicFrameSize];
         } else {
             mMicFrameSize = mFrameSize;
+            mResampleBuffer = null;
         }
 
         configurePreprocessState();
