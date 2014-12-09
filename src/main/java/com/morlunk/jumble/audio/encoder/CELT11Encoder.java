@@ -31,9 +31,8 @@ import java.nio.BufferUnderflowException;
 * Created by andrew on 08/12/14.
 */
 public class CELT11Encoder implements IEncoder {
-    public static final int CELT_BUFFER_SIZE = AudioHandler.SAMPLE_RATE / 800;
-
     private final byte[][] mBuffer;
+    private final int mBufferSize;
     private final int mFramesPerPacket;
     private int mBufferedFrames;
 
@@ -42,7 +41,8 @@ public class CELT11Encoder implements IEncoder {
     public CELT11Encoder(int sampleRate, int channels, int framesPerPacket) throws
             NativeAudioException {
         mFramesPerPacket = framesPerPacket;
-        mBuffer = new byte[framesPerPacket][CELT_BUFFER_SIZE];
+        mBufferSize = sampleRate / 800;
+        mBuffer = new byte[framesPerPacket][mBufferSize];
         mBufferedFrames = 0;
 
         IntPointer error = new IntPointer(1);
@@ -59,7 +59,7 @@ public class CELT11Encoder implements IEncoder {
         }
 
         int result = CELT11.celt_encode(mState, input, frameSize, mBuffer[mBufferedFrames],
-                                               CELT_BUFFER_SIZE);
+                                               mBufferSize);
         if(result < 0) throw new NativeAudioException("CELT 0.11.0 encoding failed with error: "
                                                               + result);
         mBufferedFrames++;

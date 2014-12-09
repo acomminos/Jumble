@@ -423,16 +423,16 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
     @Override
     public void onTalkStateChange(User.TalkState state) {
-//        if (mEncoder != null && state == User.TalkState.PASSIVE) {
-//            try {
-//                mEncoder.terminate();
-//                if (mEncoder.isReady()) {
-//                    sendEncodedAudio();
-//                }
-//            } catch (NativeAudioException e) {
-//                e.printStackTrace();
-//            }
-//        }
+        if (mEncoder != null && state == User.TalkState.PASSIVE) {
+            try {
+                mEncoder.terminate();
+                if (mEncoder.isReady()) {
+                    sendEncodedAudio();
+                }
+            } catch (NativeAudioException e) {
+                e.printStackTrace();
+            }
+        }
         mEncodeListener.onTalkStateChange(state);
     }
 

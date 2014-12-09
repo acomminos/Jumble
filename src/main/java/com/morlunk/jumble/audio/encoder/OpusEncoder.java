@@ -56,6 +56,7 @@ public class OpusEncoder implements IEncoder {
         mFrameSize = frameSize;
         mBufferedFrames = 0;
         mEncodedLength = 0;
+        mTerminated = false;
 
         IntPointer error = new IntPointer(1);
         error.put(0);
@@ -106,7 +107,7 @@ public class OpusEncoder implements IEncoder {
 
     @Override
     public void getEncodedData(PacketBuffer packetBuffer) throws BufferUnderflowException {
-        if (mEncodedLength <= 0) {
+        if (!isReady()) {
             throw new BufferUnderflowException();
         }
 
@@ -114,7 +115,7 @@ public class OpusEncoder implements IEncoder {
         if(mTerminated)
             size |= 1 << 13;
         packetBuffer.writeLong(size);
-        packetBuffer.append(mBuffer, size);
+        packetBuffer.append(mBuffer, mEncodedLength);
 
         mBufferedFrames = 0;
         mEncodedLength = 0;
@@ -129,7 +130,8 @@ public class OpusEncoder implements IEncoder {
     @Override
     public void terminate() throws NativeAudioException {
         mTerminated = true;
-        if (mBufferedFrames > 0) {
+        if (mBufferedFrames > 0 && !isReady()) {
+            // Perform encode operation on remaining audio if available.
             encode();
         }
     }
