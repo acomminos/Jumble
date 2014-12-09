@@ -134,16 +134,17 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private List<Message> mMessageLog;
     private boolean mReconnecting;
 
-    private AudioInput.AudioInputListener mAudioInputListener = new AudioInput.AudioInputListener() {
+    private AudioHandler.AudioEncodeListener mAudioInputListener =
+            new AudioHandler.AudioEncodeListener() {
         @Override
-        public void onFrameEncoded(byte[] data, int length, JumbleUDPMessageType messageType) {
+        public void onAudioEncoded(byte[] data, int length) {
             if(mConnection.isSynchronized()) {
                 mConnection.sendUDPMessage(data, length, false);
             }
         }
 
         @Override
-        public void onTalkStateChanged(final boolean talking) {
+        public void onTalkStateChange(final User.TalkState state) {
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -151,7 +152,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                     final User currentUser = mModelHandler.getUser(mConnection.getSession());
                     if(currentUser == null) return;
 
-                    currentUser.setTalkState(talking ? User.TalkState.TALKING : User.TalkState.PASSIVE);
+                    currentUser.setTalkState(state);
                     try {
                         mCallbacks.onUserTalkStateUpdated(currentUser);
                     } catch (RemoteException e) {

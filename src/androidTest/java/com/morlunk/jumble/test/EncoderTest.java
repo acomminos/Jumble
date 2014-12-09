@@ -20,8 +20,9 @@ package com.morlunk.jumble.test;
 import android.test.AndroidTestCase;
 
 import com.googlecode.javacpp.Loader;
-import com.morlunk.jumble.audio.javacpp.CELT11;
-import com.morlunk.jumble.audio.javacpp.CELT7;
+import com.morlunk.jumble.audio.encoder.CELT11Encoder;
+import com.morlunk.jumble.audio.encoder.CELT7Encoder;
+import com.morlunk.jumble.audio.encoder.OpusEncoder;
 import com.morlunk.jumble.audio.javacpp.Opus;
 import com.morlunk.jumble.exception.NativeAudioException;
 
@@ -42,7 +43,7 @@ public class EncoderTest extends AndroidTestCase {
     }
 
     public void testOpusEncode() throws NativeAudioException {
-        Opus.OpusEncoder encoder = new Opus.OpusEncoder(SAMPLE_RATE, 1);
+        OpusEncoder encoder = new OpusEncoder(SAMPLE_RATE, 1);
         encoder.setBitrate(BITRATE);
         assertEquals(encoder.getBitrate(), BITRATE);
 
@@ -53,7 +54,7 @@ public class EncoderTest extends AndroidTestCase {
     }
 
     public void testCELT11Encode() throws NativeAudioException {
-        CELT11.CELT11Encoder encoder = new CELT11.CELT11Encoder(SAMPLE_RATE, 1);
+        CELT11Encoder encoder = new CELT11Encoder(SAMPLE_RATE, 1);
 //        encoder.setBitrate(BITRATE);
 //        assertEquals(encoder.getBitrate(), BITRATE);
 
@@ -64,7 +65,7 @@ public class EncoderTest extends AndroidTestCase {
     }
 
     public void testCELT7Encode() throws NativeAudioException {
-        CELT7.CELT7Encoder encoder = new CELT7.CELT7Encoder(SAMPLE_RATE, FRAME_SIZE, 1);
+        CELT7Encoder encoder = new CELT7Encoder(SAMPLE_RATE, FRAME_SIZE, 1);
 //        encoder.setBitrate(BITRATE);
 //        assertEquals(encoder.getBitrate(), BITRATE);
 

@@ -23,7 +23,6 @@ import com.googlecode.javacpp.Pointer;
 import com.googlecode.javacpp.annotation.Cast;
 import com.googlecode.javacpp.annotation.Platform;
 import com.morlunk.jumble.audio.IDecoder;
-import com.morlunk.jumble.audio.IEncoder;
 import com.morlunk.jumble.exception.NativeAudioException;
 
 import java.nio.ByteBuffer;
@@ -54,39 +53,6 @@ public class CELT7 {
     public static native int celt_encoder_ctl(@Cast("CELTEncoder*")Pointer state, int request, int val);
     public static native int celt_encode(@Cast("CELTEncoder *") Pointer state, @Cast("const short *") short[] pcm, @Cast("short *") short[] optionalSynthesis, @Cast("unsigned char *") byte[] compressed, int nbCompressedBytes);
     public static native void celt_encoder_destroy(@Cast("CELTEncoder *") Pointer state);
-
-    public static class CELT7Encoder implements IEncoder {
-
-        private Pointer mMode;
-        private Pointer mState;
-
-        public CELT7Encoder(int sampleRate, int frameSize, int channels) throws NativeAudioException {
-            IntPointer error = new IntPointer(1);
-            error.put(0);
-            mMode = celt_mode_create(sampleRate, frameSize, error);
-            if(error.get() < 0) throw new NativeAudioException("CELT 0.7.0 encoder initialization failed with error: "+error.get());
-            mState = celt_encoder_create(mMode, channels, error);
-            if(error.get() < 0) throw new NativeAudioException("CELT 0.7.0 encoder initialization failed with error: "+error.get());
-        }
-
-        @Override
-        public int encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException {
-            int result = celt_encode(mState, input, null, output, outputSize);
-            if(result < 0) throw new NativeAudioException("CELT 0.7.0 encoding failed with error: "+result);
-            return result;
-        }
-
-        @Override
-        public void setBitrate(int bitrate) {
-            // FIXME
-        }
-
-        @Override
-        public void destroy() {
-            celt_encoder_destroy(mState);
-            celt_mode_destroy(mMode);
-        }
-    }
 
     public static class CELT7Decoder implements IDecoder {
 

@@ -23,7 +23,6 @@ import com.googlecode.javacpp.Pointer;
 import com.googlecode.javacpp.annotation.Cast;
 import com.googlecode.javacpp.annotation.Platform;
 import com.morlunk.jumble.audio.IDecoder;
-import com.morlunk.jumble.audio.IEncoder;
 import com.morlunk.jumble.exception.NativeAudioException;
 
 import java.nio.ByteBuffer;
@@ -56,38 +55,6 @@ public class CELT11 {
     public static native int celt_encoder_ctl(@Cast("CELTEncoder*")Pointer state, int request, int val);
     public static native int celt_encode(@Cast("CELTEncoder*") Pointer state, @Cast("const short*") short[] pcm, int frameSize, @Cast("unsigned char*") byte[] compressed, int maxCompressedBytes);
     public static native void celt_encoder_destroy(@Cast("CELTEncoder*") Pointer state);
-
-    public static class CELT11Encoder implements IEncoder {
-
-        private Pointer mState;
-
-        public CELT11Encoder(int sampleRate, int channels) throws NativeAudioException {
-            IntPointer error = new IntPointer(1);
-            error.put(0);
-            mState = celt_encoder_create(sampleRate, channels, error);
-            if(error.get() < 0) throw new NativeAudioException("CELT 0.11.0 encoder initialization failed with error: "+error.get());
-        }
-
-        @Override
-        public int encode(short[] input, int frameSize, byte[] output, int outputSize) throws NativeAudioException {
-            int result = celt_encode(mState, input, frameSize, output, outputSize);
-            if(result < 0) throw new NativeAudioException("CELT 0.11.0 encoding failed with error: "+result);
-            return result;
-        }
-
-        @Override
-        public void setBitrate(int bitrate) {
-            // FIXME
-//            IntPointer ptr = new IntPointer(1);
-//            ptr.put(bitrate);
-//            celt_encoder_ctl(mState, CELT_SET_BITRATE_REQUEST, ptr);
-        }
-
-        @Override
-        public void destroy() {
-            celt_encoder_destroy(mState);
-        }
-    }
 
     public static class CELT11Decoder implements IDecoder {
 

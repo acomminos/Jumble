@@ -22,16 +22,26 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.R;
 import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
+import com.morlunk.jumble.audio.encoder.CELT11Encoder;
+import com.morlunk.jumble.audio.encoder.CELT7Encoder;
+import com.morlunk.jumble.audio.encoder.IEncoder;
+import com.morlunk.jumble.audio.encoder.OpusEncoder;
+import com.morlunk.jumble.audio.encoder.PreprocessingEncoder;
+import com.morlunk.jumble.audio.encoder.ResamplingEncoder;
 import com.morlunk.jumble.exception.AudioException;
 import com.morlunk.jumble.exception.AudioInitializationException;
+import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.model.Message;
+import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
+import com.morlunk.jumble.net.PacketBuffer;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.util.JumbleLogger;
 import com.morlunk.jumble.util.JumbleNetworkListener;
@@ -44,7 +54,7 @@ import com.morlunk.jumble.util.JumbleNetworkListener;
  * Calling shutdown() will cleanup both input and output threads. It is safe to restart after.
  * Created by andrew on 23/04/14.
  */
-public class AudioHandler extends JumbleNetworkListener {
+public class AudioHandler extends JumbleNetworkListener implements AudioInput.AudioInputListener {
     public static final int SAMPLE_RATE = 48000;
     public static final int FRAME_SIZE = SAMPLE_RATE/100;
 
@@ -53,10 +63,13 @@ public class AudioHandler extends JumbleNetworkListener {
     private AudioManager mAudioManager;
     private AudioInput mInput;
     private AudioOutput mOutput;
-    private AudioInput.AudioInputListener mInputListener;
     private AudioOutput.AudioOutputListener mOutputListener;
+    private AudioEncodeListener mEncodeListener;
 
-    private JumbleUDPMessageType mCodec = JumbleUDPMessageType.UDPVoiceOpus;
+    private JumbleUDPMessageType mCodec;
+    private IEncoder mEncoder;
+    private int mFrameCounter;
+
     private int mAudioStream;
     private int mAudioSource;
     private int mSampleRate;
@@ -104,10 +117,11 @@ public class AudioHandler extends JumbleNetworkListener {
         }
     };
 
-    public AudioHandler(Context context, JumbleLogger logger, AudioInput.AudioInputListener inputListener, AudioOutput.AudioOutputListener outputListener) {
+    public AudioHandler(Context context, JumbleLogger logger, AudioEncodeListener encodeListener,
+                        AudioOutput.AudioOutputListener outputListener) {
         mContext = context;
         mLogger = logger;
-        mInputListener = inputListener;
+        mEncodeListener = encodeListener;
         mOutputListener = outputListener;
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
     }
@@ -121,8 +135,8 @@ public class AudioHandler extends JumbleNetworkListener {
     private void createAudioInput() throws AudioException {
         if(mInput != null) mInput.shutdown();
 
-        mInput = new AudioInput(mInputListener, mCodec, mAudioSource, mSampleRate, mBitrate,
-                mFramesPerPacket, mTransmitMode, mVADThreshold, mAmplitudeBoost, mPreprocessorEnabled);
+        mInput = new AudioInput(this, mAudioSource, mSampleRate, mTransmitMode,
+                                       mVADThreshold, mAmplitudeBoost);
         if(mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY || mTransmitMode == Constants.TRANSMIT_CONTINUOUS) {
             mInput.startRecording();
         }
@@ -145,7 +159,7 @@ public class AudioHandler extends JumbleNetworkListener {
     public synchronized void initialize() throws AudioException {
         if(mInitialized) return;
         if(mOutput == null) createAudioOutput();
-        if(mInput == null && mCodec != null) createAudioInput();
+        if(mInput == null) createAudioInput();
         // This sticky broadcast will initialize the audio output.
         mContext.registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
         mInitialized = true;
@@ -182,6 +196,37 @@ public class AudioHandler extends JumbleNetworkListener {
 
     public JumbleUDPMessageType getCodec() {
         return mCodec;
+    }
+
+    public void setCodec(JumbleUDPMessageType codec) throws NativeAudioException {
+        mCodec = codec;
+
+        IEncoder encoder;
+        switch (codec) {
+            case UDPVoiceCELTAlpha:
+                encoder = new CELT7Encoder(SAMPLE_RATE, AudioHandler.FRAME_SIZE, 1,
+                                                  mFramesPerPacket);
+                break;
+            case UDPVoiceCELTBeta:
+                encoder = new CELT11Encoder(SAMPLE_RATE, 1, mFramesPerPacket);
+                break;
+            case UDPVoiceOpus:
+                encoder = new OpusEncoder(SAMPLE_RATE, 1, FRAME_SIZE, mFramesPerPacket);
+                break;
+            default:
+                Log.w(Constants.TAG, "Unsupported codec, input disabled.");
+                return;
+        }
+
+        if (mPreprocessorEnabled) {
+            encoder = new PreprocessingEncoder(encoder, FRAME_SIZE, SAMPLE_RATE);
+        }
+
+        if (mInput.getSampleRate() != SAMPLE_RATE) {
+            encoder = new ResamplingEncoder(encoder, 1, mInput.getSampleRate(), SAMPLE_RATE);
+        }
+
+        mEncoder = encoder;
     }
 
     public int getAudioStream() {
@@ -238,7 +283,7 @@ public class AudioHandler extends JumbleNetworkListener {
      */
     public void setBitrate(int bitrate) {
         this.mBitrate = bitrate;
-        if(mInput != null) mInput.setBitrate(bitrate);
+        if(mEncoder != null) mEncoder.setBitrate(bitrate);
     }
 
     public int getFramesPerPacket() {
@@ -247,12 +292,10 @@ public class AudioHandler extends JumbleNetworkListener {
 
     /**
      * Sets the number of frames per packet to be encoded before sending to the server.
-     * The input thread will be automatically respawned if currently recording.
      * @param framesPerPacket The number of frames per audio packet.
      */
     public void setFramesPerPacket(int framesPerPacket) throws AudioException {
         this.mFramesPerPacket = framesPerPacket;
-        if(mInput != null) createAudioInput();
     }
 
     public int getTransmitMode() {
@@ -323,7 +366,7 @@ public class AudioHandler extends JumbleNetworkListener {
      */
     public void setPreprocessorEnabled(boolean preprocessorEnabled) {
         mPreprocessorEnabled = preprocessorEnabled;
-        if (mInitialized) mInput.setPreprocessorEnabled(preprocessorEnabled);
+        // FIXME
     }
 
     /**
@@ -355,19 +398,20 @@ public class AudioHandler extends JumbleNetworkListener {
 
     @Override
     public void messageCodecVersion(Mumble.CodecVersion msg) {
+        JumbleUDPMessageType codec;
         if (msg.hasOpus() && msg.getOpus()) {
-            mCodec = JumbleUDPMessageType.UDPVoiceOpus;
+            codec = JumbleUDPMessageType.UDPVoiceOpus;
         } else if (msg.hasBeta() && !msg.getPreferAlpha()) {
-            mCodec = JumbleUDPMessageType.UDPVoiceCELTBeta;
+            codec = JumbleUDPMessageType.UDPVoiceCELTBeta;
         } else {
-            mCodec = JumbleUDPMessageType.UDPVoiceCELTAlpha;
+            codec = JumbleUDPMessageType.UDPVoiceCELTAlpha;
         }
-        if(mInitialized) {
+
+        if (codec != mCodec) {
             try {
-                createAudioInput();
-            } catch (AudioException e) {
+                setCodec(codec);
+            } catch (NativeAudioException e) {
                 e.printStackTrace();
-                // TODO handle gracefully
             }
         }
     }
@@ -375,5 +419,65 @@ public class AudioHandler extends JumbleNetworkListener {
     @Override
     public void messageVoiceData(byte[] data, JumbleUDPMessageType messageType) {
         mOutput.queueVoiceData(data, messageType);
+    }
+
+    @Override
+    public void onTalkStateChange(User.TalkState state) {
+//        if (mEncoder != null && state == User.TalkState.PASSIVE) {
+//            try {
+//                mEncoder.terminate();
+//                if (mEncoder.isReady()) {
+//                    sendEncodedAudio();
+//                }
+//            } catch (NativeAudioException e) {
+//                e.printStackTrace();
+//            }
+//        }
+        mEncodeListener.onTalkStateChange(state);
+    }
+
+    @Override
+    public void onAudioInputReceived(short[] frame, int frameSize) {
+        if (mEncoder != null) {
+            try {
+                mEncoder.encode(frame, frameSize);
+                mFrameCounter++;
+            } catch (NativeAudioException e) {
+                e.printStackTrace();
+                return;
+            }
+
+            if (mEncoder.isReady()) {
+                sendEncodedAudio();
+            }
+        }
+    }
+
+    /**
+     * Fetches the buffered audio from the current encoder and sends it to the server.
+     */
+    private void sendEncodedAudio() {
+        int frames = mEncoder.getBufferedFrames();
+
+        int flags = 0;
+        flags |= mCodec.ordinal() << 5;
+
+        final byte[] packetBuffer = new byte[1024];
+        packetBuffer[0] = (byte) (flags & 0xFF);
+
+        PacketBuffer ds = new PacketBuffer(packetBuffer, 1024);
+        ds.skip(1);
+        ds.writeLong(mFrameCounter - frames);
+        mEncoder.getEncodedData(ds);
+        int length = ds.size();
+        ds.rewind();
+
+        byte[] packet = ds.dataBlock(length);
+        mEncodeListener.onAudioEncoded(packet, length);
+    }
+
+    public interface AudioEncodeListener {
+        public void onAudioEncoded(byte[] data, int length);
+        public void onTalkStateChange(User.TalkState state);
     }
 }

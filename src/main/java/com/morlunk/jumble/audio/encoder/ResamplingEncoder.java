@@ -15,36 +15,62 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.morlunk.jumble.audio;
+package com.morlunk.jumble.audio.encoder;
 
 import com.morlunk.jumble.audio.javacpp.Speex;
 import com.morlunk.jumble.exception.NativeAudioException;
+import com.morlunk.jumble.net.PacketBuffer;
+
+import java.nio.BufferUnderflowException;
 
 /**
  * Wraps around another encoder, resampling up/down all input using the Speex resampler.
  * Created by andrew on 16/04/14.
  */
 public class ResamplingEncoder implements IEncoder {
-
     private static final int SPEEX_RESAMPLE_QUALITY = 3;
 
     private IEncoder mEncoder;
     private Speex.SpeexResampler mResampler;
+    private final int mInputSampleRate;
+    private final int mTargetSampleRate;
 
     public ResamplingEncoder(IEncoder encoder, int channels, int inputSampleRate, int targetSampleRate) {
         mEncoder = encoder;
+        mInputSampleRate = inputSampleRate;
+        mTargetSampleRate = targetSampleRate;
         mResampler = new Speex.SpeexResampler(channels, inputSampleRate, targetSampleRate, SPEEX_RESAMPLE_QUALITY);
     }
 
     @Override
-    public int encode(short[] input, int inputSize, byte[] output, int outputSize) throws NativeAudioException {
+    public int encode(short[] input, int inputSize) throws NativeAudioException {
         mResampler.resample(input, input);
-        return mEncoder.encode(input, inputSize, output, outputSize);
+        return mEncoder.encode(input, inputSize * (mTargetSampleRate / mInputSampleRate));
+    }
+
+    @Override
+    public int getBufferedFrames() {
+        return mEncoder.getBufferedFrames();
+    }
+
+    @Override
+    public boolean isReady() {
+        return mEncoder.isReady();
+    }
+
+    @Override
+    public void getEncodedData(PacketBuffer packetBuffer) throws BufferUnderflowException {
+        mEncoder.getEncodedData(packetBuffer);
     }
 
     @Override
     public void setBitrate(int bitrate) {
         mEncoder.setBitrate(bitrate);
+    }
+
+    @Override
+    public void terminate() throws NativeAudioException {
+        mEncoder.terminate();
     }
 
     public void setEncoder(IEncoder encoder) {
