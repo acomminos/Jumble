@@ -40,6 +40,7 @@ import com.morlunk.jumble.exception.AudioInitializationException;
 import com.morlunk.jumble.exception.NativeAudioException;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.User;
+import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketBuffer;
 import com.morlunk.jumble.protobuf.Mumble;
@@ -294,16 +295,56 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         if(mEncoder != null) mEncoder.setBitrate(bitrate);
     }
 
+    /**
+     * Sets the maximum bandwidth available for audio input as obtained from the server.
+     * Adjusts the bitrate and frames per packet accordingly to meet the server's requirement.
+     * @param maxBandwidth The server-reported maximum bandwidth, in bps.
+     */
+    public void setMaxBandwidth(int maxBandwidth) throws AudioException {
+        if (maxBandwidth == -1) {
+            return;
+        }
+        int bitrate = mBitrate;
+        int framesPerPacket = mFramesPerPacket;
+        // Logic as per desktop Mumble's AudioInput::adjustBandwidth for consistency.
+        if (JumbleConnection.calculateAudioBandwidth(bitrate, framesPerPacket) > maxBandwidth) {
+            if (framesPerPacket <= 4 && maxBandwidth <= 32000) {
+                framesPerPacket = 4;
+            } else if (framesPerPacket == 1 && maxBandwidth <= 64000) {
+                framesPerPacket = 2;
+            } else if (framesPerPacket == 2 && maxBandwidth <= 48000) {
+                framesPerPacket = 4;
+            }
+            while (JumbleConnection.calculateAudioBandwidth(bitrate, framesPerPacket)
+                    > maxBandwidth && bitrate > 8000) {
+                bitrate -= 1000;
+            }
+        }
+        bitrate = Math.max(8000, bitrate);
+
+        setBitrate(bitrate);
+        setFramesPerPacket(framesPerPacket);
+
+        Log.v(Constants.TAG, "Max bandwidth of " + maxBandwidth + " triggered bitrate adjustment " +
+                "to " + bitrate + ", frames per packet adjustment to " + framesPerPacket);
+    }
+
     public int getFramesPerPacket() {
         return mFramesPerPacket;
     }
 
     /**
      * Sets the number of frames per packet to be encoded before sending to the server.
+     * Recreates encoder, if created.
      * @param framesPerPacket The number of frames per audio packet.
      */
     public void setFramesPerPacket(int framesPerPacket) throws AudioException {
         this.mFramesPerPacket = framesPerPacket;
+        synchronized (mEncoderLock) {
+            if (mCodec != null && mEncoder != null) {
+                setCodec(mCodec);
+            }
+        }
     }
 
     public int getTransmitMode() {
@@ -421,7 +462,9 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
         if (codec != mCodec) {
             try {
-                setCodec(codec);
+                synchronized (mEncoderLock) {
+                    setCodec(codec);
+                }
             } catch (NativeAudioException e) {
                 e.printStackTrace();
             }

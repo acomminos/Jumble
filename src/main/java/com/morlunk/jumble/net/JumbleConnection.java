@@ -133,7 +133,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
             mPingTask = mPingExecutorService.scheduleAtFixedRate(mPingRunnable, 0, 5, TimeUnit.SECONDS);
 
             mSession = msg.getSession();
-            mMaxBandwidth = msg.getMaxBandwidth();
+            mMaxBandwidth = msg.hasMaxBandwidth() ? msg.getMaxBandwidth() : -1;
             mSynchronized = true;
 
             mMainHandler.post(new Runnable() {
@@ -280,6 +280,20 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
     };
 
     /**
+     * Calculates the bandwidth required to send audio with the given parameters.
+     * Includes packet overhead.
+     * @param bitrate The bitrate in bps.
+     * @param framesPerPacket The number of frames per audio packet.
+     * @return The bandwidth in bps used by the given configuration.
+     */
+    public static int calculateAudioBandwidth(int bitrate, int framesPerPacket) {
+        // FIXME: assumes worst-case using TCP
+        int overhead = 20 + 8 + 4 + 1 + 2 + 12 + framesPerPacket;
+        overhead *= (800 / framesPerPacket);
+        return overhead + bitrate;
+    }
+
+    /**
      * Creates a new JumbleConnection object to facilitate server connections.
      */
     public JumbleConnection(JumbleConnectionListener listener) {
@@ -406,6 +420,10 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         return mSession;
     }
 
+    /**
+     * Returns the server-reported maximum input bandwidth, or -1 if not set.
+     * @return the input bandwidth in bps, or -1 if not set.
+     */
     public int getMaxBandwidth() {
         return mMaxBandwidth;
     }

@@ -329,6 +329,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mWakeLock.acquire();
 
         try {
+            // Max bandwidth info is set on ServerSync.
+            mAudioHandler.setMaxBandwidth(mConnection.getMaxBandwidth());
+        } catch (AudioException e) {
+            e.printStackTrace();
+        }
+
+        try {
             mCallbacks.onConnected();
         } catch (RemoteException e) {
             e.printStackTrace();
