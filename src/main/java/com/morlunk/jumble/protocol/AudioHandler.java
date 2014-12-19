@@ -84,6 +84,8 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     private boolean mHalfDuplex;
     private boolean mPreprocessorEnabled;
 
+    private final Object mEncoderLock;
+
     private BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -124,6 +126,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         mEncodeListener = encodeListener;
         mOutputListener = outputListener;
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        mEncoderLock = new Object();
     }
 
     /**
@@ -423,14 +426,16 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
     @Override
     public void onTalkStateChange(User.TalkState state) {
-        if (mEncoder != null && state == User.TalkState.PASSIVE) {
-            try {
-                mEncoder.terminate();
-                if (mEncoder.isReady()) {
-                    sendEncodedAudio();
+        synchronized (mEncoderLock) {
+            if (mEncoder != null && state == User.TalkState.PASSIVE) {
+                try {
+                    mEncoder.terminate();
+                    if (mEncoder.isReady()) {
+                        sendEncodedAudio();
+                    }
+                } catch (NativeAudioException e) {
+                    e.printStackTrace();
                 }
-            } catch (NativeAudioException e) {
-                e.printStackTrace();
             }
         }
         mEncodeListener.onTalkStateChange(state);
@@ -438,17 +443,19 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
     @Override
     public void onAudioInputReceived(short[] frame, int frameSize) {
-        if (mEncoder != null) {
-            try {
-                mEncoder.encode(frame, frameSize);
-                mFrameCounter++;
-            } catch (NativeAudioException e) {
-                e.printStackTrace();
-                return;
-            }
+        synchronized (mEncoderLock) {
+            if (mEncoder != null) {
+                try {
+                    mEncoder.encode(frame, frameSize);
+                    mFrameCounter++;
+                } catch (NativeAudioException e) {
+                    e.printStackTrace();
+                    return;
+                }
 
-            if (mEncoder.isReady()) {
-                sendEncodedAudio();
+                if (mEncoder.isReady()) {
+                    sendEncodedAudio();
+                }
             }
         }
     }
