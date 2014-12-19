@@ -204,6 +204,11 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     public void setCodec(JumbleUDPMessageType codec) throws NativeAudioException {
         mCodec = codec;
 
+        if (mEncoder != null) {
+            mEncoder.destroy();
+            mEncoder = null;
+        }
+
         IEncoder encoder;
         switch (codec) {
             case UDPVoiceCELTAlpha:
@@ -384,6 +389,10 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         if(mOutput != null) {
             mOutput.stopPlaying();
             mOutput = null;
+        }
+        if (mEncoder != null) {
+            mEncoder.destroy();
+            mEncoder = null;
         }
         if(mInitialized) {
             try {
