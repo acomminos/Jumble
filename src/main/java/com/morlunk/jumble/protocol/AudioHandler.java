@@ -472,6 +472,15 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     }
 
     @Override
+    public void messageServerSync(Mumble.ServerSync msg) {
+        try {
+            setMaxBandwidth(msg.hasMaxBandwidth() ? msg.getMaxBandwidth() : -1);
+        } catch (AudioException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
     public void messageVoiceData(byte[] data, JumbleUDPMessageType messageType) {
         mOutput.queueVoiceData(data, messageType);
     }
