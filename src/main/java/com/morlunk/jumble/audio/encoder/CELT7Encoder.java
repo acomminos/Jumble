@@ -31,7 +31,10 @@ import java.nio.BufferUnderflowException;
 * Created by andrew on 08/12/14.
 */
 public class CELT7Encoder implements IEncoder {
+    public static final int MAX_BUFFER_SIZE = 960;
+
     private final byte[][] mBuffer;
+    private final int[] mPacketLengths;
     private final int mBufferSize;
     private final int mFramesPerPacket;
     private int mBufferedFrames;
@@ -42,8 +45,9 @@ public class CELT7Encoder implements IEncoder {
     public CELT7Encoder(int sampleRate, int frameSize, int channels,
                         int framesPerPacket, int bitrate) throws NativeAudioException {
         mFramesPerPacket = framesPerPacket;
-        mBufferSize = bitrate / 800;
+        mBufferSize = Math.min(MAX_BUFFER_SIZE, bitrate / 800);
         mBuffer = new byte[framesPerPacket][mBufferSize];
+        mPacketLengths = new int[framesPerPacket];
         mBufferedFrames = 0;
 
         IntPointer error = new IntPointer(1);
@@ -65,6 +69,7 @@ public class CELT7Encoder implements IEncoder {
         int result = CELT7.celt_encode(mState, input, null, mBuffer[mBufferedFrames], mBufferSize);
         if(result < 0) throw new NativeAudioException("CELT 0.7.0 encoding failed with error: "
                                                               + result);
+        mPacketLengths[mBufferedFrames] = result;
         mBufferedFrames++;
         return result;
     }
@@ -87,11 +92,12 @@ public class CELT7Encoder implements IEncoder {
 
         for (int x = 0; x < mBufferedFrames; x++) {
             byte[] frame = mBuffer[x];
-            int head = frame.length;
+            int length = mPacketLengths[x];
+            int head = length;
             if(x < mBufferedFrames - 1)
                 head |= 0x80;
             packetBuffer.append(head);
-            packetBuffer.append(frame, frame.length);
+            packetBuffer.append(frame, length);
         }
 
         mBufferedFrames = 0;
