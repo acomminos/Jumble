@@ -20,8 +20,8 @@ package com.morlunk.jumble.test;
 import android.test.AndroidTestCase;
 
 import com.googlecode.javacpp.Loader;
-import com.morlunk.jumble.audio.encoder.CELT11Encoder;
 import com.morlunk.jumble.audio.encoder.CELT7Encoder;
+import com.morlunk.jumble.audio.encoder.IEncoder;
 import com.morlunk.jumble.audio.encoder.OpusEncoder;
 import com.morlunk.jumble.audio.javacpp.Opus;
 import com.morlunk.jumble.exception.NativeAudioException;
@@ -33,45 +33,34 @@ import com.morlunk.jumble.exception.NativeAudioException;
  * Created by andrew on 13/10/13.
  */
 public class EncoderTest extends AndroidTestCase {
-
     private static final int SAMPLE_RATE = 48000;
     private static final int BITRATE = 40000;
     private static final int FRAME_SIZE = 480;
+    private static final int FRAMES_PER_PACKET = 4;
 
     static {
         Loader.load(Opus.class);
     }
 
     public void testOpusEncode() throws NativeAudioException {
-        OpusEncoder encoder = new OpusEncoder(SAMPLE_RATE, 1);
-        encoder.setBitrate(BITRATE);
-        assertEquals(encoder.getBitrate(), BITRATE);
-
-        short[] pcm = new short[FRAME_SIZE];
-        byte[] output = new byte[1024];
-        encoder.encode(pcm, FRAME_SIZE, output, 1024);
-        encoder.destroy();
-    }
-
-    public void testCELT11Encode() throws NativeAudioException {
-        CELT11Encoder encoder = new CELT11Encoder(SAMPLE_RATE, 1);
-//        encoder.setBitrate(BITRATE);
-//        assertEquals(encoder.getBitrate(), BITRATE);
-
-        short[] pcm = new short[FRAME_SIZE];
-        byte[] output = new byte[1024];
-        encoder.encode(pcm, FRAME_SIZE, output, 1024);
+        IEncoder encoder = new OpusEncoder(SAMPLE_RATE, 1, FRAME_SIZE, FRAMES_PER_PACKET, BITRATE);
+        testEncoder(encoder);
         encoder.destroy();
     }
 
     public void testCELT7Encode() throws NativeAudioException {
-        CELT7Encoder encoder = new CELT7Encoder(SAMPLE_RATE, FRAME_SIZE, 1);
-//        encoder.setBitrate(BITRATE);
-//        assertEquals(encoder.getBitrate(), BITRATE);
-
-        short[] pcm = new short[FRAME_SIZE];
-        byte[] output = new byte[1024];
-        encoder.encode(pcm, FRAME_SIZE, output, 1024);
+        CELT7Encoder encoder = new CELT7Encoder(SAMPLE_RATE, FRAME_SIZE, 1, FRAMES_PER_PACKET, BITRATE);
+        testEncoder(encoder);
         encoder.destroy();
+    }
+
+    public void testEncoder(IEncoder encoder) throws NativeAudioException {
+        assertFalse(encoder.isReady());
+        final short[] dummyFrame = new short[FRAME_SIZE];
+        for (int i = 0; i < FRAMES_PER_PACKET; i++) {
+            assertFalse(encoder.isReady());
+            encoder.encode(dummyFrame, FRAME_SIZE);
+        }
+        assertTrue(encoder.isReady());
     }
 }
