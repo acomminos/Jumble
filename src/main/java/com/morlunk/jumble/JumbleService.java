@@ -588,15 +588,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 return;
             }
 
-            if(talking) {
-                try {
+            try {
+                if (talking) {
                     mAudioHandler.startRecording();
-                } catch (AudioException e) {
-                    e.printStackTrace();
-                    onConnectionWarning(e.getMessage());
+                } else {
+                    mAudioHandler.stopRecording();
                 }
-            } else {
-                mAudioHandler.stopRecording();
+            } catch (AudioException e) {
+                log(Message.Type.WARNING, e.getMessage());
             }
         }
 
@@ -771,15 +770,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
             usb.setSelfMute(mute);
             usb.setSelfDeaf(deaf);
-            if(!mute && !mAudioHandler.isRecording() && (mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY))
-                try {
+            try {
+                if (!mute && !mAudioHandler.isRecording() && (mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY))
                     mAudioHandler.startRecording(); // Resume recording when unmuted for PTT.
-                } catch (AudioException e) {
-                    e.printStackTrace();
-                    onConnectionWarning(e.getMessage());
-                }
-            else if(mute && mAudioHandler.isRecording())
-                mAudioHandler.stopRecording(); // Stop recording when muted.
+                else if (mute && mAudioHandler.isRecording())
+                    mAudioHandler.stopRecording(); // Stop recording when muted.
+            } catch (AudioException e) {
+                log(Message.Type.WARNING, e.getMessage());
+            }
             mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
         }
 

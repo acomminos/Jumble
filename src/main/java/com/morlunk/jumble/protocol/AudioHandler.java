@@ -169,19 +169,38 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         mInitialized = true;
     }
 
+    /**
+     * Starts a recording AudioInput thread.
+     * @throws AudioException if the input thread failed to initialize, or if a thread was already
+     *                        recording.
+     */
     public synchronized void startRecording() throws AudioException {
         if(mInput == null) createAudioInput();
-        mInput.startRecording();
-        if(mHalfDuplex && mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK) {
-            mAudioManager.setStreamMute(getAudioStream(), true);
+
+        if (!mInput.isRecording()) {
+            mInput.startRecording();
+            if (mHalfDuplex && mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK) {
+                mAudioManager.setStreamMute(getAudioStream(), true);
+            }
+        } else {
+            throw new AudioException("Attempted to start recording while recording!");
         }
     }
 
-    public synchronized void stopRecording() {
+    /**
+     * Stops the recording AudioInput thread.
+     * @throws AudioException if there was no thread recording.
+     */
+    public synchronized void stopRecording() throws AudioException {
         if(mInput == null) return;
-        mInput.stopRecording();
-        if(mHalfDuplex && mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK) {
-            mAudioManager.setStreamMute(getAudioStream(), false);
+
+        if (mInput.isRecording()) {
+            mInput.stopRecording();
+            if (mHalfDuplex && mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK) {
+                mAudioManager.setStreamMute(getAudioStream(), false);
+            }
+        } else {
+            throw new AudioException("Attempted to stop recording while not recording!");
         }
     }
 

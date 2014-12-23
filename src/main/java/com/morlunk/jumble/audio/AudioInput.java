@@ -117,13 +117,18 @@ public class AudioInput implements Runnable {
     }
 
     /**
-     * Stops the record loop after the current iteration.
+     * Stops the record loop after the current iteration, joining it.
      * Not thread-safe.
      */
     public void stopRecording() {
         if(!mRecording) return;
         mRecording = false;
-        mRecordThread = null;
+        try {
+            mRecordThread.join();
+            mRecordThread = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void setVADThreshold(float threshold) {
