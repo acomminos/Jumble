@@ -33,6 +33,8 @@ import java.nio.ByteBuffer;
 @Platform(library="jnicelt7", cinclude={"<celt.h>","<celt_types.h>"})
 public class CELT7 {
     public static final int CELT_GET_BITSTREAM_VERSION = 2000;
+    public static final int CELT_SET_VBR_RATE_REQUEST = 6;
+    public static final int CELT_SET_PREDICTION_REQUEST = 4;
 
     static {
         Loader.load();

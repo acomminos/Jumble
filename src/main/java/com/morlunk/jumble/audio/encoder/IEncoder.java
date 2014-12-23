@@ -55,12 +55,6 @@ public interface IEncoder {
     public void getEncodedData(PacketBuffer packetBuffer) throws BufferUnderflowException;
 
     /**
-     * Sets the bitrate of the encoder.
-     * @param bitrate The bitrate (in bps) to encode audio with.
-     */
-    public void setBitrate(int bitrate);
-
-    /**
      * Informs the encoder that there are no more audio packets to be queued. Often, this will
      * trigger an encode operation, changing the result of {@link #isReady()}.
      */

@@ -78,11 +78,6 @@ public class PreprocessingEncoder implements IEncoder {
     }
 
     @Override
-    public void setBitrate(int bitrate) {
-        mEncoder.setBitrate(bitrate);
-    }
-
-    @Override
     public void terminate() throws NativeAudioException {
         mEncoder.terminate();
     }

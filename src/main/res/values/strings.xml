@@ -17,6 +17,7 @@
   -->
 
 <resources>
+    <string name="audio_max_bandwidth">Server maximum network bandwidth is only %1$d kbit/s. Audio quality auto-adjusted to %2$d kbit/s (%3$d ms)</string>
     <string name="chat_notify_moved">%1$s moved in from %2$s by %3$s.</string>
     <string name="chat_notify_muted_deafened">Muted and deafened.</string>
     <string name="chat_notify_muted">Muted.</string>

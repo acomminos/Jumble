@@ -221,6 +221,10 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         return mCodec;
     }
 
+    public void recreateEncoder() throws NativeAudioException {
+        setCodec(mCodec);
+    }
+
     public void setCodec(JumbleUDPMessageType codec) throws NativeAudioException {
         mCodec = codec;
 
@@ -233,13 +237,13 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         switch (codec) {
             case UDPVoiceCELTAlpha:
                 encoder = new CELT7Encoder(SAMPLE_RATE, AudioHandler.FRAME_SIZE, 1,
-                                                  mFramesPerPacket);
+                                                  mFramesPerPacket, mBitrate);
                 break;
             case UDPVoiceCELTBeta:
                 encoder = new CELT11Encoder(SAMPLE_RATE, 1, mFramesPerPacket);
                 break;
             case UDPVoiceOpus:
-                encoder = new OpusEncoder(SAMPLE_RATE, 1, FRAME_SIZE, mFramesPerPacket);
+                encoder = new OpusEncoder(SAMPLE_RATE, 1, FRAME_SIZE, mFramesPerPacket, mBitrate);
                 break;
             default:
                 Log.w(Constants.TAG, "Unsupported codec, input disabled.");
@@ -305,13 +309,17 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     }
 
     /**
-     * Sets the bitrate of the audio input thread.
-     * Does not require input thread recreation.
+     * Sets the bitrate of the encoder.
+     * Triggers an encoder recreation if initialized.
      * @param bitrate The desired bitrate.
      */
-    public void setBitrate(int bitrate) {
+    public void setBitrate(int bitrate) throws NativeAudioException {
         this.mBitrate = bitrate;
-        if(mEncoder != null) mEncoder.setBitrate(bitrate);
+        synchronized (mEncoderLock) {
+            if (mCodec != null && mEncoder != null) {
+                recreateEncoder();
+            }
+        }
     }
 
     /**
@@ -341,11 +349,14 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         }
         bitrate = Math.max(8000, bitrate);
 
-        setBitrate(bitrate);
-        setFramesPerPacket(framesPerPacket);
+        if (bitrate != mBitrate ||
+                framesPerPacket != mFramesPerPacket) {
+            setBitrate(bitrate);
+            setFramesPerPacket(framesPerPacket);
 
-        Log.v(Constants.TAG, "Max bandwidth of " + maxBandwidth + " triggered bitrate adjustment " +
-                "to " + bitrate + ", frames per packet adjustment to " + framesPerPacket);
+            mLogger.log(Message.Type.INFO, mContext.getString(R.string.audio_max_bandwidth,
+                    maxBandwidth/1000, maxBandwidth/1000, framesPerPacket * 10));
+        }
     }
 
     public int getFramesPerPacket() {
@@ -361,7 +372,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         this.mFramesPerPacket = framesPerPacket;
         synchronized (mEncoderLock) {
             if (mCodec != null && mEncoder != null) {
-                setCodec(mCodec);
+                recreateEncoder();
             }
         }
     }

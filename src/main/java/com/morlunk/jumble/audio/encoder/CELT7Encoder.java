@@ -40,9 +40,9 @@ public class CELT7Encoder implements IEncoder {
     private Pointer mState;
 
     public CELT7Encoder(int sampleRate, int frameSize, int channels,
-                        int framesPerPacket) throws NativeAudioException {
+                        int framesPerPacket, int bitrate) throws NativeAudioException {
         mFramesPerPacket = framesPerPacket;
-        mBufferSize = sampleRate / 800;
+        mBufferSize = bitrate / 800;
         mBuffer = new byte[framesPerPacket][mBufferSize];
         mBufferedFrames = 0;
 
@@ -52,6 +52,8 @@ public class CELT7Encoder implements IEncoder {
         if(error.get() < 0) throw new NativeAudioException("CELT 0.7.0 encoder initialization failed with error: "+error.get());
         mState = CELT7.celt_encoder_create(mMode, channels, error);
         if(error.get() < 0) throw new NativeAudioException("CELT 0.7.0 encoder initialization failed with error: "+error.get());
+        CELT7.celt_encoder_ctl(mState, CELT7.CELT_SET_PREDICTION_REQUEST, 0);
+        CELT7.celt_encoder_ctl(mState, CELT7.CELT_SET_VBR_RATE_REQUEST, bitrate);
     }
 
     @Override
@@ -93,11 +95,6 @@ public class CELT7Encoder implements IEncoder {
         }
 
         mBufferedFrames = 0;
-    }
-
-    @Override
-    public void setBitrate(int bitrate) {
-        // FIXME
     }
 
     @Override

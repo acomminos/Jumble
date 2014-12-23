@@ -25,6 +25,7 @@ import com.morlunk.jumble.net.PacketBuffer;
 
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
+import java.util.Arrays;
 
 /**
 * Created by andrew on 08/12/14.
@@ -48,7 +49,7 @@ public class OpusEncoder implements IEncoder {
 
     private Pointer mState;
 
-    public OpusEncoder(int sampleRate, int channels, int frameSize, int framesPerPacket) throws
+    public OpusEncoder(int sampleRate, int channels, int frameSize, int framesPerPacket, int bitrate) throws
             NativeAudioException {
         mBuffer = new byte[OPUS_MAX_BYTES];
         mAudioBuffer = new short[framesPerPacket * frameSize];
@@ -62,7 +63,8 @@ public class OpusEncoder implements IEncoder {
         error.put(0);
         mState = Opus.opus_encoder_create(sampleRate, channels, Opus.OPUS_APPLICATION_VOIP, error);
         if(error.get() < 0) throw new NativeAudioException("Opus encoder initialization failed with error: "+error.get());
-        Opus.opus_encoder_ctl(mState, Opus.OPUS_SET_VBR_REQUEST, 0); // enable CBR
+        Opus.opus_encoder_ctl(mState, Opus.OPUS_SET_VBR_REQUEST, 0);
+        Opus.opus_encoder_ctl(mState, Opus.OPUS_SET_BITRATE_REQUEST, bitrate);
     }
 
     @Override
@@ -87,6 +89,11 @@ public class OpusEncoder implements IEncoder {
     }
 
     private int encode() throws NativeAudioException {
+        if (mBufferedFrames < mFramesPerPacket) {
+            // If encoding is done before enough frames are buffered, fill rest of packet.
+            Arrays.fill(mAudioBuffer, mFrameSize * mBufferedFrames, mAudioBuffer.length, (short)0);
+            mBufferedFrames = mFramesPerPacket;
+        }
         int result = Opus.opus_encode(mState, mAudioBuffer, mFrameSize * mBufferedFrames,
                                              mBuffer, OPUS_MAX_BYTES);
         if(result < 0) throw new NativeAudioException("Opus encoding failed with error: "
@@ -120,11 +127,6 @@ public class OpusEncoder implements IEncoder {
         mBufferedFrames = 0;
         mEncodedLength = 0;
         mTerminated = false;
-    }
-
-    @Override
-    public void setBitrate(int bitrate) {
-        Opus.opus_encoder_ctl(mState, Opus.OPUS_SET_BITRATE_REQUEST, bitrate);
     }
 
     @Override
