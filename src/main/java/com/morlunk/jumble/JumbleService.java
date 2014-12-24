@@ -608,8 +608,15 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public void setBluetoothEnabled(boolean enabled) throws RemoteException {
             AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-            if(enabled) audioManager.startBluetoothSco();
-            else audioManager.stopBluetoothSco();
+            if(enabled) {
+                try {
+                    audioManager.startBluetoothSco();
+                } catch (NullPointerException e) {
+                    // Workaround for NPE thrown here on Lollipop when no devices are connected.
+                }
+            } else {
+                audioManager.stopBluetoothSco();
+            }
         }
 
         @Override
