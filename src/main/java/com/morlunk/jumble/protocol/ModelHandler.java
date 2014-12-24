@@ -437,8 +437,10 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
         if(msg.hasName())
             user.setName(msg.getName());
 
-        if (msg.hasTextureHash())
+        if (msg.hasTextureHash()) {
             user.setTextureHash(msg.getTextureHash());
+            user.setTexture(null); // clear cached texture when we receive a new hash
+        }
 
         if (msg.hasTexture()) {
             // FIXME: is it reasonable to create a bitmap here? How expensive?
