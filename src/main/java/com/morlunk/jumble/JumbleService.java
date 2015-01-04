@@ -457,7 +457,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public int getCurrentBandwidth() throws RemoteException {
-            return 0;
+            return mAudioHandler.getCurrentBandwidth();
         }
 
         @Override

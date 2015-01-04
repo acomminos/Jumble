@@ -448,6 +448,10 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         // FIXME
     }
 
+    public int getCurrentBandwidth() {
+        return JumbleConnection.calculateAudioBandwidth(mBitrate, mFramesPerPacket);
+    }
+
     /**
      * Shuts down the audio handler, halting input and output.
      * The handler may still be reinitialized with {@link AudioHandler#initialize()} after.
