@@ -1,19 +1,48 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!--
-  ~ Copyright (C) 2014 Andrew Comminos
-  ~
-  ~ This program is free software: you can redistribute it and/or modify
-  ~ it under the terms of the GNU General Public License as published by
-  ~ the Free Software Foundation, either version 3 of the License, or
-  ~ (at your option) any later version.
-  ~
-  ~ This program is distributed in the hope that it will be useful,
-  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  ~ GNU General Public License for more details.
-  ~
-  ~ You should have received a copy of the GNU General Public License
-  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  -->
-
-<resources/>
+<resources>
+  <string name="audio_max_bandwidth">La bande passante réseau maximale du serveur est seulement de %1$d kbit/s. La qualité audio est ajustée à %2$d kbit/s (%3$d ms)</string>
+  <string name="chat_notify_moved">%1$s a été déplacé de %2$s par %3$s.</string>
+  <string name="chat_notify_muted_deafened">Muet et sourd.</string>
+  <string name="chat_notify_muted">Muet.</string>
+  <string name="chat_notify_unmuted">Non muet.</string>
+  <string name="chat_notify_unmuted_undeafened">N\'est plus muet et sourd.</string>
+  <string name="chat_notify_now_muted_deafened">%s et maintenant muet et sourd.</string>
+  <string name="chat_notify_now_muted">%s est maintenant muet.</string>
+  <string name="chat_notify_now_unmuted">%s n\'est maintenant plus muet.</string>
+  <string name="chat_notify_now_unmuted_undeafened">%s n\'est plus muet et sourd.</string>
+  <string name="chat_notify_muted_deafened_self_by_actor">Vous avez été rendu muet et sourd par %s.</string>
+  <string name="chat_notify_unmuted_undeafened_self_by_actor">Vous n\'êtes plus muet et sourd par %s.</string>
+  <string name="chat_notify_muted_self_by_actor">Vous avez été rendu muet par %s.</string>
+  <string name="chat_notify_unmuted_self_by_actor">Vous n\'êtes plus muet par %s.</string>
+  <string name="chat_notify_undeafened_self_by_actor">Vous n\'êtes plus sourd par %s.</string>
+  <string name="chat_notify_suppressed_self">Vous avez été supprimé.</string>
+  <string name="chat_notify_unsuppressed_self">Vous avez été rétabli.</string>
+  <string name="chat_notify_unsuppressed_self_by_actor">Vous avez été rétabli par %s.</string>
+  <string name="chat_notify_connected">%s connecté.</string>
+  <string name="chat_notify_disconnected">%s déconnecté.</string>
+  <string name="chat_notify_kick_ban_self">Vous avez été éjecté et banni du serveur par %1$s: %2$s.</string>
+  <string name="chat_notify_kick_self">Vous avez été éjecté du serveur par %1$s: %2$s.</string>
+  <string name="chat_notify_kick_ban">%3$s a été éjecté et banni du serveur par %1$s: %2$s.</string>
+  <string name="chat_notify_kick">%3$s a été éjecté du serveur par %1$s: %2$s.</string>
+  <string name="chat_notify_self_recording_started">Enregistrement démarré</string>
+  <string name="chat_notify_self_recording_stopped">Enregistrement interrompu</string>
+  <string name="chat_notify_user_recording_started">%s a commencé à enregistrer.</string>
+  <string name="chat_notify_user_recording_stopped">%s a arrêté d’enregistrer.</string>
+  <string name="chat_notify_user_joined_channel">%s est entré dans le canal.</string>
+  <string name="chat_notify_user_left_channel">%1$s s\'est déplacé dans %2$s.</string>
+  <string name="chat_notify_user_joined_channel_by">%1$s s\'est déplacé de %2$s par %3$s.</string>
+  <string name="chat_notify_user_left_channel_by">%1$s a été déplacé dans %2$s par %3$s.</string>
+  <string name="bluetooth_connected">Bluetooth connecté</string>
+  <string name="bluetooth_disconnected">Bluetooth déconnecté</string>
+  <string name="deny_reason_channel_name">Refusé: Nom de canal invalide.</string>
+  <string name="deny_reason_text_too_long">Refusé : message texte trop long.</string>
+  <string name="deny_reason_no_operation_temp">Refusé: Opération non permise dans un canal temporaire.</string>
+  <string name="deny_reason_no_certificate">Vous avez besoin d\'un certificat pour effectuer cette opération.</string>
+  <string name="deny_reason_invalid_username">Nom d\'utilisateur invalide.</string>
+  <string name="deny_reason_channel_full">Le canal est plein.</string>
+  <string name="deny_reason_channel_nesting">Limite du nombre de canal enfant atteint.</string>
+  <string name="deny_reason_other">Raison : %s</string>
+  <string name="perm_denied">Permission non accordée.</string>
+  <string name="server">Serveur</string>
+  <string name="the_server">le serveur</string>
+</resources>

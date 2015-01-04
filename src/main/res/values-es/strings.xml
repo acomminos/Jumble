@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
+  <string name="audio_max_bandwidth">El ancho de banda máximo del servidor es solo de %1$d kbit/s. Calidad de audio ajustada a %2$d kbit/s (%3$d ms) </string>
   <string name="chat_notify_moved">%1$s fue movido a este canal desde %2$s por %3$s.</string>
   <string name="chat_notify_muted_deafened">Mudo y sordo.</string>
   <string name="chat_notify_muted">Mudo.</string>

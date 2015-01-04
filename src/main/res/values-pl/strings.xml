@@ -1,19 +1,16 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!--
-  ~ Copyright (C) 2014 Andrew Comminos
-  ~
-  ~ This program is free software: you can redistribute it and/or modify
-  ~ it under the terms of the GNU General Public License as published by
-  ~ the Free Software Foundation, either version 3 of the License, or
-  ~ (at your option) any later version.
-  ~
-  ~ This program is distributed in the hope that it will be useful,
-  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  ~ GNU General Public License for more details.
-  ~
-  ~ You should have received a copy of the GNU General Public License
-  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  -->
-
-<resources/>
+<resources>
+  <string name="chat_notify_moved">%1$s został przeniesiony z kanału %2$s przez %3$s.</string>
+  <string name="chat_notify_muted_deafened">Ogłuszony oraz wyciszony mikrofon.</string>
+  <string name="chat_notify_muted">Wyciszony mikrofon</string>
+  <string name="chat_notify_unmuted">Wyłączono wyciszenie mikrofonu.</string>
+  <string name="chat_notify_unmuted_undeafened">Wyłączono ogłuszenie oraz wyciszenie mikrofonu.</string>
+  <string name="chat_notify_now_muted_deafened">%s jest teraz ogłuszony oraz wyciszony.</string>
+  <string name="chat_notify_now_muted">%s jest teraz wyciszony.</string>
+  <string name="chat_notify_now_unmuted">%s nie jest już wyciszony.</string>
+  <string name="chat_notify_now_unmuted_undeafened">%s nie jest już ogłuszony.</string>
+  <string name="chat_notify_connected">%s połączony.</string>
+  <string name="chat_notify_disconnected">%s rozłączony.</string>
+  <string name="chat_notify_user_joined_channel_by">%1$s został przeniesiony z kanału %2$s przez %3$s.</string>
+  <string name="server">Serwer</string>
+</resources>
