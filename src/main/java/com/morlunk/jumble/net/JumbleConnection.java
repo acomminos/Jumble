@@ -470,6 +470,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
 
         e.printStackTrace();
         mListener.onConnectionError(e);
+        mListener.onConnectionDisconnected();
 
         disconnect();
     }

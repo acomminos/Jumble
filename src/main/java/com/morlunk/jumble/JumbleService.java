@@ -270,6 +270,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mConnection.addTCPMessageHandlers(mModelHandler, mAudioHandler);
             mConnection.addUDPMessageHandlers(mAudioHandler);
 
+            try {
+                mCallbacks.onConnecting();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+
             mConnection.connect(mServer.getHost(), mServer.getPort());
         } catch (JumbleException e) {
             e.printStackTrace();
@@ -430,7 +436,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public boolean isConnecting() throws RemoteException {
-            return mConnection != null && !mConnection.isConnected();
+            return mConnection != null && !mConnection.isSynchronized();
         }
 
         @Override

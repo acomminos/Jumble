@@ -55,9 +55,9 @@ public abstract class JumbleNetworkThread implements Runnable {
         if (!mInitialized) {
             throw new IllegalArgumentException("Threads already shutdown.");
         }
-        mSendExecutor.shutdown();
-        mReceiveExecutor.shutdown();
-        mExecutor.shutdown();
+        mSendExecutor.shutdownNow();
+        mReceiveExecutor.shutdownNow();
+        mExecutor.shutdownNow();
         mSendExecutor = null;
         mReceiveExecutor = null;
         mExecutor = null;

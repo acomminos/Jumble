@@ -24,6 +24,7 @@ import com.morlunk.jumble.util.ParcelableByteArray;
 interface IJumbleObserver {
     // Connection
     void onConnected();
+    void onConnecting();
     void onDisconnected();
     void onConnectionError(String message, boolean reconnecting);
 

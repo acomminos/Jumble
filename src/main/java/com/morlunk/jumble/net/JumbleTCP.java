@@ -220,16 +220,27 @@ public class JumbleTCP extends JumbleNetworkThread {
      * Attempts to disconnect gracefully on the Tx thread.
      */
     public void disconnect() {
-        if(!mRunning) return;
+        if (!mRunning) return;
+        if (!mConnected) {
+            // If we failed to get a socket open, the disconnect call won't be reached.
+            executeOnMainThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (mListener != null)
+                        mListener.onTCPConnectionDisconnect();
+                }
+            });
+        }
         mConnected = false;
         mRunning = false;
+
         executeOnSendThread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    if(mDataOutput != null) mDataOutput.close();
-                    if(mDataInput != null) mDataInput.close();
-                    if(mTCPSocket != null) mTCPSocket.close();
+                    if (mDataOutput != null) mDataOutput.close();
+                    if (mDataInput != null) mDataInput.close();
+                    if (mTCPSocket != null) mTCPSocket.close();
                     Log.i(Constants.TAG, "JumbleTCP: Disconnected");
                 } catch (IOException e) {
                     e.printStackTrace();
