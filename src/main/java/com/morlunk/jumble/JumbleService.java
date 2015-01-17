@@ -133,6 +133,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     private List<Message> mMessageLog;
     private boolean mReconnecting;
+    private String mDisconnectReason;
 
     private AudioHandler.AudioEncodeListener mAudioInputListener =
             new AudioHandler.AudioEncodeListener() {
@@ -245,6 +246,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void connect() {
         try {
             mReconnecting = false;
+            mDisconnectReason = null;
 
             mConnection = new JumbleConnection(this);
             mConnection.setForceTCP(mForceTcp);
@@ -372,6 +374,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onConnectionError(final JumbleException e) {
         Log.e(Constants.TAG, "Connection error: " + e.getMessage() + ", should reconnect: " + e.isAutoReconnectAllowed());
+        mDisconnectReason = e.getMessage();
         mReconnecting = mAutoReconnect && e.isAutoReconnectAllowed();
         if(mReconnecting) {
             Handler mainHandler = new Handler();
@@ -438,6 +441,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public void cancelReconnect() throws RemoteException {
             mReconnecting = false;
+        }
+
+        @Override
+        public String getDisconnectReason() throws RemoteException {
+            return mDisconnectReason;
         }
 
         @Override

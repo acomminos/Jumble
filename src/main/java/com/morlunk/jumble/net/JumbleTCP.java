@@ -89,7 +89,7 @@ public class JumbleTCP extends JumbleNetworkThread {
             mDataInput = new DataInputStream(mTCPSocket.getInputStream());
             mDataOutput = new DataOutputStream(mTCPSocket.getOutputStream());
         } catch (SocketException e) {
-            error("Could not open a connection to the host", e, false);
+            error("Could not open a connection to the host", e, true);
             return;
         } catch (SSLHandshakeException e) {
             // Try and verify certificate manually.
@@ -107,7 +107,7 @@ public class JumbleTCP extends JumbleNetworkThread {
             }
             return;
         } catch (IOException e) {
-            error("An error occurred when communicating with the host", e, false);
+            error("An error occurred when communicating with the host", e, true);
             return;
         }
 

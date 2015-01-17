@@ -29,6 +29,7 @@ interface IJumbleService {
     boolean isConnecting();
     boolean isReconnecting();
     void cancelReconnect();
+    String getDisconnectReason();
     /**
      * Gets the TCP latency, in nanoseconds.
      */
