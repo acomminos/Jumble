@@ -40,12 +40,7 @@ public class JumbleObserver extends IJumbleObserver.Stub {
     }
 
     @Override
-    public void onDisconnected() throws RemoteException {
-
-    }
-
-    @Override
-    public void onConnectionError(String message, boolean reconnecting) throws RemoteException {
+    public void onDisconnected(JumbleException e) throws RemoteException {
 
     }
 

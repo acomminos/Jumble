@@ -21,6 +21,7 @@ import android.util.Log;
 
 import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
+import com.morlunk.jumble.util.JumbleException;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -89,7 +90,7 @@ public class JumbleTCP extends JumbleNetworkThread {
             mDataInput = new DataInputStream(mTCPSocket.getInputStream());
             mDataOutput = new DataOutputStream(mTCPSocket.getOutputStream());
         } catch (SocketException e) {
-            error("Could not open a connection to the host", e, true);
+            error("Could not open a connection to the host", e);
             return;
         } catch (SSLHandshakeException e) {
             // Try and verify certificate manually.
@@ -103,11 +104,11 @@ public class JumbleTCP extends JumbleNetworkThread {
                 });
                 mRunning = false;
             } else {
-                error("Could not verify host certificate", e, false);
+                error("Could not verify host certificate", e);
             }
             return;
         } catch (IOException e) {
-            error("An error occurred when communicating with the host", e, true);
+            error("An error occurred when communicating with the host", e);
             return;
         }
 
@@ -142,7 +143,7 @@ public class JumbleTCP extends JumbleNetworkThread {
             } catch (final IOException e) {
                 if(mConnected) {
                     mConnected = false;
-                    error("Lost connection to server", e, true);
+                    error("Lost connection to server", e);
                 }
             }
         }
@@ -159,9 +160,10 @@ public class JumbleTCP extends JumbleNetworkThread {
         mRunning = false;
     }
 
-    private void error(String desc, Exception e, boolean autoReconnect) {
+    private void error(String desc, Exception e) {
         if(!mRunning) return;
-        final JumbleException ce = new JumbleException(desc, e, autoReconnect);
+        final JumbleException ce = new JumbleException(desc, e,
+                JumbleException.JumbleDisconnectReason.CONNECTION_ERROR);
         if(mListener != null) executeOnMainThread(new Runnable() {
             @Override
             public void run() {

@@ -28,6 +28,7 @@ import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.protocol.JumbleTCPMessageListener;
 import com.morlunk.jumble.protocol.JumbleUDPMessageListener;
+import com.morlunk.jumble.util.JumbleException;
 
 import org.spongycastle.jce.provider.BouncyCastleProvider;
 
@@ -92,6 +93,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
     private boolean mUseTor;
     private boolean mConnected;
     private boolean mSynchronized;
+    private JumbleException mError;
     private boolean mExceptionHandled = false;
     private long mStartTimestamp; // Time that the connection was initiated in nanoseconds
     private final CryptState mCryptState = new CryptState();
@@ -193,7 +195,8 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
                     sendTCPMessage(csb.build(), JumbleTCPMessageType.CryptSetup);
                 }
             } catch (InvalidKeyException e) {
-                handleFatalException(new JumbleException("Received invalid cryptographic nonce from server", e, true));
+                handleFatalException(new JumbleException("Received invalid cryptographic nonce from server", e,
+                        JumbleException.JumbleDisconnectReason.CONNECTION_ERROR));
             }
         }
 
@@ -308,6 +311,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         mPort = port;
         mConnected = false;
         mSynchronized = false;
+        mError = null;
         mExceptionHandled = false;
         mUsingUDP = !shouldForceTCP();
         mStartTimestamp = System.nanoTime();
@@ -322,7 +326,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
             mTCP.connect(host, port, mUseTor);
             // UDP thread is formally started after TCP connection.
         } catch (ConnectException e) {
-            throw new JumbleException(e, false);
+            throw new JumbleException(e, JumbleException.JumbleDisconnectReason.CONNECTION_ERROR);
         }
     }
 
@@ -467,10 +471,10 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
     private void handleFatalException(final JumbleException e) {
         if(mExceptionHandled) return;
         mExceptionHandled = true;
+        mError = e;
 
         e.printStackTrace();
-        mListener.onConnectionError(e);
-        mListener.onConnectionDisconnected();
+        mListener.onConnectionDisconnected(e);
 
         disconnect();
     }
@@ -493,15 +497,20 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
             return new JumbleSSLSocketFactory(keyStore, mCertificatePassword, mTrustStorePath,
                     mTrustStorePassword, mTrustStoreFormat);
         } catch (KeyManagementException e) {
-            throw new JumbleException("Could not recover keys from certificate", e, false);
+            throw new JumbleException("Could not recover keys from certificate", e,
+                    JumbleException.JumbleDisconnectReason.OTHER_ERROR);
         } catch (KeyStoreException e) {
-            throw new JumbleException("Could not recover keys from certificate", e, false);
+            throw new JumbleException("Could not recover keys from certificate", e,
+                    JumbleException.JumbleDisconnectReason.OTHER_ERROR);
         } catch (UnrecoverableKeyException e) {
-            throw new JumbleException("Could not recover keys from certificate", e, false);
+            throw new JumbleException("Could not recover keys from certificate", e,
+                    JumbleException.JumbleDisconnectReason.OTHER_ERROR);
         } catch (IOException e) {
-            throw new JumbleException("Could not read certificate file", e, false);
+            throw new JumbleException("Could not read certificate file", e,
+                    JumbleException.JumbleDisconnectReason.OTHER_ERROR);
         } catch (CertificateException e) {
-            throw new JumbleException("Could not read certificate", e, false);
+            throw new JumbleException("Could not read certificate", e,
+                    JumbleException.JumbleDisconnectReason.OTHER_ERROR);
         } catch (NoSuchAlgorithmException e) {
                 /*
                  * This will actually NEVER occur.
@@ -601,7 +610,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         disconnect();
         if(mListener != null) {
             mListener.onConnectionHandshakeFailed(chain);
-            mListener.onConnectionDisconnected();
+            mListener.onConnectionDisconnected(null);
         }
     }
 
@@ -612,8 +621,8 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
 
     @Override
     public void onTCPConnectionDisconnect() {
+        if(mListener != null && !mExceptionHandled) mListener.onConnectionDisconnected(mError);
         disconnect();
-        if(mListener != null) mListener.onConnectionDisconnected();
     }
 
     @Override
@@ -835,12 +844,44 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         }
     }
 
+    /**
+     * If the connection to the server was lost due to an error, return the exception.
+     * @return An exception causing disconnect, or null if no error was recorded.
+     */
+    public JumbleException getError() {
+        return mError;
+    }
+
     public interface JumbleConnectionListener {
+        /**
+         * Called when the socket to the remote server has opened.
+         */
         public void onConnectionEstablished();
+
+        /**
+         * Called when the protocol handshake completes.
+         */
         public void onConnectionSynchronized();
+
+        /**
+         * Called if the host's certificate failed verification.
+         * Typically you would use this callback to prompt the user to authorize the certificate.
+         * Note that {@link #onConnectionDisconnected(JumbleException)} will still be called.
+         * @param chain The certificate chain which failed verification.
+         */
         public void onConnectionHandshakeFailed(X509Certificate[] chain);
-        public void onConnectionDisconnected();
-        public void onConnectionError(JumbleException e);
+
+        /**
+         * Called when the connection was lost. If the connection was terminated due to an error,
+         * the error will be provided.
+         * @param e The exception that caused termination, or null if the disconnect was clean.
+         */
+        public void onConnectionDisconnected(JumbleException e);
+
+        /**
+         * Called if the user should be notified of a connection-related warning.
+         * @param warning A user-readable warning.
+         */
         public void onConnectionWarning(String warning);
     }
 }

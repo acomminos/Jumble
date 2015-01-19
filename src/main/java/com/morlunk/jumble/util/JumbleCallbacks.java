@@ -69,21 +69,11 @@ public class JumbleCallbacks extends JumbleObserver.Stub {
     }
 
     @Override
-    public void onDisconnected() throws RemoteException {
+    public void onDisconnected(JumbleException e) throws RemoteException {
         int i = mCallbacks.beginBroadcast();
         while(i > 0) {
             i--;
-            mCallbacks.getBroadcastItem(i).onDisconnected();
-        }
-        mCallbacks.finishBroadcast();
-    }
-
-    @Override
-    public void onConnectionError(String message, boolean reconnecting) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onConnectionError(message, reconnecting);
+            mCallbacks.getBroadcastItem(i).onDisconnected(e);
         }
         mCallbacks.finishBroadcast();
     }

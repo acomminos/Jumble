@@ -29,7 +29,6 @@ import android.os.PowerManager;
 import android.os.RemoteException;
 import android.util.Log;
 
-import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.exception.AudioException;
 import com.morlunk.jumble.model.Channel;
@@ -37,9 +36,8 @@ import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleConnection;
-import com.morlunk.jumble.net.JumbleException;
+import com.morlunk.jumble.util.JumbleException;
 import com.morlunk.jumble.net.JumbleTCPMessageType;
-import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.protocol.AudioHandler;
 import com.morlunk.jumble.protocol.ModelHandler;
@@ -59,6 +57,27 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         // Use Spongy Castle for crypto implementation so we can create and manage PKCS #12 (.p12) certificates.
         Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
     }
+
+    /**
+     * The default state of Jumble, before connection to a server and after graceful/expected
+     * disconnection from a server.
+     */
+    public static final int STATE_DISCONNECTED = 0;
+    /**
+     * A connection to the server is currently in progress.
+     */
+    public static final int STATE_CONNECTING = 1;
+    /**
+     * Jumble has received all data necessary for normal protocol communication with the server.
+     */
+    public static final int STATE_CONNECTED = 2;
+    /**
+     * The connection was lost due to either a kick/ban or socket I/O error.
+     * Jumble can be reconnecting in this state.
+     * @see IJumbleService#isReconnecting()
+     * @see IJumbleService#cancelReconnect()
+     */
+    public static final int STATE_CONNECTION_LOST = 3;
 
     /** Intent to connect to a Mumble server. See extras. **/
     public static final String ACTION_CONNECT = "com.morlunk.jumble.CONNECT";
@@ -128,12 +147,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private IJumbleService.Stub mBinder = new JumbleBinder();
 
     private JumbleConnection mConnection;
+    private int mConnectionState;
     private ModelHandler mModelHandler;
     private AudioHandler mAudioHandler;
 
     private List<Message> mMessageLog;
     private boolean mReconnecting;
-    private String mDisconnectReason;
 
     private AudioHandler.AudioEncodeListener mAudioInputListener =
             new AudioHandler.AudioEncodeListener() {
@@ -227,6 +246,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mHandler = new Handler(getMainLooper());
         mCallbacks = new JumbleCallbacks();
         mMessageLog = new ArrayList<Message>();
+        mConnectionState = STATE_DISCONNECTED;
     }
 
     @Override
@@ -246,7 +266,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void connect() {
         try {
             mReconnecting = false;
-            mDisconnectReason = null;
+            mConnectionState = STATE_DISCONNECTED;
 
             mConnection = new JumbleConnection(this);
             mConnection.setForceTCP(mForceTcp);
@@ -270,6 +290,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mConnection.addTCPMessageHandlers(mModelHandler, mAudioHandler);
             mConnection.addUDPMessageHandlers(mAudioHandler);
 
+            mConnectionState = STATE_CONNECTING;
+
             try {
                 mCallbacks.onConnecting();
             } catch (RemoteException e) {
@@ -280,14 +302,15 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         } catch (JumbleException e) {
             e.printStackTrace();
             try {
-                mCallbacks.onConnectionError(e.getMessage(), e.isAutoReconnectAllowed());
+                mCallbacks.onDisconnected(e);
             } catch (RemoteException e1) {
                 e1.printStackTrace();
             }
         } catch (AudioException e) {
             e.printStackTrace();
             try {
-                mCallbacks.onConnectionError(e.getMessage(), false);
+                mCallbacks.onDisconnected(new JumbleException(e,
+                        JumbleException.JumbleDisconnectReason.OTHER_ERROR));
             } catch (RemoteException e1) {
                 e1.printStackTrace();
             }
@@ -333,6 +356,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     @Override
     public void onConnectionSynchronized() {
+        mConnectionState = STATE_CONNECTED;
+
         Log.v(Constants.TAG, "Connected");
         mWakeLock.acquire();
 
@@ -356,8 +381,28 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     }
 
     @Override
-    public void onConnectionDisconnected() {
-        Log.v(Constants.TAG, "Disconnected");
+    public void onConnectionDisconnected(JumbleException e) {
+        if (e != null) {
+            Log.e(Constants.TAG, "Error: " + e.getMessage() +
+                    " (reason: " + e.getReason().name() + ")");
+            mConnectionState = STATE_CONNECTION_LOST;
+
+            mReconnecting = mAutoReconnect
+                    && e.getReason() == JumbleException.JumbleDisconnectReason.CONNECTION_ERROR;
+            if(mReconnecting) {
+                Handler mainHandler = new Handler();
+                mainHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(mReconnecting) connect();
+                    }
+                }, mAutoReconnectDelay);
+            }
+        } else {
+            Log.v(Constants.TAG, "Disconnected");
+            mConnectionState = STATE_DISCONNECTED;
+        }
+
         if(mWakeLock.isHeld()) mWakeLock.release();
 
         if (mAudioHandler != null) {
@@ -366,35 +411,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         mMessageLog.clear();
 
-        mConnection = null;
         mModelHandler = null;
         mAudioHandler = null;
 
         try {
-            mCallbacks.onDisconnected();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void onConnectionError(final JumbleException e) {
-        Log.e(Constants.TAG, "Connection error: " + e.getMessage() + ", should reconnect: " + e.isAutoReconnectAllowed());
-        mDisconnectReason = e.getMessage();
-        mReconnecting = mAutoReconnect && e.isAutoReconnectAllowed();
-        if(mReconnecting) {
-            Handler mainHandler = new Handler();
-            mainHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if(mReconnecting) connect();
-                }
-            }, mAutoReconnectDelay);
-        }
-        try {
-            mCallbacks.onConnectionError(e.getMessage(), mReconnecting);
-        } catch (RemoteException e1) {
-            e1.printStackTrace();
+            mCallbacks.onDisconnected(e);
+        } catch (RemoteException re) {
+            re.printStackTrace();
         }
     }
 
@@ -425,18 +448,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     public class JumbleBinder extends IJumbleService.Stub {
         @Override
-        public void disconnect() throws RemoteException {
-            JumbleService.this.disconnect();
+        public int getConnectionState() throws RemoteException {
+            return mConnectionState;
         }
 
         @Override
-        public boolean isConnected() throws RemoteException {
-            return mConnection != null && mConnection.isConnected();
-        }
-
-        @Override
-        public boolean isConnecting() throws RemoteException {
-            return mConnection != null && !mConnection.isSynchronized();
+        public JumbleException getConnectionError() throws RemoteException {
+            return mConnection != null ? mConnection.getError() : null;
         }
 
         @Override
@@ -450,8 +468,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
-        public String getDisconnectReason() throws RemoteException {
-            return mDisconnectReason;
+        public void disconnect() throws RemoteException {
+            JumbleService.this.disconnect();
         }
 
         @Override
@@ -520,22 +538,26 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public User getUser(int id) throws RemoteException {
-            return mModelHandler.getUser(id);
+            if (mModelHandler != null)
+                return mModelHandler.getUser(id);
+            return null;
         }
 
         @Override
         public Channel getChannel(int id) throws RemoteException {
-            return mModelHandler.getChannel(id);
+            if (mModelHandler != null)
+                return mModelHandler.getChannel(id);
+            return null;
         }
 
         @Override
         public Channel getRootChannel() throws RemoteException {
-            return mModelHandler.getChannel(0);
+            return getChannel(0);
         }
 
         @Override
         public int getPermissions() throws RemoteException {
-            return mModelHandler.getPermissions();
+            return mModelHandler != null ? mModelHandler.getPermissions() : 0;
         }
 
         @Override

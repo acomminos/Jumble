@@ -21,15 +21,15 @@ import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.IJumbleObserver;
+import com.morlunk.jumble.util.JumbleException;
 
 interface IJumbleService {
     // Network
-    void disconnect();
-    boolean isConnected();
-    boolean isConnecting();
+    int getConnectionState();
+    JumbleException getConnectionError();
     boolean isReconnecting();
     void cancelReconnect();
-    String getDisconnectReason();
+    void disconnect();
     /**
      * Gets the TCP latency, in nanoseconds.
      */
