@@ -103,6 +103,7 @@ public class JumbleTCP extends JumbleNetworkThread {
                     }
                 });
                 mRunning = false;
+                stopThreads();
             } else {
                 error("Could not verify host certificate", e);
             }

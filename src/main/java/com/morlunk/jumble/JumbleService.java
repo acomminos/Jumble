@@ -18,9 +18,13 @@
 package com.morlunk.jumble;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.MediaRecorder;
+import android.net.ConnectivityManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -154,6 +158,25 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private List<Message> mMessageLog;
     private boolean mReconnecting;
 
+    /**
+     * Listen for connectivity changes in the reconnection state, and reconnect accordingly.
+     */
+    private BroadcastReceiver mConnectivityReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (!mReconnecting) {
+                unregisterReceiver(this);
+                return;
+            }
+
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            if (cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnected()) {
+                Log.v(Constants.TAG, "Connectivity restored, attempting reconnect.");
+                connect();
+            }
+        }
+    };
+
     private AudioHandler.AudioEncodeListener mAudioInputListener =
             new AudioHandler.AudioEncodeListener() {
         @Override
@@ -265,7 +288,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     public void connect() {
         try {
-            mReconnecting = false;
+            setReconnecting(false);
             mConnectionState = STATE_DISCONNECTED;
 
             mConnection = new JumbleConnection(this);
@@ -387,17 +410,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                     " (reason: " + e.getReason().name() + ")");
             mConnectionState = STATE_CONNECTION_LOST;
 
-            mReconnecting = mAutoReconnect
-                    && e.getReason() == JumbleException.JumbleDisconnectReason.CONNECTION_ERROR;
-            if(mReconnecting) {
-                Handler mainHandler = new Handler();
-                mainHandler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        if(mReconnecting) connect();
-                    }
-                }, mAutoReconnectDelay);
-            }
+            setReconnecting(mAutoReconnect
+                    && e.getReason() == JumbleException.JumbleDisconnectReason.CONNECTION_ERROR);
         } else {
             Log.v(Constants.TAG, "Disconnected");
             mConnectionState = STATE_DISCONNECTED;
@@ -446,6 +460,39 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
     }
 
+    private void setReconnecting(boolean reconnecting) {
+        mReconnecting = reconnecting;
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        if (reconnecting) {
+            if (cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnected()) {
+                Log.v(Constants.TAG, "Connection lost due to non-connectivity issue. Start reconnect polling.");
+                Handler mainHandler = new Handler();
+                mainHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mReconnecting) connect();
+                    }
+                }, mAutoReconnectDelay);
+            } else {
+                // In the event that we've lost connectivity, don't poll. Wait until network
+                // returns before we resume connection attempts.
+                Log.v(Constants.TAG, "Connection lost due to connectivity issue. Waiting until network returns.");
+                try {
+                    registerReceiver(mConnectivityReceiver,
+                            new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                }
+            }
+        } else {
+            try {
+                unregisterReceiver(mConnectivityReceiver);
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public class JumbleBinder extends IJumbleService.Stub {
         @Override
         public int getConnectionState() throws RemoteException {
@@ -464,7 +511,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void cancelReconnect() throws RemoteException {
-            mReconnecting = false;
+            setReconnecting(false);
         }
 
         @Override
