@@ -148,6 +148,16 @@ public class JumbleTCP extends JumbleNetworkThread {
             }
         }
 
+        try {
+            mDataInput.close();
+            mDataOutput.close();
+            mTCPSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        mRunning = false;
+
         if(mListener != null) {
             executeOnMainThread(new Runnable() {
                 @Override
@@ -156,21 +166,6 @@ public class JumbleTCP extends JumbleNetworkThread {
                 }
             });
         }
-
-        mRunning = false;
-    }
-
-    private void error(String desc, Exception e) {
-        if(!mRunning) return;
-        final JumbleException ce = new JumbleException(desc, e,
-                JumbleException.JumbleDisconnectReason.CONNECTION_ERROR);
-        if(mListener != null) executeOnMainThread(new Runnable() {
-            @Override
-            public void run() {
-                mListener.onTCPConnectionFailed(ce);
-            }
-        });
-        mRunning = false;
     }
 
     /**
@@ -223,32 +218,39 @@ public class JumbleTCP extends JumbleNetworkThread {
      */
     public void disconnect() {
         if (!mRunning) return;
-        if (!mConnected) {
-            // If we failed to get a socket open, the disconnect call won't be reached.
-            executeOnMainThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (mListener != null)
-                        mListener.onTCPConnectionDisconnect();
-                }
-            });
-        }
         mConnected = false;
         mRunning = false;
 
-        executeOnSendThread(new Runnable() {
+        stopThreads();
+
+        try {
+            if (mDataOutput != null) mDataOutput.close();
+            if (mDataInput != null) mDataInput.close();
+            if (mTCPSocket != null) mTCPSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        executeOnMainThread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    if (mDataOutput != null) mDataOutput.close();
-                    if (mDataInput != null) mDataInput.close();
-                    if (mTCPSocket != null) mTCPSocket.close();
-                    Log.i(Constants.TAG, "JumbleTCP: Disconnected");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                if (mListener != null)
+                    mListener.onTCPConnectionDisconnect();
             }
         });
+    }
+
+    private void error(String desc, Exception e) {
+        if(!mRunning) return;
+        final JumbleException ce = new JumbleException(desc, e,
+                JumbleException.JumbleDisconnectReason.CONNECTION_ERROR);
+        if(mListener != null) executeOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                mListener.onTCPConnectionFailed(ce);
+            }
+        });
+        mRunning = false;
         stopThreads();
     }
 
