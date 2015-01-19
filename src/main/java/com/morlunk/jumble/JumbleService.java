@@ -25,6 +25,7 @@ import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.MediaRecorder;
 import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -462,9 +463,10 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     private void setReconnecting(boolean reconnecting) {
         mReconnecting = reconnecting;
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         if (reconnecting) {
-            if (cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnected()) {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            NetworkInfo info = cm.getActiveNetworkInfo();
+            if (info != null && info.isConnected()) {
                 Log.v(Constants.TAG, "Connection lost due to non-connectivity issue. Start reconnect polling.");
                 Handler mainHandler = new Handler();
                 mainHandler.postDelayed(new Runnable() {
