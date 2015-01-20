@@ -255,7 +255,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         }
 
         if (mInput.getSampleRate() != SAMPLE_RATE) {
-            encoder = new ResamplingEncoder(encoder, 1, mInput.getSampleRate(), SAMPLE_RATE);
+            encoder = new ResamplingEncoder(encoder, 1, mInput.getSampleRate(), FRAME_SIZE, SAMPLE_RATE);
         }
 
         mEncoder = encoder;

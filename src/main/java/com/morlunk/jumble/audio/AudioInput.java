@@ -41,7 +41,7 @@ import com.morlunk.jumble.protocol.AudioHandler;
  * Created by andrew on 23/08/13.
  */
 public class AudioInput implements Runnable {
-    public static final int[] SAMPLE_RATES = { 48000, 44100, 22050, 16000, 11025, 8000 };
+    public static final int[] SAMPLE_RATES = { 48000, 44100, 16000, 8000 };
     private static final int SPEECH_DETECT_THRESHOLD = (int) (0.25 * Math.pow(10, 9)); // Continue speech for 250ms to prevent dropping
 
     // AudioRecord state
@@ -84,6 +84,7 @@ public class AudioInput implements Runnable {
         }
 
         int sampleRate = getSampleRate();
+        // FIXME: does not work properly if 10ms frames cannot be represented as integers
         mFrameSize = (sampleRate * AudioHandler.FRAME_SIZE) / AudioHandler.SAMPLE_RATE;
     }
 

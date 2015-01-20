@@ -34,18 +34,22 @@ public class ResamplingEncoder implements IEncoder {
     private Speex.SpeexResampler mResampler;
     private final int mInputSampleRate;
     private final int mTargetSampleRate;
+    private final int mTargetFrameSize;
+    private final short[] mResampleBuffer;
 
-    public ResamplingEncoder(IEncoder encoder, int channels, int inputSampleRate, int targetSampleRate) {
+    public ResamplingEncoder(IEncoder encoder, int channels, int inputSampleRate, int targetFrameSize, int targetSampleRate) {
         mEncoder = encoder;
         mInputSampleRate = inputSampleRate;
         mTargetSampleRate = targetSampleRate;
+        mTargetFrameSize = targetFrameSize;
+        mResampleBuffer = new short[mTargetFrameSize];
         mResampler = new Speex.SpeexResampler(channels, inputSampleRate, targetSampleRate, SPEEX_RESAMPLE_QUALITY);
     }
 
     @Override
     public int encode(short[] input, int inputSize) throws NativeAudioException {
-        mResampler.resample(input, input);
-        return mEncoder.encode(input, inputSize * (mTargetSampleRate / mInputSampleRate));
+        mResampler.resample(input, mResampleBuffer);
+        return mEncoder.encode(mResampleBuffer, mTargetFrameSize);
     }
 
     @Override
