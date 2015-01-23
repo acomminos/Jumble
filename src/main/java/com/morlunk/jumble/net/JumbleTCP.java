@@ -89,44 +89,20 @@ public class JumbleTCP extends JumbleNetworkThread {
 
             mDataInput = new DataInputStream(mTCPSocket.getInputStream());
             mDataOutput = new DataOutputStream(mTCPSocket.getOutputStream());
-        } catch (SocketException e) {
-            error("Could not open a connection to the host", e);
-            return;
-        } catch (SSLHandshakeException e) {
-            // Try and verify certificate manually.
-            if(mSocketFactory.getServerChain() != null && mListener != null) {
-                if(!mRunning) return;
+
+            Log.v(Constants.TAG, "JumbleTCP: Now listening");
+            mConnected = true;
+
+            if(mListener != null) {
                 executeOnMainThread(new Runnable() {
                     @Override
                     public void run() {
-                        mListener.onTLSHandshakeFailed(mSocketFactory.getServerChain());
+                        mListener.onTCPConnectionEstablished();
                     }
                 });
-                mRunning = false;
-                stopThreads();
-            } else {
-                error("Could not verify host certificate", e);
             }
-            return;
-        } catch (IOException e) {
-            error("An error occurred when communicating with the host", e);
-            return;
-        }
 
-        mConnected = true;
-        if(mListener != null) {
-            executeOnMainThread(new Runnable() {
-                @Override
-                public void run() {
-                    mListener.onTCPConnectionEstablished();
-                }
-            });
-        }
-
-        Log.v(Constants.TAG, "JumbleTCP: Now listening");
-
-        while(mConnected) {
-            try {
+            while(mConnected) {
                 final short messageType = mDataInput.readShort();
                 final int messageLength = mDataInput.readInt();
                 final byte[] data = new byte[messageLength];
@@ -141,31 +117,44 @@ public class JumbleTCP extends JumbleNetworkThread {
                         }
                     });
                 }
-            } catch (final IOException e) {
-                if(mConnected) {
-                    mConnected = false;
-                    error("Lost connection to server", e);
-                }
             }
-        }
 
-        try {
-            mDataInput.close();
-            mDataOutput.close();
-            mTCPSocket.close();
+            if(mListener != null) {
+                executeOnMainThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListener.onTCPConnectionDisconnect();
+                    }
+                });
+            }
+        } catch (SocketException e) {
+            error("Could not open a connection to the host", e);
+        } catch (SSLHandshakeException e) {
+            // Try and verify certificate manually.
+            if(mSocketFactory.getServerChain() != null && mListener != null) {
+                if(!mRunning) return;
+                executeOnMainThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListener.onTLSHandshakeFailed(mSocketFactory.getServerChain());
+                    }
+                });
+            } else {
+                error("Could not verify host certificate", e);
+            }
         } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        mRunning = false;
-
-        if(mListener != null) {
-            executeOnMainThread(new Runnable() {
-                @Override
-                public void run() {
-                    mListener.onTCPConnectionDisconnect();
-                }
-            });
+            error("An error occurred when communicating with the host", e);
+        } finally {
+            mConnected = false;
+            try {
+                if (mDataInput != null) mDataInput.close();
+                if (mDataOutput != null) mDataOutput.close();
+                if (mTCPSocket != null) mTCPSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            mRunning = false;
+            stopThreads();
         }
     }
 
@@ -216,43 +205,47 @@ public class JumbleTCP extends JumbleNetworkThread {
 
     /**
      * Attempts to disconnect gracefully on the Tx thread.
+     * Disconnects interrupt the socket listening on the Tx thread, suppressing any exceptions
+     * caused by this request. Any remaining protobuf messages will be dispatched first.
      */
     public void disconnect() {
         if (!mRunning) return;
-        mConnected = false;
+
         mRunning = false;
-
-        stopThreads();
-
-        try {
-            if (mDataOutput != null) mDataOutput.close();
-            if (mDataInput != null) mDataInput.close();
-            if (mTCPSocket != null) mTCPSocket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        executeOnMainThread(new Runnable() {
+        executeOnSendThread(new Runnable() {
             @Override
             public void run() {
-                if (mListener != null)
-                    mListener.onTCPConnectionDisconnect();
+                try {
+                    if (mTCPSocket != null)
+                        mTCPSocket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
+
+        if(mListener != null) {
+            executeOnMainThread(new Runnable() {
+                @Override
+                public void run() {
+                    mListener.onTCPConnectionDisconnect();
+                }
+            });
+        }
     }
 
     private void error(String desc, Exception e) {
-        if(!mRunning) return;
+        if (!mRunning)
+            return; // Don't handle errors post-disconnection.
         final JumbleException ce = new JumbleException(desc, e,
                 JumbleException.JumbleDisconnectReason.CONNECTION_ERROR);
-        if(mListener != null) executeOnMainThread(new Runnable() {
-            @Override
-            public void run() {
-                mListener.onTCPConnectionFailed(ce);
-            }
-        });
-        mRunning = false;
-        stopThreads();
+        if(mListener != null)
+            executeOnMainThread(new Runnable() {
+                @Override
+                public void run() {
+                    mListener.onTCPConnectionFailed(ce);
+                }
+            });
     }
 
     public interface TCPConnectionListener {
