@@ -31,21 +31,21 @@ import java.nio.BufferUnderflowException;
 * Created by andrew on 08/12/14.
 */
 public class CELT7Encoder implements IEncoder {
-    public static final int MAX_BUFFER_SIZE = 960;
-
     private final byte[][] mBuffer;
     private final int[] mPacketLengths;
     private final int mBufferSize;
     private final int mFramesPerPacket;
     private int mBufferedFrames;
+    private boolean mReady;
 
     private Pointer mMode;
     private Pointer mState;
 
     public CELT7Encoder(int sampleRate, int frameSize, int channels,
-                        int framesPerPacket, int bitrate) throws NativeAudioException {
+                        int framesPerPacket, int bitrate, int maxBufferSize)
+            throws NativeAudioException {
         mFramesPerPacket = framesPerPacket;
-        mBufferSize = Math.min(MAX_BUFFER_SIZE, bitrate / 800);
+        mBufferSize = Math.min(maxBufferSize, bitrate / 800);
         mBuffer = new byte[framesPerPacket][mBufferSize];
         mPacketLengths = new int[framesPerPacket];
         mBufferedFrames = 0;
@@ -71,6 +71,10 @@ public class CELT7Encoder implements IEncoder {
                                                               + result);
         mPacketLengths[mBufferedFrames] = result;
         mBufferedFrames++;
+
+        if (mBufferedFrames >= mFramesPerPacket)
+            mReady = true;
+
         return result;
     }
 
@@ -81,14 +85,13 @@ public class CELT7Encoder implements IEncoder {
 
     @Override
     public boolean isReady() {
-        return mBufferedFrames == mFramesPerPacket;
+        return mReady;
     }
 
     @Override
     public void getEncodedData(PacketBuffer packetBuffer) throws BufferUnderflowException {
-        if (mBufferedFrames < mFramesPerPacket) {
+        if (!mReady)
             throw new BufferUnderflowException();
-        }
 
         for (int x = 0; x < mBufferedFrames; x++) {
             byte[] frame = mBuffer[x];
@@ -101,11 +104,12 @@ public class CELT7Encoder implements IEncoder {
         }
 
         mBufferedFrames = 0;
+        mReady = false;
     }
 
     @Override
     public void terminate() throws NativeAudioException {
-        // TODO
+        mReady = true;
     }
 
     @Override

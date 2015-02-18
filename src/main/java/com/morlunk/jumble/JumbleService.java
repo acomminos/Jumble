@@ -34,6 +34,7 @@ import android.os.PowerManager;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.exception.AudioException;
 import com.morlunk.jumble.model.Channel;
@@ -84,8 +85,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      */
     public static final int STATE_CONNECTION_LOST = 3;
 
-    /** Intent to connect to a Mumble server. See extras. **/
+    /**
+     * An action to immediately connect to a given Mumble server.
+     * Requires that {@link #EXTRAS_SERVER} is provided.
+     */
     public static final String ACTION_CONNECT = "com.morlunk.jumble.CONNECT";
+
+    /** A {@link Server} specifying the server to connect to. */
     public static final String EXTRAS_SERVER = "server";
     public static final String EXTRAS_AUTO_RECONNECT = "auto_reconnect";
     public static final String EXTRAS_AUTO_RECONNECT_DELAY = "auto_reconnect_delay";
@@ -116,8 +122,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     /** A list of users that should be local ignored upon connection. */
     public static final String EXTRAS_LOCAL_IGNORE_HISTORY = "local_ignore_history";
     public static final String EXTRAS_ENABLE_PREPROCESSOR = "enable_preprocessor";
-
-    public static final String ACTION_DISCONNECT = "com.morlunk.jumble.DISCONNECT";
 
     // Service settings
     private Server mServer;
@@ -225,40 +229,46 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if(intent != null &&
-                intent.getAction() != null &&
-                intent.getExtras() != null &&
-                intent.getAction().equals(ACTION_CONNECT)) {
-            // Get connection parameters
-            Bundle extras = intent.getExtras();
-            mServer = extras.getParcelable(EXTRAS_SERVER);
-            mAutoReconnect = extras.getBoolean(EXTRAS_AUTO_RECONNECT, true);
-            mAutoReconnectDelay = extras.getInt(EXTRAS_AUTO_RECONNECT_DELAY, 5000);
-            mCertificate = extras.getByteArray(EXTRAS_CERTIFICATE);
-            mCertificatePassword = extras.getString(EXTRAS_CERTIFICATE_PASSWORD);
-            mDetectionThreshold = extras.getFloat(EXTRAS_DETECTION_THRESHOLD, 0.5f);
-            mAmplitudeBoost = extras.getFloat(EXTRAS_AMPLITUDE_BOOST, 1.0f);
-            mTransmitMode = extras.getInt(EXTRAS_TRANSMIT_MODE, Constants.TRANSMIT_VOICE_ACTIVITY);
-            mInputRate = extras.getInt(EXTRAS_INPUT_RATE, AudioHandler.SAMPLE_RATE);
-            mInputQuality = extras.getInt(EXTRAS_INPUT_QUALITY, 40000);
-            mUseOpus = extras.getBoolean(EXTRAS_USE_OPUS, true);
-            mUseTor = extras.getBoolean(EXTRAS_USE_TOR, false);
-            mForceTcp = extras.getBoolean(EXTRAS_FORCE_TCP, false) || mUseTor; // Tor requires TCP connections to work- if it's on, force TCP.
-            mClientName = extras.containsKey(EXTRAS_CLIENT_NAME) ? extras.getString(EXTRAS_CLIENT_NAME) : "Jumble";
-            mAccessTokens = extras.getStringArrayList(EXTRAS_ACCESS_TOKENS);
-            mAudioSource = extras.getInt(EXTRAS_AUDIO_SOURCE, MediaRecorder.AudioSource.MIC);
-            mAudioStream = extras.getInt(EXTRAS_AUDIO_STREAM, AudioManager.STREAM_MUSIC);
-            mFramesPerPacket = extras.getInt(EXTRAS_FRAMES_PER_PACKET, 2);
-            mTrustStore = extras.getString(EXTRAS_TRUST_STORE);
-            mTrustStorePassword = extras.getString(EXTRAS_TRUST_STORE_PASSWORD);
-            mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
-            mHalfDuplex = extras.getBoolean(EXTRAS_HALF_DUPLEX);
-            mLocalMuteHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_MUTE_HISTORY);
-            mLocalIgnoreHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_IGNORE_HISTORY);
-            mEnablePreprocessor = extras.getBoolean(EXTRAS_ENABLE_PREPROCESSOR, true);
+        if (intent != null) {
+            if (intent.getExtras() != null) {
+                Bundle extras = intent.getExtras();
+                mServer = extras.getParcelable(EXTRAS_SERVER);
+                mAutoReconnect = extras.getBoolean(EXTRAS_AUTO_RECONNECT, true);
+                mAutoReconnectDelay = extras.getInt(EXTRAS_AUTO_RECONNECT_DELAY, 5000);
+                mCertificate = extras.getByteArray(EXTRAS_CERTIFICATE);
+                mCertificatePassword = extras.getString(EXTRAS_CERTIFICATE_PASSWORD);
+                mDetectionThreshold = extras.getFloat(EXTRAS_DETECTION_THRESHOLD, 0.5f);
+                mAmplitudeBoost = extras.getFloat(EXTRAS_AMPLITUDE_BOOST, 1.0f);
+                mTransmitMode = extras.getInt(EXTRAS_TRANSMIT_MODE, Constants.TRANSMIT_VOICE_ACTIVITY);
+                mInputRate = extras.getInt(EXTRAS_INPUT_RATE, 44100);
+                mInputQuality = extras.getInt(EXTRAS_INPUT_QUALITY, 40000);
+                mUseOpus = extras.getBoolean(EXTRAS_USE_OPUS, true);
+                mUseTor = extras.getBoolean(EXTRAS_USE_TOR, false);
+                mForceTcp = extras.getBoolean(EXTRAS_FORCE_TCP, false) || mUseTor; // Tor requires TCP connections to work- if it's on, force TCP.
+                mClientName = extras.containsKey(EXTRAS_CLIENT_NAME) ? extras.getString(EXTRAS_CLIENT_NAME) : "Jumble";
+                mAccessTokens = extras.getStringArrayList(EXTRAS_ACCESS_TOKENS);
+                mAudioSource = extras.getInt(EXTRAS_AUDIO_SOURCE, MediaRecorder.AudioSource.MIC);
+                mAudioStream = extras.getInt(EXTRAS_AUDIO_STREAM, AudioManager.STREAM_MUSIC);
+                mFramesPerPacket = extras.getInt(EXTRAS_FRAMES_PER_PACKET, 2);
+                mTrustStore = extras.getString(EXTRAS_TRUST_STORE);
+                mTrustStorePassword = extras.getString(EXTRAS_TRUST_STORE_PASSWORD);
+                mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
+                mHalfDuplex = extras.getBoolean(EXTRAS_HALF_DUPLEX);
+                mLocalMuteHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_MUTE_HISTORY);
+                mLocalIgnoreHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_IGNORE_HISTORY);
+                mEnablePreprocessor = extras.getBoolean(EXTRAS_ENABLE_PREPROCESSOR, true);
+            }
 
-            connect();
+            if (ACTION_CONNECT.equals(intent.getAction())) {
+                Bundle extras = intent.getExtras();
+                if (extras == null || !extras.containsKey(EXTRAS_SERVER)) {
+                    // Ensure that we have been provided all required attributes.
+                    throw new RuntimeException(ACTION_CONNECT + " requires a server provided in extras.");
+                }
+                connect();
+            }
         }
+
         return START_NOT_STICKY;
     }
 
@@ -658,7 +668,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public boolean isTalking() throws RemoteException {
-            return mAudioHandler.isRecording();
+            return mAudioHandler != null && mAudioHandler.isRecording();
         }
 
         @Override

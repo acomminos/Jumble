@@ -58,6 +58,7 @@ import com.morlunk.jumble.util.JumbleNetworkListener;
 public class AudioHandler extends JumbleNetworkListener implements AudioInput.AudioInputListener {
     public static final int SAMPLE_RATE = 48000;
     public static final int FRAME_SIZE = SAMPLE_RATE/100;
+    public static final int MAX_BUFFER_SIZE = 960;
 
     private Context mContext;
     private JumbleLogger mLogger;
@@ -237,13 +238,14 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         switch (codec) {
             case UDPVoiceCELTAlpha:
                 encoder = new CELT7Encoder(SAMPLE_RATE, AudioHandler.FRAME_SIZE, 1,
-                                                  mFramesPerPacket, mBitrate);
+                        mFramesPerPacket, mBitrate, MAX_BUFFER_SIZE);
                 break;
             case UDPVoiceCELTBeta:
                 encoder = new CELT11Encoder(SAMPLE_RATE, 1, mFramesPerPacket);
                 break;
             case UDPVoiceOpus:
-                encoder = new OpusEncoder(SAMPLE_RATE, 1, FRAME_SIZE, mFramesPerPacket, mBitrate);
+                encoder = new OpusEncoder(SAMPLE_RATE, 1, FRAME_SIZE, mFramesPerPacket, mBitrate,
+                        MAX_BUFFER_SIZE);
                 break;
             default:
                 Log.w(Constants.TAG, "Unsupported codec, input disabled.");

@@ -25,6 +25,7 @@ import com.morlunk.jumble.audio.encoder.IEncoder;
 import com.morlunk.jumble.audio.encoder.OpusEncoder;
 import com.morlunk.jumble.audio.javacpp.Opus;
 import com.morlunk.jumble.exception.NativeAudioException;
+import com.morlunk.jumble.net.PacketBuffer;
 
 /**
  * This class tests the Opus and CELT encoders with blank PCM data.
@@ -33,6 +34,7 @@ import com.morlunk.jumble.exception.NativeAudioException;
  * Created by andrew on 13/10/13.
  */
 public class EncoderTest extends AndroidTestCase {
+    private static final int MAX_BUFFER_SIZE = 960;
     private static final int SAMPLE_RATE = 48000;
     private static final int BITRATE = 40000;
     private static final int FRAME_SIZE = 480;
@@ -43,24 +45,42 @@ public class EncoderTest extends AndroidTestCase {
     }
 
     public void testOpusEncode() throws NativeAudioException {
-        IEncoder encoder = new OpusEncoder(SAMPLE_RATE, 1, FRAME_SIZE, FRAMES_PER_PACKET, BITRATE);
+        IEncoder encoder = new OpusEncoder(SAMPLE_RATE, 1, FRAME_SIZE, FRAMES_PER_PACKET, BITRATE, MAX_BUFFER_SIZE);
         testEncoder(encoder);
         encoder.destroy();
     }
 
     public void testCELT7Encode() throws NativeAudioException {
-        CELT7Encoder encoder = new CELT7Encoder(SAMPLE_RATE, FRAME_SIZE, 1, FRAMES_PER_PACKET, BITRATE);
+        CELT7Encoder encoder = new CELT7Encoder(SAMPLE_RATE, FRAME_SIZE, 1, FRAMES_PER_PACKET,
+                BITRATE, MAX_BUFFER_SIZE);
         testEncoder(encoder);
         encoder.destroy();
     }
 
     public void testEncoder(IEncoder encoder) throws NativeAudioException {
         assertFalse(encoder.isReady());
+        assertEquals(0, encoder.getBufferedFrames());
+
+        //
         final short[] dummyFrame = new short[FRAME_SIZE];
         for (int i = 0; i < FRAMES_PER_PACKET; i++) {
             assertFalse(encoder.isReady());
             encoder.encode(dummyFrame, FRAME_SIZE);
         }
         assertTrue(encoder.isReady());
+        assertEquals(FRAMES_PER_PACKET, encoder.getBufferedFrames());
+
+        // Flushing
+        PacketBuffer buffer = PacketBuffer.allocate(MAX_BUFFER_SIZE);
+        encoder.getEncodedData(buffer);
+        assertFalse(encoder.isReady());
+        assertEquals(0, encoder.getBufferedFrames());
+
+        // Termination (for frames per packet > 1)
+        encoder.encode(dummyFrame, FRAME_SIZE);
+        assertFalse(encoder.isReady());
+        encoder.terminate();
+        assertTrue(encoder.isReady());
+
     }
 }

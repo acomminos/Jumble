@@ -31,12 +31,6 @@ import java.util.Arrays;
 * Created by andrew on 08/12/14.
 */
 public class OpusEncoder implements IEncoder {
-    /**
-     * Opus specifies 4000 bytes as a recommended value for encoding, but the official
-     * Mumble project uses 960.
-     */
-    private static final int OPUS_MAX_BYTES = 960;
-
     private final byte[] mBuffer;
     private final short[] mAudioBuffer;
     private final int mFramesPerPacket;
@@ -49,9 +43,9 @@ public class OpusEncoder implements IEncoder {
 
     private Pointer mState;
 
-    public OpusEncoder(int sampleRate, int channels, int frameSize, int framesPerPacket, int bitrate) throws
-            NativeAudioException {
-        mBuffer = new byte[OPUS_MAX_BYTES];
+    public OpusEncoder(int sampleRate, int channels, int frameSize, int framesPerPacket,
+                       int bitrate, int maxBufferSize) throws NativeAudioException {
+        mBuffer = new byte[maxBufferSize];
         mAudioBuffer = new short[framesPerPacket * frameSize];
         mFramesPerPacket = framesPerPacket;
         mFrameSize = frameSize;
@@ -95,7 +89,7 @@ public class OpusEncoder implements IEncoder {
             mBufferedFrames = mFramesPerPacket;
         }
         int result = Opus.opus_encode(mState, mAudioBuffer, mFrameSize * mBufferedFrames,
-                                             mBuffer, OPUS_MAX_BYTES);
+                                             mBuffer, mBuffer.length);
         if(result < 0) throw new NativeAudioException("Opus encoding failed with error: "
                                                               + result);
         mEncodedLength = result;
