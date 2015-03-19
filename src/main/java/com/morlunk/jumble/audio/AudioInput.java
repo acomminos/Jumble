@@ -186,6 +186,8 @@ public class AudioInput implements Runnable {
     public void run() {
         android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
 
+        Log.i(Constants.TAG, "AudioInput: started");
+
         boolean vadLastDetected = false;
         long vadLastDetectedTime = 0;
 
@@ -246,6 +248,8 @@ public class AudioInput implements Runnable {
         mAudioRecord.stop();
 
         mListener.onTalkStateChange(User.TalkState.PASSIVE);
+
+        Log.i(Constants.TAG, "AudioInput: stopped");
     }
 
     public interface AudioInputListener {

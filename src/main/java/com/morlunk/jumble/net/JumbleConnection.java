@@ -110,7 +110,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
     private String mServerOSName;
     private String mServerOSVersion;
     private int mMaxBandwidth;
-    private int mCodec;
+    private JumbleUDPMessageType mCodec;
 
     // Session
     private int mSession;
@@ -150,11 +150,11 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         @Override
         public void messageCodecVersion(Mumble.CodecVersion msg) {
             if(msg.hasOpus() && msg.getOpus())
-                mCodec = JumbleUDPMessageType.UDPVoiceOpus.ordinal();
+                mCodec = JumbleUDPMessageType.UDPVoiceOpus;
             else if(msg.hasBeta() && !msg.getPreferAlpha())
-                mCodec = JumbleUDPMessageType.UDPVoiceCELTBeta.ordinal();
+                mCodec = JumbleUDPMessageType.UDPVoiceCELTBeta;
             else
-                mCodec = JumbleUDPMessageType.UDPVoiceCELTAlpha.ordinal();
+                mCodec = JumbleUDPMessageType.UDPVoiceCELTAlpha;
         }
 
         @Override
@@ -432,7 +432,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         return mMaxBandwidth;
     }
 
-    public int getCodec() {
+    public JumbleUDPMessageType getCodec() {
         return mCodec;
     }
 

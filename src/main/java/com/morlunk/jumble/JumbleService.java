@@ -379,13 +379,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         mConnection.sendTCPMessage(version.build(), JumbleTCPMessageType.Version);
         mConnection.sendTCPMessage(auth.build(), JumbleTCPMessageType.Authenticate);
-
-        try {
-            mAudioHandler.initialize();
-        } catch (AudioException e) {
-            e.printStackTrace();
-            onConnectionWarning(e.getMessage());
-        }
     }
 
     @Override
@@ -394,6 +387,15 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         Log.v(Constants.TAG, "Connected");
         mWakeLock.acquire();
+
+        try {
+            mAudioHandler.initialize(
+                    mModelHandler.getUser(mConnection.getSession()),
+                    mConnection.getCodec());
+        } catch (AudioException e) {
+            e.printStackTrace();
+            onConnectionWarning(e.getMessage());
+        }
 
         try {
             mCallbacks.onConnected();
@@ -428,7 +430,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mConnectionState = STATE_DISCONNECTED;
         }
 
-        if(mWakeLock.isHeld()) mWakeLock.release();
+        if(mWakeLock.isHeld()) {
+            mWakeLock.release();
+        }
 
         if (mAudioHandler != null) {
             mAudioHandler.shutdown();
@@ -663,7 +667,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public int getCodec() throws RemoteException {
-            return mConnection.getCodec();
+            return mConnection.getCodec().ordinal(); // FIXME: ordinal is bad, make enum method
         }
 
         @Override
@@ -684,11 +688,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             }
 
             try {
-                if (talking) {
-                    mAudioHandler.startRecording();
-                } else {
-                    mAudioHandler.stopRecording();
-                }
+                mAudioHandler.setTalking(talking);
             } catch (AudioException e) {
                 log(Message.Type.WARNING, e.getMessage());
             }
@@ -872,14 +872,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
             usb.setSelfMute(mute);
             usb.setSelfDeaf(deaf);
-            try {
-                if (!mute && !mAudioHandler.isRecording() && (mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY))
-                    mAudioHandler.startRecording(); // Resume recording when unmuted for PTT.
-                else if (mute && mAudioHandler.isRecording())
-                    mAudioHandler.stopRecording(); // Stop recording when muted.
-            } catch (AudioException e) {
-                log(Message.Type.WARNING, e.getMessage());
-            }
             mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
         }
 
