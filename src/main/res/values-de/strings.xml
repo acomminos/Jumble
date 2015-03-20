@@ -43,7 +43,7 @@ Die Audioqualität wird automatisch angepasst auf %2$d kbit/s (%3$d ms)</string>
   <string name="deny_reason_channel_full">Kanal ist voll.</string>
   <string name="deny_reason_channel_nesting">Channel Nesting Limit erreicht.</string>
   <string name="deny_reason_other">Grund: %s</string>
-  <string name="perm_denied">Erlaubnis verweigert.</string>
+  <string name="perm_denied">Zugriff verweigert.</string>
   <string name="server">Server</string>
   <string name="the_server">der Server</string>
 </resources>
