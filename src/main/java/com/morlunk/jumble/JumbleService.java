@@ -34,7 +34,6 @@ import android.os.PowerManager;
 import android.os.RemoteException;
 import android.util.Log;
 
-import com.morlunk.jumble.audio.AudioInput;
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.exception.AudioException;
 import com.morlunk.jumble.model.Channel;
@@ -129,26 +128,17 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private int mAutoReconnectDelay;
     private byte[] mCertificate;
     private String mCertificatePassword;
-    private float mDetectionThreshold;
-    private float mAmplitudeBoost;
-    private int mTransmitMode;
     private boolean mUseOpus;
-    private int mInputRate;
-    private int mInputQuality;
     private boolean mForceTcp;
     private boolean mUseTor;
     private String mClientName;
     private List<String> mAccessTokens;
-    private int mAudioSource;
-    private int mAudioStream;
-    private int mFramesPerPacket;
     private String mTrustStore;
     private String mTrustStorePassword;
     private String mTrustStoreFormat;
-    private boolean mHalfDuplex;
     private List<Integer> mLocalMuteHistory;
     private List<Integer> mLocalIgnoreHistory;
-    private boolean mEnablePreprocessor;
+    private AudioHandler.Builder mAudioBuilder;
 
     private PowerManager.WakeLock mWakeLock;
     private Handler mHandler;
@@ -232,31 +222,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         if (intent != null) {
             if (intent.getExtras() != null) {
                 Bundle extras = intent.getExtras();
-                mServer = extras.getParcelable(EXTRAS_SERVER);
-                mAutoReconnect = extras.getBoolean(EXTRAS_AUTO_RECONNECT, true);
-                mAutoReconnectDelay = extras.getInt(EXTRAS_AUTO_RECONNECT_DELAY, 5000);
-                mCertificate = extras.getByteArray(EXTRAS_CERTIFICATE);
-                mCertificatePassword = extras.getString(EXTRAS_CERTIFICATE_PASSWORD);
-                mDetectionThreshold = extras.getFloat(EXTRAS_DETECTION_THRESHOLD, 0.5f);
-                mAmplitudeBoost = extras.getFloat(EXTRAS_AMPLITUDE_BOOST, 1.0f);
-                mTransmitMode = extras.getInt(EXTRAS_TRANSMIT_MODE, Constants.TRANSMIT_VOICE_ACTIVITY);
-                mInputRate = extras.getInt(EXTRAS_INPUT_RATE, 44100);
-                mInputQuality = extras.getInt(EXTRAS_INPUT_QUALITY, 40000);
-                mUseOpus = extras.getBoolean(EXTRAS_USE_OPUS, true);
-                mUseTor = extras.getBoolean(EXTRAS_USE_TOR, false);
-                mForceTcp = extras.getBoolean(EXTRAS_FORCE_TCP, false) || mUseTor; // Tor requires TCP connections to work- if it's on, force TCP.
-                mClientName = extras.containsKey(EXTRAS_CLIENT_NAME) ? extras.getString(EXTRAS_CLIENT_NAME) : "Jumble";
-                mAccessTokens = extras.getStringArrayList(EXTRAS_ACCESS_TOKENS);
-                mAudioSource = extras.getInt(EXTRAS_AUDIO_SOURCE, MediaRecorder.AudioSource.MIC);
-                mAudioStream = extras.getInt(EXTRAS_AUDIO_STREAM, AudioManager.STREAM_MUSIC);
-                mFramesPerPacket = extras.getInt(EXTRAS_FRAMES_PER_PACKET, 2);
-                mTrustStore = extras.getString(EXTRAS_TRUST_STORE);
-                mTrustStorePassword = extras.getString(EXTRAS_TRUST_STORE_PASSWORD);
-                mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
-                mHalfDuplex = extras.getBoolean(EXTRAS_HALF_DUPLEX);
-                mLocalMuteHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_MUTE_HISTORY);
-                mLocalIgnoreHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_IGNORE_HISTORY);
-                mEnablePreprocessor = extras.getBoolean(EXTRAS_ENABLE_PREPROCESSOR, true);
+                try {
+                    loadSettings(extras);
+                } catch (AudioException e) {
+                    throw new RuntimeException("Attempted to initialize audio in onStartCommand erroneously.");
+                }
             }
 
             if (ACTION_CONNECT.equals(intent.getAction())) {
@@ -280,6 +250,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mHandler = new Handler(getMainLooper());
         mCallbacks = new JumbleCallbacks();
         mMessageLog = new ArrayList<Message>();
+        mAudioBuilder = new AudioHandler.Builder()
+                .setContext(this)
+                .setLogger(this)
+                .setEncodeListener(mAudioInputListener)
+                .setTalkingListener(mAudioOutputListener);
         mConnectionState = STATE_DISCONNECTED;
     }
 
@@ -310,19 +285,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
             mModelHandler = new ModelHandler(this, mCallbacks, this,
                     mLocalMuteHistory, mLocalIgnoreHistory);
-            mAudioHandler = new AudioHandler(this, this, mAudioInputListener, mAudioOutputListener);
-            mAudioHandler.setAmplitudeBoost(mAmplitudeBoost);
-            mAudioHandler.setBitrate(mInputQuality);
-            mAudioHandler.setVADThreshold(mDetectionThreshold);
-            mAudioHandler.setTransmitMode(mTransmitMode);
-            mAudioHandler.setAudioSource(mAudioSource);
-            mAudioHandler.setAudioStream(mAudioStream);
-            mAudioHandler.setFramesPerPacket(mFramesPerPacket);
-            mAudioHandler.setSampleRate(mInputRate);
-            mAudioHandler.setHalfDuplex(mHalfDuplex);
-            mAudioHandler.setPreprocessorEnabled(mEnablePreprocessor);
-            mConnection.addTCPMessageHandlers(mModelHandler, mAudioHandler);
-            mConnection.addUDPMessageHandlers(mAudioHandler);
+            mConnection.addTCPMessageHandlers(mModelHandler);
 
             mConnectionState = STATE_CONNECTING;
 
@@ -337,14 +300,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             e.printStackTrace();
             try {
                 mCallbacks.onDisconnected(e);
-            } catch (RemoteException e1) {
-                e1.printStackTrace();
-            }
-        } catch (AudioException e) {
-            e.printStackTrace();
-            try {
-                mCallbacks.onDisconnected(new JumbleException(e,
-                        JumbleException.JumbleDisconnectReason.OTHER_ERROR));
             } catch (RemoteException e1) {
                 e1.printStackTrace();
             }
@@ -389,9 +344,11 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mWakeLock.acquire();
 
         try {
-            mAudioHandler.initialize(
+            mAudioHandler = mAudioBuilder.initialize(
                     mModelHandler.getUser(mConnection.getSession()),
-                    mConnection.getCodec());
+                    mConnection.getMaxBandwidth(), mConnection.getCodec());
+            mConnection.addTCPMessageHandlers(mModelHandler, mAudioHandler);
+            mConnection.addUDPMessageHandlers(mAudioHandler);
         } catch (AudioException e) {
             e.printStackTrace();
             onConnectionWarning(e.getMessage());
@@ -507,6 +464,116 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * Loads all defined settings from the given bundle into the JumbleService.
+     * Some settings may only take effect after a reconnect.
+     * @param extras A bundle with settings.
+     * @return true if a reconnect is required for changes to take effect.
+     * @see com.morlunk.jumble.JumbleService
+     */
+    private boolean loadSettings(Bundle extras) throws AudioException {
+        boolean reconnectNeeded = false;
+        if (extras.containsKey(EXTRAS_SERVER)) {
+            mServer = extras.getParcelable(EXTRAS_SERVER);
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_AUTO_RECONNECT)) {
+            mAutoReconnect = extras.getBoolean(EXTRAS_AUTO_RECONNECT);
+        }
+        if (extras.containsKey(EXTRAS_AUTO_RECONNECT_DELAY)) {
+            mAutoReconnectDelay = extras.getInt(EXTRAS_AUTO_RECONNECT_DELAY);
+        }
+        if (extras.containsKey(EXTRAS_CERTIFICATE)) {
+            mCertificate = extras.getByteArray(EXTRAS_CERTIFICATE);
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_CERTIFICATE_PASSWORD)) {
+            mCertificatePassword = extras.getString(EXTRAS_CERTIFICATE_PASSWORD);
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_DETECTION_THRESHOLD)) {
+            mAudioBuilder.setVADThreshold(extras.getFloat(EXTRAS_DETECTION_THRESHOLD));
+        }
+        if (extras.containsKey(EXTRAS_AMPLITUDE_BOOST)) {
+            mAudioBuilder.setAmplitudeBoost(extras.getFloat(EXTRAS_AMPLITUDE_BOOST));
+        }
+        if (extras.containsKey(EXTRAS_TRANSMIT_MODE)) {
+            mAudioBuilder.setTransmitMode(extras.getInt(EXTRAS_TRANSMIT_MODE));
+        }
+        if (extras.containsKey(EXTRAS_INPUT_RATE)) {
+            mAudioBuilder.setInputSampleRate(extras.getInt(EXTRAS_INPUT_RATE));
+        }
+        if (extras.containsKey(EXTRAS_INPUT_QUALITY)) {
+            mAudioBuilder.setTargetBitrate(extras.getInt(EXTRAS_INPUT_QUALITY));
+        }
+        if (extras.containsKey(EXTRAS_USE_OPUS)) {
+            mUseOpus = extras.getBoolean(EXTRAS_USE_OPUS);
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_USE_TOR)) {
+            mUseTor = extras.getBoolean(EXTRAS_USE_TOR);
+            mForceTcp |= mUseTor; // Tor requires TCP connections to work- if it's on, force TCP.
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_FORCE_TCP)) {
+            mForceTcp |= extras.getBoolean(EXTRAS_FORCE_TCP);
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_CLIENT_NAME)) {
+            mClientName = extras.getString(EXTRAS_CLIENT_NAME);
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_ACCESS_TOKENS)) {
+            mAccessTokens = extras.getStringArrayList(EXTRAS_ACCESS_TOKENS);
+            // TODO: send access tokens
+        }
+        if (extras.containsKey(EXTRAS_AUDIO_SOURCE)) {
+            mAudioBuilder.setAudioSource(extras.getInt(EXTRAS_AUDIO_SOURCE));
+        }
+        if (extras.containsKey(EXTRAS_AUDIO_STREAM)) {
+            mAudioBuilder.setAudioStream(extras.getInt(EXTRAS_AUDIO_STREAM));
+        }
+        if (extras.containsKey(EXTRAS_FRAMES_PER_PACKET)) {
+            mAudioBuilder.setTargetFramesPerPacket(extras.getInt(EXTRAS_FRAMES_PER_PACKET));
+        }
+        if (extras.containsKey(EXTRAS_TRUST_STORE)) {
+            mTrustStore = extras.getString(EXTRAS_TRUST_STORE);
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_TRUST_STORE_PASSWORD)) {
+            mTrustStorePassword = extras.getString(EXTRAS_TRUST_STORE_PASSWORD);
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_TRUST_STORE_FORMAT)) {
+            mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_HALF_DUPLEX)) {
+            mAudioBuilder.setHalfDuplexEnabled(extras.getBoolean(EXTRAS_HALF_DUPLEX));
+        }
+        if (extras.containsKey(EXTRAS_LOCAL_MUTE_HISTORY)) {
+            mLocalMuteHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_MUTE_HISTORY);
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_LOCAL_IGNORE_HISTORY)) {
+            mLocalIgnoreHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_IGNORE_HISTORY);
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_ENABLE_PREPROCESSOR)) {
+            mAudioBuilder.setPreprocessorEnabled(extras.getBoolean(EXTRAS_ENABLE_PREPROCESSOR));
+        }
+
+        // Reload audio subsystem if initialized
+        if (mAudioHandler != null && mAudioHandler.isInitialized()) {
+            mAudioHandler.shutdown();
+            mAudioHandler = mAudioBuilder.initialize(
+                    mModelHandler.getUser(mConnection.getSession()),
+                    mConnection.getMaxBandwidth(), mConnection.getCodec());
+            Log.i(Constants.TAG, "Audio subsystem reloaded after settings change.");
+        }
+        return reconnectNeeded;
     }
 
     public class JumbleBinder extends IJumbleService.Stub {
@@ -635,34 +702,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public int getTransmitMode() throws RemoteException {
-            return mTransmitMode;
-        }
-
-        @Override
-        public void setTransmitMode(int transmitMode) throws RemoteException {
-            mTransmitMode = transmitMode;
-            try {
-                mAudioHandler.setTransmitMode(transmitMode);
-            } catch (AudioException e) {
-                e.printStackTrace();
-            }
-        }
-
-        @Override
-        public void setVADThreshold(float threshold) throws RemoteException {
-            mDetectionThreshold = threshold;
-            mAudioHandler.setVADThreshold(threshold);
-        }
-
-        @Override
-        public void setAmplitudeBoost(float boost) throws RemoteException {
-            mAmplitudeBoost = boost;
-            mAudioHandler.setAmplitudeBoost(boost);
-        }
-
-        @Override
-        public void setHalfDuplex(boolean enabled) throws RemoteException {
-            mAudioHandler.setHalfDuplex(enabled);
+            return mAudioHandler.getTransmitMode();
         }
 
         @Override
@@ -682,7 +722,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 return;
             }
 
-            if (mTransmitMode != Constants.TRANSMIT_PUSH_TO_TALK) {
+            if (mAudioHandler.getTransmitMode() != Constants.TRANSMIT_PUSH_TO_TALK) {
                 Log.w(Constants.TAG, "Attempted to set talking state when not using PTT");
                 return;
             }
@@ -698,20 +738,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         public boolean isBluetoothAvailable() throws RemoteException {
             AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
             return audioManager.isBluetoothScoOn();
-        }
-
-        @Override
-        public void setBluetoothEnabled(boolean enabled) throws RemoteException {
-            AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-            if(enabled) {
-                try {
-                    audioManager.startBluetoothSco();
-                } catch (NullPointerException e) {
-                    // Workaround for NPE thrown here on Lollipop when no devices are connected.
-                }
-            } else {
-                audioManager.stopBluetoothSco();
-            }
         }
 
         @Override

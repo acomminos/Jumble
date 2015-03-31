@@ -75,14 +75,14 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     private IEncoder mEncoder;
     private int mFrameCounter;
 
-    private int mAudioStream;
-    private int mAudioSource;
+    private final int mAudioStream;
+    private final int mAudioSource;
     private int mSampleRate;
     private int mBitrate;
     private int mFramesPerPacket;
     private int mTransmitMode;
-    private float mVADThreshold;
-    private float mAmplitudeBoost = 1.0f;
+    private final float mVADThreshold;
+    private final float mAmplitudeBoost;
 
     private boolean mInitialized;
     /**
@@ -131,12 +131,28 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         }
     };
 
-    public AudioHandler(Context context, JumbleLogger logger, AudioEncodeListener encodeListener,
+    public AudioHandler(Context context, JumbleLogger logger, int audioStream, int audioSource,
+                        int sampleRate, int targetBitrate, int targetFramesPerPacket,
+                        int transmitMode, float vadThreshold, float amplitudeBoost,
+                        boolean bluetoothEnabled, boolean halfDuplexEnabled,
+                        boolean preprocessorEnabled, AudioEncodeListener encodeListener,
                         AudioOutput.AudioOutputListener outputListener) {
         mContext = context;
         mLogger = logger;
+        mAudioStream = audioStream;
+        mAudioSource = audioSource;
+        mSampleRate = sampleRate;
+        mBitrate = targetBitrate;
+        mFramesPerPacket = targetFramesPerPacket;
+        mTransmitMode = transmitMode;
+        mVADThreshold = vadThreshold;
+        mAmplitudeBoost = amplitudeBoost;
+        mBluetoothOn = bluetoothEnabled;
+        mHalfDuplex = halfDuplexEnabled;
+        mPreprocessorEnabled = preprocessorEnabled;
         mEncodeListener = encodeListener;
         mOutputListener = outputListener;
+
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mEncoderLock = new Object();
     }
@@ -169,7 +185,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
      * Starts the audio output thread, and input if {@link #isTalking()} and not muted.
      * Will create both the input and output modules if they haven't been created yet.
      */
-    public synchronized void initialize(User self, JumbleUDPMessageType codec) throws AudioException {
+    public synchronized void initialize(User self, int maxBandwidth, JumbleUDPMessageType codec) throws AudioException {
         if(mInitialized) return;
         mSession = self.getSession();
         setServerMuted(self.isMuted() || self.isLocalMuted() || self.isSuppressed());
@@ -178,6 +194,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         // This sticky broadcast will initialize the audio output.
         mContext.registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
         mInitialized = true;
+        setMaxBandwidth(maxBandwidth);
         setCodec(codec);
     }
 
@@ -326,43 +343,12 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         return mAudioStream;
     }
 
-    /**
-     * Sets the output stream for audio, such as {@link android.media.AudioManager#STREAM_VOICE_CALL}.
-     * The output thread will be automatically recreated if currently playing.
-     * @param audioStream A constant representing an Android stream. Found in {@link android.media.AudioManager}.
-     */
-    public void setAudioStream(int audioStream) {
-        this.mAudioStream = audioStream;
-        if(mInitialized) createAudioOutput();
-    }
-
     public int getAudioSource() {
         return mAudioSource;
     }
 
-    /**
-     * Sets the input source for audio, i.e. back microphone, front microphone.
-     * The input thread will be automatically respawned if currently recording.
-     * @param audioSource A constant representing an Android audio source. Found in {@link android.media.MediaRecorder.AudioSource}.
-     */
-    public void setAudioSource(int audioSource) throws AudioException {
-        this.mAudioSource = audioSource;
-        if(mInitialized) createAudioInput();
-    }
-
     public int getSampleRate() {
         return mSampleRate;
-    }
-
-    /**
-     * Attempts to set the sample rate of the audio input thread.
-     * If the desired sample rate is not supported, the next best one will be chosen.
-     * The input thread will be automatically respawned if currently recording.
-     * @param sampleRate The desired sample rate.
-     */
-    public void setSampleRate(int sampleRate) throws AudioException {
-        this.mSampleRate = sampleRate;
-        if(mInitialized) createAudioInput();
     }
 
     public int getBitrate() {
@@ -370,25 +356,11 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     }
 
     /**
-     * Sets the bitrate of the encoder.
-     * Triggers an encoder recreation if initialized.
-     * @param bitrate The desired bitrate.
-     */
-    public void setBitrate(int bitrate) throws NativeAudioException {
-        this.mBitrate = bitrate;
-        synchronized (mEncoderLock) {
-            if (mCodec != null && mEncoder != null) {
-                recreateEncoder();
-            }
-        }
-    }
-
-    /**
      * Sets the maximum bandwidth available for audio input as obtained from the server.
      * Adjusts the bitrate and frames per packet accordingly to meet the server's requirement.
      * @param maxBandwidth The server-reported maximum bandwidth, in bps.
      */
-    public void setMaxBandwidth(int maxBandwidth) throws AudioException {
+    private void setMaxBandwidth(int maxBandwidth) throws AudioException {
         if (maxBandwidth == -1) {
             return;
         }
@@ -412,8 +384,8 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
         if (bitrate != mBitrate ||
                 framesPerPacket != mFramesPerPacket) {
-            setBitrate(bitrate);
-            setFramesPerPacket(framesPerPacket);
+            mBitrate = bitrate;
+            mFramesPerPacket = framesPerPacket;
 
             mLogger.log(Message.Type.INFO, mContext.getString(R.string.audio_max_bandwidth,
                     maxBandwidth/1000, maxBandwidth/1000, framesPerPacket * 10));
@@ -422,20 +394,6 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
     public int getFramesPerPacket() {
         return mFramesPerPacket;
-    }
-
-    /**
-     * Sets the number of frames per packet to be encoded before sending to the server.
-     * Recreates encoder, if created.
-     * @param framesPerPacket The number of frames per audio packet.
-     */
-    public void setFramesPerPacket(int framesPerPacket) throws AudioException {
-        this.mFramesPerPacket = framesPerPacket;
-        synchronized (mEncoderLock) {
-            if (mCodec != null && mEncoder != null) {
-                recreateEncoder();
-            }
-        }
     }
 
     public int getTransmitMode() {
@@ -458,28 +416,8 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         return mVADThreshold;
     }
 
-    /**
-     * Sets the threshold for voice activation transmission.
-     * Does not require input thread recreation.
-     * @param threshold An arbitrary floating point value to use in determining speech.
-     */
-    public void setVADThreshold(float threshold) {
-        this.mVADThreshold = threshold;
-        if(mInitialized) mInput.setVADThreshold(threshold);
-    }
-
     public float getAmplitudeBoost() {
         return mAmplitudeBoost;
-    }
-
-    /**
-     * Sets an amplitude boost multiplier for audio input.
-     * Does not require input thread recreation.
-     * @param boost An floating point value to multiply raw PCM data by in the range [0, {@link Float#MAX_VALUE}].
-     */
-    public void setAmplitudeBoost(float boost) {
-        this.mAmplitudeBoost = boost;
-        if(mInitialized) mInput.setAmplitudeBoost(boost);
     }
 
     /**
@@ -491,34 +429,12 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         return mHalfDuplex;
     }
 
-    /**
-     * Sets whether or not the audio handler should operate in half duplex mode, muting outgoing
-     * audio when incoming audio is received.
-     * Does not require input thread recreation.
-     * @param halfDuplex Whether to enable half duplex mode.
-     */
-    public void setHalfDuplex(boolean halfDuplex) {
-        mHalfDuplex = halfDuplex;
-    }
-
-    /**
-     * Sets whether to enable the Speex preprocessor.
-     * Does not require input thread recreation.
-     * @param preprocessorEnabled Whether to enable the Speex preprocessor.
-     */
-    public void setPreprocessorEnabled(boolean preprocessorEnabled) {
-        mPreprocessorEnabled = preprocessorEnabled;
-        // FIXME
-    }
-
     public int getCurrentBandwidth() {
         return JumbleConnection.calculateAudioBandwidth(mBitrate, mFramesPerPacket);
     }
 
     /**
      * Shuts down the audio handler, halting input and output.
-     * The handler may still be reinitialized with
-     * {@link AudioHandler#initialize(int, com.morlunk.jumble.net.JumbleUDPMessageType)} after.
      */
     public synchronized void shutdown() {
         if(mInput != null) {
@@ -665,5 +581,114 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     public interface AudioEncodeListener {
         public void onAudioEncoded(byte[] data, int length);
         public void onTalkStateChange(User.TalkState state);
+    }
+
+    /**
+     * A builder to configure and instantiate the audio protocol handler.
+     */
+    public static class Builder {
+        private Context mContext;
+        private JumbleLogger mLogger;
+        private int mAudioStream;
+        private int mAudioSource;
+        private int mTargetBitrate;
+        private int mTargetFramesPerPacket;
+        private int mInputSampleRate;
+        private int mTransmitMode;
+        private float mVADThreshold;
+        private float mAmplitudeBoost;
+        private boolean mBluetoothEnabled;
+        private boolean mHalfDuplexEnabled;
+        private boolean mPreprocessorEnabled;
+        private AudioEncodeListener mEncodeListener;
+        private AudioOutput.AudioOutputListener mTalkingListener;
+
+        public Builder setContext(Context context) {
+            mContext = context;
+            return this;
+        }
+
+        public Builder setLogger(JumbleLogger logger) {
+            mLogger = logger;
+            return this;
+        }
+
+        public Builder setAudioStream(int audioStream) {
+            mAudioStream = audioStream;
+            return this;
+        }
+
+        public Builder setAudioSource(int audioSource) {
+            mAudioSource = audioSource;
+            return this;
+        }
+
+        public Builder setTargetBitrate(int targetBitrate) {
+            mTargetBitrate = targetBitrate;
+            return this;
+        }
+
+        public Builder setTargetFramesPerPacket(int targetFramesPerPacket) {
+            mTargetFramesPerPacket = targetFramesPerPacket;
+            return this;
+        }
+
+        public Builder setInputSampleRate(int inputSampleRate) {
+            mInputSampleRate = inputSampleRate;
+            return this;
+        }
+
+        public Builder setTransmitMode(int transmitMode) {
+            mTransmitMode = transmitMode;
+            return this;
+        }
+
+        public Builder setVADThreshold(float vadThreshold) {
+            mVADThreshold = vadThreshold;
+            return this;
+        }
+
+        public Builder setAmplitudeBoost(float amplitudeBoost) {
+            mAmplitudeBoost = amplitudeBoost;
+            return this;
+        }
+
+        public Builder setBluetoothEnabled(boolean bluetoothEnabled) {
+            mBluetoothEnabled = bluetoothEnabled;
+            return this;
+        }
+
+        public Builder setHalfDuplexEnabled(boolean halfDuplexEnabled) {
+            mHalfDuplexEnabled = halfDuplexEnabled;
+            return this;
+        }
+
+        public Builder setPreprocessorEnabled(boolean preprocessorEnabled) {
+            mPreprocessorEnabled = preprocessorEnabled;
+            return this;
+        }
+
+        public Builder setEncodeListener(AudioEncodeListener encodeListener) {
+            mEncodeListener = encodeListener;
+            return this;
+        }
+
+        public Builder setTalkingListener(AudioOutput.AudioOutputListener talkingListener) {
+            mTalkingListener = talkingListener; // TODO: remove user dependency from AudioOutput
+            return this;
+        }
+
+        /**
+         * Creates a new AudioHandler for the given session and begins managing input/output.
+         * @return An initialized audio handler.
+         */
+        public AudioHandler initialize(User self, int maxBandwidth, JumbleUDPMessageType codec) throws AudioException {
+            AudioHandler handler = new AudioHandler(mContext, mLogger, mAudioStream, mAudioSource,
+                    mInputSampleRate, mTargetBitrate, mTargetFramesPerPacket, mTransmitMode,
+                    mVADThreshold, mAmplitudeBoost, mBluetoothEnabled, mHalfDuplexEnabled,
+                    mPreprocessorEnabled, mEncodeListener, mTalkingListener);
+            handler.initialize(self, maxBandwidth, codec);
+            return handler;
+        }
     }
 }

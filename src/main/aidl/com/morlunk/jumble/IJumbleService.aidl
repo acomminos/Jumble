@@ -63,15 +63,10 @@ interface IJumbleService {
     boolean isTalking();
     void setTalkingState(boolean talking);
     int getTransmitMode();
-    void setTransmitMode(int transmitMode);
-    void setVADThreshold(float threshold);
-    void setAmplitudeBoost(float boost);
-    void setHalfDuplex(boolean enabled);
     int getCodec();
 
     // Bluetooth
     boolean isBluetoothAvailable();
-    void setBluetoothEnabled(boolean enabled);
 
     // Server actions
     void joinChannel(int channel);
