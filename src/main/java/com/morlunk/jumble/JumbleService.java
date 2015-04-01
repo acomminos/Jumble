@@ -568,9 +568,15 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         // Reload audio subsystem if initialized
         if (mAudioHandler != null && mAudioHandler.isInitialized()) {
             mAudioHandler.shutdown();
+            mConnection.removeTCPMessageHandler(mAudioHandler);
+            mConnection.removeUDPMessageHandler(mAudioHandler);
+
             mAudioHandler = mAudioBuilder.initialize(
                     mModelHandler.getUser(mConnection.getSession()),
                     mConnection.getMaxBandwidth(), mConnection.getCodec());
+            mConnection.addTCPMessageHandlers(mAudioHandler);
+            mConnection.addUDPMessageHandlers(mAudioHandler);
+
             Log.i(Constants.TAG, "Audio subsystem reloaded after settings change.");
         }
         return reconnectNeeded;

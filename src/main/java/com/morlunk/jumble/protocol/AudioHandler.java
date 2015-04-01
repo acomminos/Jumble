@@ -65,8 +65,8 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     private final Context mContext;
     private final JumbleLogger mLogger;
     private final AudioManager mAudioManager;
-    private AudioInput mInput;
-    private AudioOutput mOutput;
+    private final AudioInput mInput;
+    private final AudioOutput mOutput;
     private AudioOutput.AudioOutputListener mOutputListener;
     private AudioEncodeListener mEncodeListener;
 
@@ -101,32 +101,34 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     private BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            int audioState = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, AudioManager.SCO_AUDIO_STATE_ERROR);
-            switch (audioState) {
-                case AudioManager.SCO_AUDIO_STATE_CONNECTED:
-                    Toast.makeText(mContext, R.string.bluetooth_connected, Toast.LENGTH_LONG).show();
-                    mOutput.stopPlaying();
-                    mBluetoothOn = true;
-                    try {
-                        mOutput.startPlaying(true);
-                    } catch (AudioInitializationException e) {
-                        e.printStackTrace();
-                        mLogger.log(Message.Type.WARNING, e.getLocalizedMessage());
-                    }
-                    break;
-                case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
-                case AudioManager.SCO_AUDIO_STATE_ERROR:
-                    if(mOutput.isPlaying() && mBluetoothOn)
-                        Toast.makeText(mContext, R.string.bluetooth_disconnected, Toast.LENGTH_LONG).show();
-                    mOutput.stopPlaying();
-                    try {
-                        mOutput.startPlaying(false);
-                    } catch (AudioInitializationException e) {
-                        e.printStackTrace();
-                        mLogger.log(Message.Type.WARNING, e.getLocalizedMessage());
-                    }
-                    mBluetoothOn = false;
-                    break;
+            synchronized (mOutput) {
+                int audioState = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, AudioManager.SCO_AUDIO_STATE_ERROR);
+                switch (audioState) {
+                    case AudioManager.SCO_AUDIO_STATE_CONNECTED:
+                        Toast.makeText(mContext, R.string.bluetooth_connected, Toast.LENGTH_LONG).show();
+                        mOutput.stopPlaying();
+                        mBluetoothOn = true;
+                        try {
+                            mOutput.startPlaying(true);
+                        } catch (AudioInitializationException e) {
+                            e.printStackTrace();
+                            mLogger.log(Message.Type.WARNING, e.getLocalizedMessage());
+                        }
+                        break;
+                    case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
+                    case AudioManager.SCO_AUDIO_STATE_ERROR:
+                        if (mOutput.isPlaying() && mBluetoothOn)
+                            Toast.makeText(mContext, R.string.bluetooth_disconnected, Toast.LENGTH_LONG).show();
+                        mOutput.stopPlaying();
+                        try {
+                            mOutput.startPlaying(false);
+                        } catch (AudioInitializationException e) {
+                            e.printStackTrace();
+                            mLogger.log(Message.Type.WARNING, e.getLocalizedMessage());
+                        }
+                        mBluetoothOn = false;
+                        break;
+                }
             }
         }
     };
@@ -136,7 +138,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
                         int transmitMode, float vadThreshold, float amplitudeBoost,
                         boolean bluetoothEnabled, boolean halfDuplexEnabled,
                         boolean preprocessorEnabled, AudioEncodeListener encodeListener,
-                        AudioOutput.AudioOutputListener outputListener) {
+                        AudioOutput.AudioOutputListener outputListener) throws AudioInitializationException, NativeAudioException {
         mContext = context;
         mLogger = logger;
         mAudioStream = audioStream;
@@ -155,29 +157,9 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mEncoderLock = new Object();
-    }
-
-    /**
-     * Configures a new audio input thread with the handler's settings.
-     * Automatically starts recording if mTransitMode is continuous or voice activity.
-     * Will cleanup old input thread if applicable.
-     * @throws AudioException if the AudioInput instance failed to initialize.
-     */
-    private void createAudioInput() throws AudioException {
-        if(mInput != null) mInput.shutdown();
 
         mInput = new AudioInput(this, mAudioSource, mSampleRate, mTransmitMode,
-                                       mVADThreshold, mAmplitudeBoost);
-        if (mTalking && !mMuted)
-            startRecording();
-    }
-
-    /**
-     * Configures a new audio output thread with the handler's settings.
-     * Will cleanup old output thread if applicable.
-     */
-    private void createAudioOutput() {
-        if(mInitialized) mOutput.stopPlaying();
+                mVADThreshold, mAmplitudeBoost);
         mOutput = new AudioOutput(mOutputListener, mAudioStream);
     }
 
@@ -188,14 +170,19 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     public synchronized void initialize(User self, int maxBandwidth, JumbleUDPMessageType codec) throws AudioException {
         if(mInitialized) return;
         mSession = self.getSession();
-        setServerMuted(self.isMuted() || self.isLocalMuted() || self.isSuppressed());
-        if(mOutput == null) createAudioOutput();
-        if(mInput == null) createAudioInput();
-        // This sticky broadcast will initialize the audio output.
-        mContext.registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
-        mInitialized = true;
+
         setMaxBandwidth(maxBandwidth);
         setCodec(codec);
+
+        setTalking(mTransmitMode == Constants.TRANSMIT_CONTINUOUS
+                || mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY);
+        setServerMuted(self.isMuted() || self.isLocalMuted() || self.isSuppressed());
+        if (mTalking && !mMuted)
+            startRecording();
+        // This sticky broadcast will initialize the audio output.
+        mContext.registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
+
+        mInitialized = true;
     }
 
     /**
@@ -203,16 +190,16 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
      * @throws AudioException if the input thread failed to initialize, or if a thread was already
      *                        recording.
      */
-    private synchronized void startRecording() throws AudioException {
-        if(mInput == null) createAudioInput();
-
-        if (!mInput.isRecording()) {
-            mInput.startRecording();
-            if (mHalfDuplex && mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK) {
-                mAudioManager.setStreamMute(getAudioStream(), true);
+    private void startRecording() throws AudioException {
+        synchronized (mInput) {
+            if (!mInput.isRecording()) {
+                mInput.startRecording();
+                if (mHalfDuplex && mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK) {
+                    mAudioManager.setStreamMute(getAudioStream(), true);
+                }
+            } else {
+                throw new AudioException("Attempted to start recording while recording!");
             }
-        } else {
-            throw new AudioException("Attempted to start recording while recording!");
         }
     }
 
@@ -220,16 +207,16 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
      * Stops the recording AudioInput thread.
      * @throws AudioException if there was no thread recording.
      */
-    private synchronized void stopRecording() throws AudioException {
-        if(mInput == null) return;
-
-        if (mInput.isRecording()) {
-            mInput.stopRecording();
-            if (mHalfDuplex && mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK) {
-                mAudioManager.setStreamMute(getAudioStream(), false);
+    private void stopRecording() throws AudioException {
+        synchronized (mInput) {
+            if (mInput.isRecording()) {
+                mInput.stopRecording();
+                if (mHalfDuplex && mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK) {
+                    mAudioManager.setStreamMute(getAudioStream(), false);
+                }
+            } else {
+                throw new AudioException("Attempted to stop recording while not recording!");
             }
-        } else {
-            throw new AudioException("Attempted to stop recording while not recording!");
         }
     }
 
@@ -287,11 +274,15 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
      * @return
      */
     public boolean isRecording() {
-        return mInput != null && mInput.isRecording();
+        synchronized (mInput) {
+            return mInput.isRecording();
+        }
     }
 
     public boolean isPlaying() {
-        return mOutput != null && mOutput.isPlaying();
+        synchronized (mOutput) {
+            return mOutput.isPlaying();
+        }
     }
 
     public JumbleUDPMessageType getCodec() {
@@ -400,18 +391,6 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         return mTransmitMode;
     }
 
-    /**
-     * Sets the transmit mode for the audio input thread.
-     * The input thread will be automatically respawned if currently recording.
-     * @param transmitMode A transmission mode constant found in {@link Constants}.
-     */
-    public void setTransmitMode(int transmitMode) throws AudioException {
-        this.mTransmitMode = transmitMode;
-        if(mInitialized) createAudioInput();
-        setTalking(transmitMode == Constants.TRANSMIT_CONTINUOUS
-                || transmitMode == Constants.TRANSMIT_VOICE_ACTIVITY);
-    }
-
     public float getVADThreshold() {
         return mVADThreshold;
     }
@@ -437,13 +416,11 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
      * Shuts down the audio handler, halting input and output.
      */
     public synchronized void shutdown() {
-        if(mInput != null) {
+        synchronized (mInput) {
             mInput.shutdown();
-            mInput = null;
         }
-        if(mOutput != null) {
+        synchronized (mOutput) {
             mOutput.stopPlaying();
-            mOutput = null;
         }
         if (mEncoder != null) {
             mEncoder.destroy();
@@ -516,7 +493,9 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
     @Override
     public void messageVoiceData(byte[] data, JumbleUDPMessageType messageType) {
-        mOutput.queueVoiceData(data, messageType);
+        synchronized (mOutput) {
+            mOutput.queueVoiceData(data, messageType);
+        }
     }
 
     @Override
