@@ -97,4 +97,12 @@ interface IJumbleService {
     // Observation
     void registerObserver(in IJumbleObserver observer);
     void unregisterObserver(in IJumbleObserver observer);
+
+    /**
+     * Reconfigures the JumbleService with the given extras.
+     * These are the same extras you would pass in for a connect call. This "patches" the service
+     * only with the new extras specified.
+     * @return true if the a reconnect is required for changes to take effect.
+     */
+    boolean reconfigure(in Bundle extras);
 }

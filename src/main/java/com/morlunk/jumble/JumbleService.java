@@ -23,7 +23,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
-import android.media.MediaRecorder;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
@@ -220,17 +219,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
-            if (intent.getExtras() != null) {
-                Bundle extras = intent.getExtras();
+            Bundle extras = intent.getExtras();
+            if (extras != null) {
                 try {
-                    loadSettings(extras);
+                    configureExtras(extras);
                 } catch (AudioException e) {
                     throw new RuntimeException("Attempted to initialize audio in onStartCommand erroneously.");
                 }
             }
 
             if (ACTION_CONNECT.equals(intent.getAction())) {
-                Bundle extras = intent.getExtras();
                 if (extras == null || !extras.containsKey(EXTRAS_SERVER)) {
                     // Ensure that we have been provided all required attributes.
                     throw new RuntimeException(ACTION_CONNECT + " requires a server provided in extras.");
@@ -473,7 +471,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * @return true if a reconnect is required for changes to take effect.
      * @see com.morlunk.jumble.JumbleService
      */
-    private boolean loadSettings(Bundle extras) throws AudioException {
+    private boolean configureExtras(Bundle extras) throws AudioException {
         boolean reconnectNeeded = false;
         if (extras.containsKey(EXTRAS_SERVER)) {
             mServer = extras.getParcelable(EXTRAS_SERVER);
@@ -527,7 +525,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
         if (extras.containsKey(EXTRAS_ACCESS_TOKENS)) {
             mAccessTokens = extras.getStringArrayList(EXTRAS_ACCESS_TOKENS);
-            // TODO: send access tokens
+            if (mConnection != null && mConnection.isConnected()) {
+                mConnection.sendAccessTokens(mAccessTokens);
+            }
         }
         if (extras.containsKey(EXTRAS_AUDIO_SOURCE)) {
             mAudioBuilder.setAudioSource(extras.getInt(EXTRAS_AUDIO_SOURCE));
@@ -766,10 +766,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         @Override
         public void sendAccessTokens(List tokens) throws RemoteException {
-            mAccessTokens = new ArrayList<String>(tokens);
-            Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
-            ab.addAllTokens(mAccessTokens);
-            mConnection.sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
+            mConnection.sendAccessTokens(tokens);
         }
 
         @Override
@@ -909,6 +906,17 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         @Override
         public void unregisterObserver(IJumbleObserver observer) throws RemoteException {
             mCallbacks.unregisterObserver(observer);
+        }
+
+        @Override
+        public boolean reconfigure(Bundle extras) throws RemoteException {
+            try {
+                return configureExtras(extras);
+            } catch (AudioException e) {
+                e.printStackTrace();
+                // TODO
+                return true;
+            }
         }
     }
 }

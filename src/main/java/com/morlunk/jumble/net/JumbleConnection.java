@@ -36,6 +36,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.nio.ByteBuffer;
+import java.nio.channels.NotYetConnectedException;
 import java.security.InvalidKeyException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -45,6 +46,7 @@ import java.security.NoSuchProviderException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -565,6 +567,17 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         Mumble.UDPTunnel.Builder utb = Mumble.UDPTunnel.newBuilder();
         utb.setPacket(ByteString.copyFrom(new byte[3]));
         sendTCPMessage(utb.build(), JumbleTCPMessageType.UDPTunnel);
+    }
+
+    /**
+     * Sends the given access tokens to the server.
+     * @param tokens A list of new access tokens to send to the server.
+     */
+    public void sendAccessTokens(Collection<String> tokens) {
+        if(!mConnected) return;
+        Mumble.Authenticate.Builder ab = Mumble.Authenticate.newBuilder();
+        ab.addAllTokens(tokens);
+        sendTCPMessage(ab.build(), JumbleTCPMessageType.Authenticate);
     }
 
     @Override
