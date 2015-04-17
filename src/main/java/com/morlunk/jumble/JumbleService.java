@@ -36,6 +36,8 @@ import android.util.Log;
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.exception.AudioException;
 import com.morlunk.jumble.model.Channel;
+import com.morlunk.jumble.model.IChannel;
+import com.morlunk.jumble.model.IUser;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.User;
@@ -175,7 +177,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             new AudioHandler.AudioEncodeListener() {
         @Override
         public void onAudioEncoded(byte[] data, int length) {
-            if(mConnection.isSynchronized()) {
+            if(mConnection != null && mConnection.isSynchronized()) {
                 mConnection.sendUDPMessage(data, length, false);
             }
         }
@@ -407,20 +409,19 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     @Override
     public void onConnectionWarning(String warning) {
-        log(Message.Type.WARNING, warning);
+        log(warning);
     }
 
     @Override
-    public void log(Message.Type type, String message) {
-        Message msg = new Message(type, message);
+    public void log(String message) {
+        Message msg = new Message(message);
         log(msg);
     }
 
     @Override
     public void log(Message message) {
         // Only log non-fatal (~INFO) messages post-connect.
-        if (mConnection != null &&
-                (mConnection.isSynchronized() || message.getType() != Message.Type.INFO)) {
+        if (mConnection != null && mConnection.isSynchronized()) {
                 mMessageLog.add(message);
             try {
                 mCallbacks.onMessageLogged(message);
@@ -654,15 +655,15 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
-        public User getSessionUser() throws RemoteException {
+        public IUser getSessionUser() throws RemoteException {
             return mModelHandler != null ? mModelHandler.getUser(getSession()) : null;
         }
 
         @Override
-        public Channel getSessionChannel() throws RemoteException {
-            User user = getSessionUser();
+        public IChannel getSessionChannel() throws RemoteException {
+            IUser user = getSessionUser();
             if (user != null) {
-                return getChannel(user.getChannelId());
+                return user.getChannel();
             }
             return null;
         }
@@ -673,21 +674,21 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
-        public User getUser(int id) throws RemoteException {
+        public IUser getUser(int id) throws RemoteException {
             if (mModelHandler != null)
                 return mModelHandler.getUser(id);
             return null;
         }
 
         @Override
-        public Channel getChannel(int id) throws RemoteException {
+        public IChannel getChannel(int id) throws RemoteException {
             if (mModelHandler != null)
                 return mModelHandler.getChannel(id);
             return null;
         }
 
         @Override
-        public Channel getRootChannel() throws RemoteException {
+        public IChannel getRootChannel() throws RemoteException {
             return getChannel(0);
         }
 
@@ -736,7 +737,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             try {
                 mAudioHandler.setTalking(talking);
             } catch (AudioException e) {
-                log(Message.Type.WARNING, e.getMessage());
+                log(e.getMessage());
             }
         }
 
@@ -837,8 +838,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             tmb.setMessage(message);
             mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
 
-            User self = getSessionUser();
-            User user = getUser(session);
+            User self = mModelHandler.getUser(getSession());
+            User user = mModelHandler.getUser(session);
             List<User> users = new ArrayList<User>(1);
             users.add(user);
             Message logMessage = new Message(getSession(), self.getName(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
@@ -854,8 +855,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             tmb.setMessage(message);
             mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
 
-            User self = getSessionUser();
-            Channel targetChannel = getChannel(channel);
+            User self = mModelHandler.getUser(getSession());
+            Channel targetChannel = mModelHandler.getChannel(channel);
             List<Channel> targetChannels = new ArrayList<Channel>();
             targetChannels.add(targetChannel);
             Message logMessage = new Message(getSession(), self.getName(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);

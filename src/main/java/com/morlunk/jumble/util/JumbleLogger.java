@@ -23,6 +23,6 @@ import com.morlunk.jumble.model.Message;
  * Created by andrew on 12/07/14.
  */
 public interface JumbleLogger {
-    public void log(Message.Type type, String message);
+    public void log(String message);
     public void log(Message message);
 }

@@ -16,9 +16,9 @@
 
 package com.morlunk.jumble;
 
-import com.morlunk.jumble.model.Channel;
-import com.morlunk.jumble.model.User;
-import com.morlunk.jumble.model.Message;
+import com.morlunk.jumble.model.IChannel;
+import com.morlunk.jumble.model.IUser;
+import com.morlunk.jumble.model.IMessage;
 import com.morlunk.jumble.util.ParcelableByteArray;
 import com.morlunk.jumble.util.JumbleException;
 
@@ -32,19 +32,19 @@ interface IJumbleObserver {
     void onTLSHandshakeFailed(in ParcelableByteArray cert);
 
     // Channel
-    void onChannelAdded(in Channel channel);
-    void onChannelStateUpdated(in Channel channel);
-    void onChannelRemoved(in Channel channel);
-    void onChannelPermissionsUpdated(in Channel channel);
+    void onChannelAdded(in IChannel channel);
+    void onChannelStateUpdated(in IChannel channel);
+    void onChannelRemoved(in IChannel channel);
+    void onChannelPermissionsUpdated(in IChannel channel);
 
     // User
-    void onUserConnected(in User user);
-    void onUserStateUpdated(in User user);
-    void onUserTalkStateUpdated(in User user);
-    void onUserJoinedChannel(in User user, in Channel newChannel, in Channel oldChannel);
-    void onUserRemoved(in User user, String reason);
+    void onUserConnected(in IUser user);
+    void onUserStateUpdated(in IUser user);
+    void onUserTalkStateUpdated(in IUser user);
+    void onUserJoinedChannel(in IUser user, in IChannel newChannel, in IChannel oldChannel);
+    void onUserRemoved(in IUser user, String reason);
     void onPermissionDenied(String reason);
 
     // Logging & Messaging
-    void onMessageLogged(in Message message);
+    void onMessageLogged(in IMessage message);
 }

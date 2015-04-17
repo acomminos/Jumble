@@ -30,6 +30,7 @@ import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.protobuf.Mumble;
+import com.morlunk.jumble.protocol.JumbleTCPMessageListener;
 import com.morlunk.jumble.util.JumbleLogger;
 import com.morlunk.jumble.util.MessageFormatter;
 
@@ -48,27 +49,6 @@ import java.util.Map;
  * Created by andrew on 18/07/13.
  */
 public class ModelHandler extends JumbleTCPMessageListener.Stub {
-
-    private Comparator<Integer> mChannelComparator = new Comparator<Integer>() {
-        @Override
-        public int compare(Integer lhs, Integer rhs) {
-            Channel clhs = getChannel(lhs);
-            Channel crhs = getChannel(rhs);
-            if(clhs.getPosition() != crhs.getPosition())
-                return ((Integer)clhs.getPosition()).compareTo(crhs.getPosition());
-            return clhs.getName().compareTo(crhs.getName());
-        }
-    };
-
-    private Comparator<Integer> mUserComparator = new Comparator<Integer>() {
-        @Override
-        public int compare(Integer lhs, Integer rhs) {
-            User ulhs = mUsers.get(lhs);
-            User urhs = mUsers.get(rhs);
-            return ulhs.getName().toLowerCase().compareTo(urhs.getName().toLowerCase());
-        }
-    };
-
     private final Context mContext;
     private final Map<Integer, Channel> mChannels;
     private final Map<Integer, User> mUsers;
@@ -134,18 +114,9 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
      */
     private void changeSubchannelUsers(Channel channel, int change) {
         channel.setSubchannelUserCount(channel.getSubchannelUserCount() + change);
-        int parent = channel.getParent();
-        Channel parentChannel = mChannels.get(parent);
-        if(parentChannel != null)
-            changeSubchannelUsers(parentChannel, change);
-    }
-
-    /**
-     * Sorts the users in the provided channel alphabetically.
-     * @param channel The channel containing the users to sort.
-     */
-    private void sortUsers(Channel channel) {
-        Collections.sort(channel.getUsers(), mUserComparator);
+        Channel parent = channel.getParent();
+        if(parent != null)
+            changeSubchannelUsers(parent, change);
     }
 
     public void clear() {
@@ -175,13 +146,12 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
             channel.setPosition(msg.getPosition());
 
         if(msg.hasParent()) {
-            Channel oldParent = mChannels.get(channel.getParent());
-            channel.setParent(parent.getId());
-            parent.addSubchannel(channel.getId());
+            Channel oldParent = channel.getParent();
+            channel.setParent(parent);
+            parent.addSubchannel(channel);
             changeSubchannelUsers(parent, channel.getSubchannelUserCount());
-            Collections.sort(parent.getSubchannels(), mChannelComparator); // Re-sort after subchannel addition
             if(oldParent != null) {
-                oldParent.removeSubchannel(channel.getId());
+                oldParent.removeSubchannel(channel);
                 changeSubchannelUsers(oldParent, -channel.getSubchannelUserCount());
             }
         }
@@ -194,18 +164,19 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
 
         if(msg.getLinksCount() > 0) {
             channel.clearLinks();
-            for(int link : msg.getLinksList())
-                channel.addLink(link);
+            for(int link : msg.getLinksList()) {
+                channel.addLink(mChannels.get(link));
+            }
         }
 
         if(msg.getLinksRemoveCount() > 0) {
             for(int link : msg.getLinksRemoveList())
-                channel.removeLink(link);
+                channel.removeLink(mChannels.get(link));
         }
 
         if(msg.getLinksAddCount() > 0) {
             for(int link : msg.getLinksAddList())
-                channel.addLink(link);
+                channel.addLink(mChannels.get(link));
         }
 
         final Channel finalChannel = channel;
@@ -224,9 +195,9 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
         final Channel channel = mChannels.get(msg.getChannelId());
         if(channel != null && channel.getId() != 0) {
             mChannels.remove(channel.getId());
-            Channel parent = mChannels.get(channel.getParent());
+            Channel parent = channel.getParent();
             if(parent != null) {
-                parent.removeSubchannel(msg.getChannelId());
+                parent.removeSubchannel(channel);
                 changeSubchannelUsers(parent, -channel.getUsers().size());
             }
             try {
@@ -271,10 +242,9 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
                 // Add user to root channel by default. This works because for some reason, we don't get a channel ID when the user joins into root.
                 Channel root = mChannels.get(0);
                 if(root == null) root = createStubChannel(0);
-                user.setChannelId(0);
-                root.addUser(user.getSession());
+                user.setChannel(root);
+                root.addUser(user);
                 root.setSubchannelUserCount(root.getSubchannelUserCount()+1);
-                sortUsers(root);
             }
             else
                 return;

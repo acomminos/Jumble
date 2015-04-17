@@ -21,9 +21,9 @@ import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 
 import com.morlunk.jumble.IJumbleObserver;
-import com.morlunk.jumble.model.Channel;
-import com.morlunk.jumble.model.Message;
-import com.morlunk.jumble.model.User;
+import com.morlunk.jumble.model.IChannel;
+import com.morlunk.jumble.model.IMessage;
+import com.morlunk.jumble.model.IUser;
 
 /**
  * A composite wrapper around Jumble observers to easily broadcast to each observer.
@@ -89,7 +89,7 @@ public class JumbleCallbacks extends JumbleObserver.Stub {
     }
 
     @Override
-    public void onChannelAdded(Channel channel) throws RemoteException {
+    public void onChannelAdded(IChannel channel) throws RemoteException {
         int i = mCallbacks.beginBroadcast();
         while(i > 0) {
             i--;
@@ -99,7 +99,7 @@ public class JumbleCallbacks extends JumbleObserver.Stub {
     }
 
     @Override
-    public void onChannelStateUpdated(Channel channel) throws RemoteException {
+    public void onChannelStateUpdated(IChannel channel) throws RemoteException {
         int i = mCallbacks.beginBroadcast();
         while(i > 0) {
             i--;
@@ -109,7 +109,7 @@ public class JumbleCallbacks extends JumbleObserver.Stub {
     }
 
     @Override
-    public void onChannelRemoved(Channel channel) throws RemoteException {
+    public void onChannelRemoved(IChannel channel) throws RemoteException {
         int i = mCallbacks.beginBroadcast();
         while(i > 0) {
             i--;
@@ -119,7 +119,7 @@ public class JumbleCallbacks extends JumbleObserver.Stub {
     }
 
     @Override
-    public void onChannelPermissionsUpdated(Channel channel) throws RemoteException {
+    public void onChannelPermissionsUpdated(IChannel channel) throws RemoteException {
         int i = mCallbacks.beginBroadcast();
         while(i > 0) {
             i--;
@@ -129,7 +129,7 @@ public class JumbleCallbacks extends JumbleObserver.Stub {
     }
 
     @Override
-    public void onUserConnected(User user) throws RemoteException {
+    public void onUserConnected(IUser user) throws RemoteException {
         int i = mCallbacks.beginBroadcast();
         while(i > 0) {
             i--;
@@ -139,7 +139,7 @@ public class JumbleCallbacks extends JumbleObserver.Stub {
     }
 
     @Override
-    public void onUserStateUpdated(User user) throws RemoteException {
+    public void onUserStateUpdated(IUser user) throws RemoteException {
         int i = mCallbacks.beginBroadcast();
         while(i > 0) {
             i--;
@@ -149,7 +149,7 @@ public class JumbleCallbacks extends JumbleObserver.Stub {
     }
 
     @Override
-    public void onUserTalkStateUpdated(User user) throws RemoteException {
+    public void onUserTalkStateUpdated(IUser user) throws RemoteException {
         int i = mCallbacks.beginBroadcast();
         while(i > 0) {
             i--;
@@ -159,7 +159,7 @@ public class JumbleCallbacks extends JumbleObserver.Stub {
     }
 
     @Override
-    public void onUserJoinedChannel(User user, Channel newChannel, Channel oldChannel) throws RemoteException {
+    public void onUserJoinedChannel(IUser user, IChannel newChannel, IChannel oldChannel) throws RemoteException {
         int i = mCallbacks.beginBroadcast();
         while(i > 0) {
             i--;
@@ -169,7 +169,7 @@ public class JumbleCallbacks extends JumbleObserver.Stub {
     }
 
     @Override
-    public void onUserRemoved(User user, String reason) throws RemoteException {
+    public void onUserRemoved(IUser user, String reason) throws RemoteException {
         int i = mCallbacks.beginBroadcast();
         while(i > 0) {
             i--;
@@ -189,7 +189,7 @@ public class JumbleCallbacks extends JumbleObserver.Stub {
     }
 
     @Override
-    public void onMessageLogged(Message message) throws RemoteException {
+    public void onMessageLogged(IMessage message) throws RemoteException {
         int i = mCallbacks.beginBroadcast();
         while(i > 0) {
             i--;

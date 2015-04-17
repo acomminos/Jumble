@@ -23,7 +23,7 @@ import android.os.Parcelable;
 
 import com.google.protobuf.ByteString;
 
-public class User implements Parcelable {
+public class User extends IUser.Stub implements Comparable<User> {
 
     public static enum TalkState {
         TALKING,
@@ -37,7 +37,7 @@ public class User implements Parcelable {
     private String mName;
     private String mComment;
     private ByteString mCommentHash;
-    private Bitmap mTexture;
+    private ByteString mTexture;
     private ByteString mTextureHash;
     private String mHash;
 
@@ -51,7 +51,7 @@ public class User implements Parcelable {
     private boolean mPrioritySpeaker;
     private boolean mRecording;
 
-    private int mChannel = -1;
+    private Channel mChannel;
 
     private TalkState mTalkState = TalkState.PASSIVE;
 
@@ -62,19 +62,6 @@ public class User implements Parcelable {
     /** The number of samples normally available from the user. */
     private float mAverageAvailable;
 
-    public static final Parcelable.Creator<User> CREATOR = new Parcelable.Creator<User>() {
-
-        @Override
-        public User createFromParcel(Parcel parcel) {
-            return new User(parcel);
-        }
-
-        @Override
-        public User[] newArray(int i) {
-            return new User[i];
-        }
-    };
-
     public User() {
 
     }
@@ -84,68 +71,15 @@ public class User implements Parcelable {
         mName = name;
     }
 
-    private User(Parcel in) {
-        readFromParcel(in);
-    }
-
-    @Override
-    public void writeToParcel(Parcel out, int flags) {
-        out.writeInt(mSession);
-        out.writeInt(mId);
-        out.writeString(mName);
-        out.writeString(mComment);
-        out.writeInt(mCommentHash.size());
-        out.writeByteArray(mCommentHash.toByteArray());
-        out.writeString(mHash);
-        out.writeValue(mMuted);
-        out.writeValue(mDeafened);
-        out.writeValue(mSuppressed);
-        out.writeValue(mSelfMuted);
-        out.writeValue(mSelfDeafened);
-        out.writeValue(mPrioritySpeaker);
-        out.writeValue(mRecording);
-        out.writeInt(mChannel);
-        out.writeValue(mLocalMuted);
-        out.writeFloat(mAverageAvailable);
-        out.writeString(mTalkState.toString());
-    }
-
-    public void readFromParcel(Parcel in) {
-        mSession = in.readInt();
-        mId = in.readInt();
-        mName = in.readString();
-        mComment = in.readString();
-        byte[] commentHash = new byte[in.readInt()];
-        in.readByteArray(commentHash);
-        mCommentHash = ByteString.copyFrom(commentHash);
-        mHash = in.readString();
-        mMuted = (Boolean)in.readValue(null);
-        mDeafened = (Boolean)in.readValue(null);
-        mSuppressed = (Boolean)in.readValue(null);
-        mSelfMuted = (Boolean)in.readValue(null);
-        mSelfDeafened = (Boolean)in.readValue(null);
-        mPrioritySpeaker = (Boolean)in.readValue(null);
-        mRecording = (Boolean)in.readValue(null);
-        mChannel = in.readInt();
-        mLocalMuted = (Boolean)in.readValue(null);
-        mAverageAvailable = in.readFloat();
-        mTalkState = TalkState.valueOf(in.readString());
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
     public int getSession() {
         return mSession;
     }
 
-    public int getChannelId() {
+    public Channel getChannel() {
         return mChannel;
     }
 
-    public void setChannelId(int channel) {
+    public void setChannel(Channel channel) {
         mChannel = channel;
     }
 
@@ -173,24 +107,24 @@ public class User implements Parcelable {
         this.mComment = mComment;
     }
 
-    public ByteString getCommentHash() {
-        return mCommentHash;
+    public byte[] getCommentHash() {
+        return mCommentHash != null ? mCommentHash.toByteArray() : null;
     }
 
     public void setCommentHash(ByteString commentHash) {
         mCommentHash = commentHash;
     }
 
-    public Bitmap getTexture() {
-        return mTexture;
+    public byte[] getTexture() {
+        return mTexture.toByteArray();
     }
 
-    public void setTexture(Bitmap texture) {
+    public void setTexture(ByteString texture) {
         mTexture = texture;
     }
 
-    public ByteString getTextureHash() {
-        return mTextureHash;
+    public byte[] getTextureHash() {
+        return mTextureHash != null ? mTextureHash.toByteArray() : null;
     }
 
     public void setTextureHash(ByteString textureHash) {
@@ -277,8 +211,8 @@ public class User implements Parcelable {
         mLocalIgnored = localIgnored;
     }
 
-    public TalkState getTalkState() {
-        return mTalkState;
+    public int getTalkState() {
+        return mTalkState.ordinal(); // FIXME: ordinals are bad
     }
 
     public void setTalkState(TalkState mTalkState) {
@@ -308,5 +242,10 @@ public class User implements Parcelable {
     @Override
     public int hashCode() {
         return mId;
+    }
+
+    @Override
+    public int compareTo(User another) {
+        return getName().toLowerCase().compareTo(another.getName().toLowerCase());
     }
 }

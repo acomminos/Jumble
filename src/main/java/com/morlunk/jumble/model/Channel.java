@@ -17,102 +17,53 @@
 
 package com.morlunk.jumble.model;
 
-import android.os.Parcel;
-import android.os.Parcelable;
-
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public final class Channel implements Parcelable, Comparable<Channel> {
+public final class Channel extends IChannel.Stub implements Comparable<Channel> {
     private int mId;
     private int mPosition;
     private int mLevel;
     private boolean mTemporary;
-    private int mParent = -1;
+    private Channel mParent;
     private String mName;
     private String mDescription;
     private byte[] mDescriptionHash;
-    private List<Integer> mSubchannels = new ArrayList<Integer>();
-    private List<Integer> mUsers = new ArrayList<Integer>();
-    private List<Integer> mLinks = new ArrayList<Integer>();
+    private List<Channel> mSubchannels;
+    private List<User> mUsers;
+    private List<Channel> mLinks;
     private int mUserCount;
     private int mPermissions;
 
-    public static final Parcelable.Creator<Channel> CREATOR = new Parcelable.Creator<Channel>() {
-
-        @Override
-        public Channel createFromParcel(Parcel parcel) {
-            return new Channel(parcel);
-        }
-
-        @Override
-        public Channel[] newArray(int i) {
-            return new Channel[i];
-        }
-    };
-
     public Channel() {
+        mSubchannels = new ArrayList<Channel>();
+        mUsers = new ArrayList<User>();
+        mLinks = new ArrayList<Channel>();
     }
 
     public Channel(int id, boolean temporary) {
+        this();
         mId = id;
         mTemporary = temporary;
     }
 
-    private Channel(Parcel in) {
-        readFromParcel(in);
+    public void addUser(User user) {
+        for (int i = 0; i < mUsers.size() + 1; i++) {
+            User u = mUsers.get(i);
+            if (u == null || user.compareTo(u) <= 0) {
+                mUsers.add(i, user);
+                return;
+            }
+        }
     }
 
-    @Override
-    public void writeToParcel(Parcel out, int flags) {
-        out.writeInt(mId);
-        out.writeInt(mPosition);
-        out.writeInt(mLevel);
-        out.writeValue(mTemporary);
-        out.writeInt(mParent);
-        out.writeString(mName);
-        out.writeString(mDescription);
-        out.writeInt(mDescriptionHash.length); // Store length so we can re-initialize byte buffer on read
-        out.writeByteArray(mDescriptionHash);
-        out.writeList(mSubchannels);
-        out.writeList(mUsers);
-        out.writeList(mLinks);
-        out.writeInt(mUserCount);
-        out.writeInt(mPermissions);
+    public void removeUser(User user) {
+        mUsers.remove(user);
     }
 
-    public void readFromParcel(Parcel in) {
-        mId = in.readInt();
-        mPosition = in.readInt();
-        mLevel = in.readInt();
-        mTemporary = (Boolean)in.readValue(null);
-        mParent = in.readInt();
-        mName = in.readString();
-        mDescription = in.readString();
-        mDescriptionHash = new byte[in.readInt()];
-        in.readByteArray(mDescriptionHash);
-        mSubchannels = in.readArrayList(null);
-        mUsers = in.readArrayList(null);
-        mLinks = in.readArrayList(null);
-        mUserCount = in.readInt();
-        mPermissions = in.readInt();
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    public void addUser(int userId) {
-        mUsers.add(userId);
-    }
-
-    public void removeUser(int userId) {
-        mUsers.remove((Object)userId);
-    }
-
-    public List<Integer> getUsers() {
-        return mUsers;
+    public List<User> getUsers() {
+        return Collections.unmodifiableList(mUsers);
     }
 
     public int getId() {
@@ -139,11 +90,11 @@ public final class Channel implements Parcelable, Comparable<Channel> {
         this.mTemporary = mTemporary;
     }
 
-    public int getParent() {
+    public Channel getParent() {
         return mParent;
     }
 
-    public void setParent(int mParent) {
+    public void setParent(Channel mParent) {
         this.mParent = mParent;
     }
 
@@ -171,28 +122,40 @@ public final class Channel implements Parcelable, Comparable<Channel> {
         this.mDescriptionHash = mDescriptionHash;
     }
 
-    public List<Integer> getSubchannels() {
-        return mSubchannels;
+    public List<Channel> getSubchannels() {
+        return Collections.unmodifiableList(mSubchannels);
     }
 
-    public void addSubchannel(int channel) {
-        mSubchannels.add(channel);
+    public void addSubchannel(Channel channel) {
+        for (int i = 0; i < mSubchannels.size() + 1; i++) {
+            Channel sc = mSubchannels.get(i);
+            if (sc == null || channel.compareTo(sc) <= 0) {
+                mSubchannels.add(i, channel);
+                return;
+            }
+        }
     }
 
-    public void removeSubchannel(int channelId) {
-        mSubchannels.remove((Object)channelId);
+    public void removeSubchannel(Channel channel) {
+        mSubchannels.remove(channel);
     }
 
-    public List<Integer> getLinks() {
-        return mLinks;
+    public List<Channel> getLinks() {
+        return Collections.unmodifiableList(mLinks);
     }
 
-    public void addLink(int channelId) {
-        mLinks.add(channelId);
+    public void addLink(Channel channel) {
+        for (int i = 0; i < mLinks.size() + 1; i++) {
+            Channel sc = mLinks.get(i);
+            if (sc == null || channel.compareTo(sc) <= 0) {
+                mLinks.add(i, channel);
+                return;
+            }
+        }
     }
 
-    public void removeLink(int channelId) {
-        mLinks.remove((Object)channelId);
+    public void removeLink(Channel channel) {
+        mLinks.remove(channel);
     }
 
     public void clearLinks() {
@@ -201,11 +164,15 @@ public final class Channel implements Parcelable, Comparable<Channel> {
 
     /**
      * @return The sum of users in this channel and its subchannels.
+     * @deprecated TODO: just recursively fetch user count
      */
     public int getSubchannelUserCount() {
         return mUserCount;
     }
 
+    /**
+     * @deprecated TODO: just recursively fetch user count
+     */
     public void setSubchannelUserCount(int userCount) {
         mUserCount = userCount;
     }

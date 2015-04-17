@@ -16,4 +16,16 @@
 
 package com.morlunk.jumble.model;
 
-parcelable Message;
+interface IChannel {
+    int getId();
+    int getPosition();
+    boolean isTemporary();
+    IChannel getParent();
+    String getName();
+    String getDescription();
+    byte[] getDescriptionHash();
+    List getUsers();
+    List getSubchannels();
+    List getLinks();
+    int getSubchannelUserCount();
+}

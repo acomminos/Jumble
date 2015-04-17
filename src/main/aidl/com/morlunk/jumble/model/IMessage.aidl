@@ -16,4 +16,12 @@
 
 package com.morlunk.jumble.model;
 
-parcelable User;
+interface IMessage {
+    int getActor();
+    String getActorName();
+    List getTargetChannels();
+    List getTargetTrees();
+    List getTargetUsers();
+    String getMessage();
+    long getReceivedTime();
+}

@@ -16,10 +16,10 @@
 
 package com.morlunk.jumble;
 
-import com.morlunk.jumble.model.User;
-import com.morlunk.jumble.model.Channel;
+import com.morlunk.jumble.model.IUser;
+import com.morlunk.jumble.model.IChannel;
 import com.morlunk.jumble.model.Server;
-import com.morlunk.jumble.model.Message;
+import com.morlunk.jumble.model.IMessage;
 import com.morlunk.jumble.IJumbleObserver;
 import com.morlunk.jumble.util.JumbleException;
 
@@ -49,12 +49,12 @@ interface IJumbleService {
 
     // Session and users
     int getSession();
-    User getSessionUser();
-    Channel getSessionChannel();
+    IUser getSessionUser();
+    IChannel getSessionChannel();
     Server getConnectedServer();
-    User getUser(int id);
-    Channel getChannel(int id);
-    Channel getRootChannel();
+    IUser getUser(int id);
+    IChannel getChannel(int id);
+    IChannel getRootChannel();
     int getPermissions();
     List getMessageLog();
     void clearMessageLog();
@@ -83,8 +83,8 @@ interface IJumbleService {
     void requestChannelDescription(int channel);
     void registerUser(int session);
     void kickBanUser(int session, String reason, boolean ban);
-    Message sendUserTextMessage(int session, String message);
-    Message sendChannelTextMessage(int channel, String message, boolean tree);
+    IMessage sendUserTextMessage(int session, String message);
+    IMessage sendChannelTextMessage(int channel, String message, boolean tree);
     void setUserComment(int session, String comment);
     void setPrioritySpeaker(int session, boolean priority);
     void removeChannel(int channel);

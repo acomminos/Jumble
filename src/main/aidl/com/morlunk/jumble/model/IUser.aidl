@@ -16,4 +16,26 @@
 
 package com.morlunk.jumble.model;
 
-parcelable Channel;
+import com.morlunk.jumble.model.IChannel;
+
+interface IUser {
+    int getSession();
+    IChannel getChannel();
+    int getUserId();
+    String getName();
+    String getComment();
+    byte[] getCommentHash();
+    byte[] getTexture();
+    byte[] getTextureHash();
+    String getHash();
+    boolean isMuted();
+    boolean isDeafened();
+    boolean isSuppressed();
+    boolean isSelfMuted();
+    boolean isSelfDeafened();
+    boolean isPrioritySpeaker();
+    boolean isRecording();
+    boolean isLocalMuted();
+    boolean isLocalIgnored();
+    int getTalkState();
+}
