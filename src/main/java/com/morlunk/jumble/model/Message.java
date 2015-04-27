@@ -118,4 +118,14 @@ public class Message extends IMessage.Stub {
         result = 31 * result + (int) (mReceivedTime ^ (mReceivedTime >>> 32));
         return result;
     }
+
+    /**
+     * The type of message this object represents.
+     * @deprecated
+     */
+    public enum Type {
+        INFO,
+        WARNING,
+        TEXT_MESSAGE
+    }
 }

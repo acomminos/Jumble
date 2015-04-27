@@ -28,6 +28,7 @@ import android.util.Log;
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.exception.AudioInitializationException;
 import com.morlunk.jumble.exception.NativeAudioException;
+import com.morlunk.jumble.model.TalkState;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketBuffer;
@@ -252,7 +253,7 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
     }
 
     @Override
-    public void onTalkStateUpdated(int session, User.TalkState state) {
+    public void onTalkStateUpdated(int session, TalkState state) {
         final User user = mListener.getUser(session);
         if(user != null && user.getTalkState() != state) {
             user.setTalkState(state);

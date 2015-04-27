@@ -40,6 +40,7 @@ import com.morlunk.jumble.model.IChannel;
 import com.morlunk.jumble.model.IUser;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
+import com.morlunk.jumble.model.TalkState;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.util.JumbleException;
@@ -183,7 +184,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
-        public void onTalkStateChange(final User.TalkState state) {
+        public void onTalkStateChange(final TalkState state) {
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {

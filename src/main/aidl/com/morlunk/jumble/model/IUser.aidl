@@ -17,6 +17,7 @@
 package com.morlunk.jumble.model;
 
 import com.morlunk.jumble.model.IChannel;
+import com.morlunk.jumble.model.TalkState;
 
 interface IUser {
     int getSession();
@@ -37,5 +38,5 @@ interface IUser {
     boolean isRecording();
     boolean isLocalMuted();
     boolean isLocalIgnored();
-    int getTalkState();
+    TalkState getTalkState();
 }

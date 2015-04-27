@@ -38,7 +38,7 @@ import com.morlunk.jumble.audio.encoder.ResamplingEncoder;
 import com.morlunk.jumble.exception.AudioException;
 import com.morlunk.jumble.exception.AudioInitializationException;
 import com.morlunk.jumble.exception.NativeAudioException;
-import com.morlunk.jumble.model.Message;
+import com.morlunk.jumble.model.TalkState;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
@@ -499,9 +499,9 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     }
 
     @Override
-    public void onTalkStateChange(User.TalkState state) {
+    public void onTalkStateChange(TalkState state) {
         synchronized (mEncoderLock) {
-            if (mEncoder != null && state == User.TalkState.PASSIVE) {
+            if (mEncoder != null && state == TalkState.PASSIVE) {
                 try {
                     mEncoder.terminate();
                     if (mEncoder.isReady()) {
@@ -559,7 +559,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
     public interface AudioEncodeListener {
         public void onAudioEncoded(byte[] data, int length);
-        public void onTalkStateChange(User.TalkState state);
+        public void onTalkStateChange(TalkState state);
     }
 
     /**

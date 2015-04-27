@@ -286,7 +286,7 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
             if(msg.hasSelfDeaf())
                 user.setSelfDeafened(msg.getSelfDeaf());
 
-            if(self != null && user.getSession() != self.getSession() && (user.getChannelId() == self.getChannelId())) {
+            if(self != null && user.getSession() != self.getSession() && user.getChannel().equals(self.getChannel())) {
                 if(user.isSelfMuted() && user.isSelfDeafened())
                     mLogger.log(Message.Type.INFO, mContext.getString(R.string.chat_notify_now_muted_deafened, MessageFormatter.highlightString(user.getName())));
                 else if(user.isSelfMuted())
@@ -450,8 +450,8 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
         else
             mLogger.log(Message.Type.INFO, mContext.getString(R.string.chat_notify_disconnected, MessageFormatter.highlightString(user.getName())));
 
-        Channel channel = mChannels.get(user.getChannelId());
-        channel.removeUser(user.getSession());
+        Channel channel = user.getChannel();
+        channel.removeUser(user);
 
        changeSubchannelUsers(channel, -1);
         try {

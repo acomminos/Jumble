@@ -21,20 +21,10 @@ import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.util.Log;
 
-import com.googlecode.javacpp.IntPointer;
-import com.googlecode.javacpp.Loader;
 import com.morlunk.jumble.Constants;
-import com.morlunk.jumble.audio.encoder.IEncoder;
-import com.morlunk.jumble.audio.encoder.CELT11Encoder;
-import com.morlunk.jumble.audio.encoder.CELT7Encoder;
-import com.morlunk.jumble.audio.encoder.OpusEncoder;
-import com.morlunk.jumble.audio.javacpp.Opus;
-import com.morlunk.jumble.audio.javacpp.Speex;
 import com.morlunk.jumble.exception.AudioInitializationException;
 import com.morlunk.jumble.exception.NativeAudioException;
-import com.morlunk.jumble.model.User;
-import com.morlunk.jumble.net.JumbleUDPMessageType;
-import com.morlunk.jumble.net.PacketBuffer;
+import com.morlunk.jumble.model.TalkState;
 import com.morlunk.jumble.protocol.AudioHandler;
 
 /**
@@ -197,7 +187,7 @@ public class AudioInput implements Runnable {
             return;
 
         if(mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK)
-            mListener.onTalkStateChange(User.TalkState.TALKING);
+            mListener.onTalkStateChange(TalkState.TALKING);
 
         final short[] mAudioBuffer = new short[mFrameSize];
         // We loop when the 'recording' instance var is true instead of checking audio record state because we want to always cleanly shutdown.
@@ -232,8 +222,8 @@ public class AudioInput implements Runnable {
                     talking |= (System.nanoTime() - vadLastDetectedTime) < SPEECH_DETECT_THRESHOLD;
 
                     if(talking ^ vadLastDetected) // Update the service with the new talking state if we detected voice.
-                        mListener.onTalkStateChange(talking ? User.TalkState.TALKING :
-                                                            User.TalkState.PASSIVE);
+                        mListener.onTalkStateChange(talking ? TalkState.TALKING :
+                                                            TalkState.PASSIVE);
                     vadLastDetected = talking;
                 }
 
@@ -247,13 +237,13 @@ public class AudioInput implements Runnable {
 
         mAudioRecord.stop();
 
-        mListener.onTalkStateChange(User.TalkState.PASSIVE);
+        mListener.onTalkStateChange(TalkState.PASSIVE);
 
         Log.i(Constants.TAG, "AudioInput: stopped");
     }
 
     public interface AudioInputListener {
-        public void onTalkStateChange(User.TalkState state);
+        public void onTalkStateChange(TalkState state);
         public void onAudioInputReceived(short[] frame, int frameSize);
     }
 }

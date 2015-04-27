@@ -20,9 +20,12 @@ package com.morlunk.jumble.util;
 import com.morlunk.jumble.model.Message;
 
 /**
+ * An interface for reporting user-readable information.
  * Created by andrew on 12/07/14.
  */
 public interface JumbleLogger {
-    public void log(String message);
-    public void log(Message message);
+    void logInfo(String message);
+    void logWarning(String message);
+    void logError(String message);
+    void log(Message.Type type, String message);
 }

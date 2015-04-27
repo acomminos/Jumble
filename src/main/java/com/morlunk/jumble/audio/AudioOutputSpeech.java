@@ -23,6 +23,7 @@ import com.morlunk.jumble.audio.javacpp.CELT7;
 import com.morlunk.jumble.audio.javacpp.Opus;
 import com.morlunk.jumble.audio.javacpp.Speex;
 import com.morlunk.jumble.exception.NativeAudioException;
+import com.morlunk.jumble.model.TalkState;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.net.PacketBuffer;
@@ -42,7 +43,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class AudioOutputSpeech implements Callable<AudioOutputSpeech.Result> {
 
     interface TalkStateListener {
-        public void onTalkStateUpdated(int session, User.TalkState state);
+        public void onTalkStateUpdated(int session, TalkState state);
     }
 
     private IDecoder mDecoder;
@@ -303,19 +304,19 @@ public class AudioOutputSpeech implements Callable<AudioOutputSpeech.Result> {
 
         if(!nextAlive) ucFlags = 0xFF;
 
-        User.TalkState talkState;
+        TalkState talkState;
         switch (ucFlags) {
             case 0:
-                talkState = User.TalkState.TALKING;
+                talkState = TalkState.TALKING;
                 break;
             case 1:
-                talkState = User.TalkState.SHOUTING;
+                talkState = TalkState.SHOUTING;
                 break;
             case 0xFF:
-                talkState = User.TalkState.PASSIVE;
+                talkState = TalkState.PASSIVE;
                 break;
             default:
-                talkState = User.TalkState.WHISPERING;
+                talkState = TalkState.WHISPERING;
                 break;
         }
 

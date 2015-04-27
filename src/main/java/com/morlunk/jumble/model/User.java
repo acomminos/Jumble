@@ -17,20 +17,9 @@
 
 package com.morlunk.jumble.model;
 
-import android.graphics.Bitmap;
-import android.os.Parcel;
-import android.os.Parcelable;
-
 import com.google.protobuf.ByteString;
 
 public class User extends IUser.Stub implements Comparable<User> {
-
-    public static enum TalkState {
-        TALKING,
-        SHOUTING,
-        PASSIVE,
-        WHISPERING
-    }
 
     private int mSession;
     private int mId = -1;
@@ -211,8 +200,8 @@ public class User extends IUser.Stub implements Comparable<User> {
         mLocalIgnored = localIgnored;
     }
 
-    public int getTalkState() {
-        return mTalkState.ordinal(); // FIXME: ordinals are bad
+    public TalkState getTalkState() {
+        return mTalkState;
     }
 
     public void setTalkState(TalkState mTalkState) {
