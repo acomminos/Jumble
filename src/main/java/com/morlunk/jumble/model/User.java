@@ -75,7 +75,11 @@ public class User extends IUser.Stub implements Comparable<User> {
     public void setChannel(Channel channel) {
         if (mChannel != null)
             mChannel.removeUser(this);
+
         mChannel = channel;
+
+        if (mChannel != null)
+            mChannel.addUser(this);
     }
 
     public int getUserId() {

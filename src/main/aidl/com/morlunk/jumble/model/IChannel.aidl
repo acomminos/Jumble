@@ -28,4 +28,5 @@ interface IChannel {
     List getSubchannels();
     List getLinks();
     int getSubchannelUserCount();
+    int getPermissions();
 }
