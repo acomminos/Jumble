@@ -56,8 +56,6 @@ interface IJumbleService {
     IChannel getChannel(int id);
     IChannel getRootChannel();
     int getPermissions();
-    List getMessageLog();
-    void clearMessageLog();
 
     // Audio actions and settings
     boolean isTalking();

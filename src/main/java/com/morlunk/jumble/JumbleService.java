@@ -152,7 +152,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private ModelHandler mModelHandler;
     private AudioHandler mAudioHandler;
 
-    private List<Message> mMessageLog;
     private boolean mReconnecting;
 
     /**
@@ -250,7 +249,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Jumble");
         mHandler = new Handler(getMainLooper());
         mCallbacks = new JumbleCallbacks();
-        mMessageLog = new ArrayList<Message>();
         mAudioBuilder = new AudioHandler.Builder()
                 .setContext(this)
                 .setLogger(this)
@@ -395,8 +393,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         if (mAudioHandler != null) {
             mAudioHandler.shutdown();
         }
-
-        mMessageLog.clear();
 
         mModelHandler = null;
         mAudioHandler = null;
@@ -709,16 +705,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
-        public List getMessageLog() throws RemoteException {
-            return mMessageLog;
-        }
-
-        @Override
-        public void clearMessageLog() throws RemoteException {
-            mMessageLog.clear();
-        }
-
-        @Override
         public int getTransmitMode() throws RemoteException {
             return mAudioHandler.getTransmitMode();
         }
@@ -853,9 +839,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             User user = mModelHandler.getUser(session);
             List<User> users = new ArrayList<User>(1);
             users.add(user);
-            Message logMessage = new Message(getSession(), self.getName(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
-            mMessageLog.add(logMessage);
-            return logMessage;
+            return new Message(getSession(), self.getName(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
         }
 
         @Override
@@ -870,9 +854,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             Channel targetChannel = mModelHandler.getChannel(channel);
             List<Channel> targetChannels = new ArrayList<Channel>();
             targetChannels.add(targetChannel);
-            Message logMessage = new Message(getSession(), self.getName(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
-            mMessageLog.add(logMessage);
-            return logMessage;
+            return new Message(getSession(), self.getName(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
         }
 
         @Override
