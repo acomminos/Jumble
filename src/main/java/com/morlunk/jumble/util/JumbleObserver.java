@@ -107,4 +107,19 @@ public class JumbleObserver extends IJumbleObserver.Stub {
 
     }
 
+    @Override
+    public void onLogInfo(String message) throws RemoteException {
+
+    }
+
+    @Override
+    public void onLogWarning(String message) throws RemoteException {
+
+    }
+
+    @Override
+    public void onLogError(String message) throws RemoteException {
+
+    }
+
 }

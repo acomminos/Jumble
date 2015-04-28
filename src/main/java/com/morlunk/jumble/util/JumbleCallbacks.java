@@ -197,4 +197,34 @@ public class JumbleCallbacks extends JumbleObserver.Stub {
         }
         mCallbacks.finishBroadcast();
     }
+
+    @Override
+    public void onLogInfo(String message) throws RemoteException {
+        int i = mCallbacks.beginBroadcast();
+        while(i > 0) {
+            i--;
+            mCallbacks.getBroadcastItem(i).onLogInfo(message);
+        }
+        mCallbacks.finishBroadcast();
+    }
+
+    @Override
+    public void onLogWarning(String message) throws RemoteException {
+        int i = mCallbacks.beginBroadcast();
+        while(i > 0) {
+            i--;
+            mCallbacks.getBroadcastItem(i).onLogWarning(message);
+        }
+        mCallbacks.finishBroadcast();
+    }
+
+    @Override
+    public void onLogError(String message) throws RemoteException {
+        int i = mCallbacks.beginBroadcast();
+        while(i > 0) {
+            i--;
+            mCallbacks.getBroadcastItem(i).onLogError(message);
+        }
+        mCallbacks.finishBroadcast();
+    }
 }

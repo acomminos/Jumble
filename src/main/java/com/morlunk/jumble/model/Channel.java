@@ -33,7 +33,6 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
     private List<Channel> mSubchannels;
     private List<User> mUsers;
     private List<Channel> mLinks;
-    private int mUserCount;
     private int mPermissions;
 
     public Channel() {
@@ -48,7 +47,10 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
         mTemporary = temporary;
     }
 
-    public void addUser(User user) {
+    /**
+     * @see User#setChannel(Channel)
+     */
+    protected void addUser(User user) {
         for (int i = 0; i < mUsers.size() + 1; i++) {
             User u = mUsers.get(i);
             if (u == null || user.compareTo(u) <= 0) {
@@ -58,7 +60,10 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
         }
     }
 
-    public void removeUser(User user) {
+    /**
+     * @see User#setChannel(Channel)
+     */
+    protected void removeUser(User user) {
         mUsers.remove(user);
     }
 
@@ -163,18 +168,16 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
     }
 
     /**
-     * @return The sum of users in this channel and its subchannels.
-     * @deprecated TODO: just recursively fetch user count
+     * Recursively fetches the subchannel user count.
+     * FIXME: is it necessary to cache this?
+     * @return The sum of users in this channel and its subchannel.
      */
     public int getSubchannelUserCount() {
-        return mUserCount;
-    }
-
-    /**
-     * @deprecated TODO: just recursively fetch user count
-     */
-    public void setSubchannelUserCount(int userCount) {
-        mUserCount = userCount;
+        int userCount = mUsers.size();
+        for (Channel subc : mSubchannels) {
+            userCount += subc.getSubchannelUserCount();
+        }
+        return userCount;
     }
 
     public int getPermissions() {

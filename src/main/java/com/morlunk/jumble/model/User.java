@@ -68,7 +68,13 @@ public class User extends IUser.Stub implements Comparable<User> {
         return mChannel;
     }
 
+    /**
+     * Changes the user's channel, removing them from their last channel (if set).
+     * @param channel The user's new channel.
+     */
     public void setChannel(Channel channel) {
+        if (mChannel != null)
+            mChannel.removeUser(this);
         mChannel = channel;
     }
 

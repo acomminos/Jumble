@@ -27,5 +27,4 @@ public interface JumbleLogger {
     void logInfo(String message);
     void logWarning(String message);
     void logError(String message);
-    void log(Message.Type type, String message);
 }

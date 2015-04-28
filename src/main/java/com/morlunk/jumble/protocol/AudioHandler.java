@@ -112,7 +112,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
                             mOutput.startPlaying(true);
                         } catch (AudioInitializationException e) {
                             e.printStackTrace();
-                            mLogger.log(e.getLocalizedMessage());
+                            mLogger.logError(e.getLocalizedMessage());
                         }
                         break;
                     case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
@@ -124,7 +124,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
                             mOutput.startPlaying(false);
                         } catch (AudioInitializationException e) {
                             e.printStackTrace();
-                            mLogger.log(e.getLocalizedMessage());
+                            mLogger.logError(e.getLocalizedMessage());
                         }
                         mBluetoothOn = false;
                         break;
@@ -378,7 +378,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
             mBitrate = bitrate;
             mFramesPerPacket = framesPerPacket;
 
-            mLogger.log(mContext.getString(R.string.audio_max_bandwidth,
+            mLogger.logInfo(mContext.getString(R.string.audio_max_bandwidth,
                     maxBandwidth/1000, maxBandwidth/1000, framesPerPacket * 10));
         }
     }

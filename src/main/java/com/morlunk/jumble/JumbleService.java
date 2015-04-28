@@ -410,25 +410,35 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     @Override
     public void onConnectionWarning(String warning) {
-        log(warning);
+        logWarning(warning);
     }
 
     @Override
-    public void log(String message) {
-        Message msg = new Message(message);
-        log(msg);
+    public void logInfo(String message) {
+        if (mConnection == null || !mConnection.isSynchronized())
+            return; // don't log info prior to synchronization
+        try {
+            mCallbacks.onLogInfo(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
-    public void log(Message message) {
-        // Only log non-fatal (~INFO) messages post-connect.
-        if (mConnection != null && mConnection.isSynchronized()) {
-                mMessageLog.add(message);
-            try {
-                mCallbacks.onMessageLogged(message);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+    public void logWarning(String message) {
+        try {
+            mCallbacks.onLogWarning(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void logError(String message) {
+        try {
+            mCallbacks.onLogError(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
     }
 
@@ -738,7 +748,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             try {
                 mAudioHandler.setTalking(talking);
             } catch (AudioException e) {
-                log(e.getMessage());
+                logError(e.getMessage());
             }
         }
 
