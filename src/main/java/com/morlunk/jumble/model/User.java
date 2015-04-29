@@ -115,7 +115,7 @@ public class User extends IUser.Stub implements Comparable<User> {
     }
 
     public byte[] getTexture() {
-        return mTexture.toByteArray();
+        return mTexture != null ? mTexture.toByteArray() : null;
     }
 
     public void setTexture(ByteString texture) {
