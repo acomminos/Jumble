@@ -38,5 +38,7 @@ interface IUser {
     boolean isRecording();
     boolean isLocalMuted();
     boolean isLocalIgnored();
+    void setLocalMuted(boolean localMuted);
+    void setLocalIgnored(boolean localIgnored);
     TalkState getTalkState();
 }

@@ -51,13 +51,14 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
      * @see User#setChannel(Channel)
      */
     protected void addUser(User user) {
-        for (int i = 0; i < mUsers.size() + 1; i++) {
+        for (int i = 0; i < mUsers.size(); i++) {
             User u = mUsers.get(i);
-            if (u == null || user.compareTo(u) <= 0) {
+            if (user.compareTo(u) <= 0) {
                 mUsers.add(i, user);
                 return;
             }
         }
+        mUsers.add(user);
     }
 
     /**
@@ -132,13 +133,14 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
     }
 
     public void addSubchannel(Channel channel) {
-        for (int i = 0; i < mSubchannels.size() + 1; i++) {
+        for (int i = 0; i < mSubchannels.size(); i++) {
             Channel sc = mSubchannels.get(i);
-            if (sc == null || channel.compareTo(sc) <= 0) {
+            if (channel.compareTo(sc) <= 0) {
                 mSubchannels.add(i, channel);
                 return;
             }
         }
+        mSubchannels.add(channel);
     }
 
     public void removeSubchannel(Channel channel) {
@@ -150,13 +152,14 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
     }
 
     public void addLink(Channel channel) {
-        for (int i = 0; i < mLinks.size() + 1; i++) {
+        for (int i = 0; i < mLinks.size(); i++) {
             Channel sc = mLinks.get(i);
-            if (sc == null || channel.compareTo(sc) <= 0) {
+            if (channel.compareTo(sc) <= 0) {
                 mLinks.add(i, channel);
                 return;
             }
         }
+        mLinks.add(channel);
     }
 
     public void removeLink(Channel channel) {
