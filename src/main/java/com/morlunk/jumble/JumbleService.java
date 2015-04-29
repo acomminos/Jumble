@@ -346,7 +346,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mAudioHandler = mAudioBuilder.initialize(
                     mModelHandler.getUser(mConnection.getSession()),
                     mConnection.getMaxBandwidth(), mConnection.getCodec());
-            mConnection.addTCPMessageHandlers(mModelHandler, mAudioHandler);
+            mConnection.addTCPMessageHandlers(mAudioHandler);
             mConnection.addUDPMessageHandlers(mAudioHandler);
         } catch (AudioException e) {
             e.printStackTrace();
