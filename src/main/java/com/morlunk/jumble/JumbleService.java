@@ -356,7 +356,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mCallbacks.onConnected();
         } catch (RemoteException e) {
             e.printStackTrace();
-         }
+        }
     }
 
     @Override
