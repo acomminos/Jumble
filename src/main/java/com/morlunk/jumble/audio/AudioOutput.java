@@ -189,15 +189,28 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
             }
 
             if(!mMixBuffer.isEmpty()) {
+
+                /* Declare temp vars here to avoid creation/destructions within loops */
+                short pcm = 0;
+                int pcm_tmp = 0;
+
                 for(AudioOutputSpeech.Result result : mMixBuffer) {
                     float[] buffer = result.getSamples();
                     for(int i = 0; i < BUFFER_SIZE; i++) {
-                        short pcm = (short) (buffer[i]*Short.MAX_VALUE); // Convert float to short
-                        pcm = pcm <= Short.MAX_VALUE ? (pcm >= Short.MIN_VALUE ? pcm : Short.MIN_VALUE) : Short.MIN_VALUE; // Clip audio
-                        outBuffer[i] += pcm;
+
+                        /* @TODO replace with higher quality mixing algorithm (better quality and maintaining loudness) */
+
+                        /* Convert float to short. float pcm values are in range [-1.0,1.0] */
+                        pcm = (short) (buffer[i]*Short.MAX_VALUE);
+
+                        pcm_tmp = outBuffer[i] + pcm;
+
+                        /* Clip audio */
+                        outBuffer[i] = pcm_tmp <= Short.MAX_VALUE ? (pcm_tmp >= Short.MIN_VALUE ? (short) pcm_tmp : Short.MIN_VALUE) : Short.MAX_VALUE;
                     }
                 }
             }
+
             for(AudioOutputSpeech.Result result : mDelBuffer) {
                 AudioOutputSpeech speech = result.getSpeechOutput();
                 Log.v(Constants.TAG, "Deleted audio user "+speech.getUser().getName());
