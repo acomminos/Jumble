@@ -233,7 +233,7 @@ public class User extends IUser.Stub implements Comparable<User> {
 
         User user = (User) o;
 
-        if (mId != user.mId) return false;
+        if (mSession != user.mSession) return false;
 
         return true;
     }
