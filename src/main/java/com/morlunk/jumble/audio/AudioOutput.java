@@ -253,17 +253,17 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
     }
 
     @Override
-    public void onTalkStateUpdated(int session, TalkState state) {
-        final User user = mListener.getUser(session);
-        if(user != null && user.getTalkState() != state) {
-            user.setTalkState(state);
-            mMainHandler.post(new Runnable() {
-                @Override
-                public void run() {
+    public void onTalkStateUpdated(final int session, final TalkState state) {
+        mMainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                final User user = mListener.getUser(session);
+                if(user != null && user.getTalkState() != state) {
+                    user.setTalkState(state);
                     mListener.onUserTalkStateUpdated(user);
                 }
-            });
-        }
+            }
+        });
     }
 
     public static interface AudioOutputListener {
