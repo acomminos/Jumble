@@ -43,7 +43,7 @@ dependencies {
 }
 
 android {
-    compileSdkVersion 19
+    compileSdkVersion 21
     buildToolsVersion "21.1.1"
 
     sourceSets.main.jniLibs.srcDir 'src/main/libs/'
