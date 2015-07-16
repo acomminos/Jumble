@@ -43,6 +43,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by andrew on 16/07/13.
@@ -51,18 +53,17 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
     /** The size (in samples) of the mixing buffer. */
     public static final int BUFFER_SIZE = AudioHandler.FRAME_SIZE;
 
-    private Map<Integer,AudioOutputSpeech> mAudioOutputs = new HashMap<Integer, AudioOutputSpeech>();
+    private Map<Integer,AudioOutputSpeech> mAudioOutputs = new HashMap<>();
     private AudioTrack mAudioTrack;
     private int mBufferSize;
     private Thread mThread;
     private final Object mInactiveLock = new Object(); // Lock that the audio thread waits on when there's no audio to play. Wake when we get a frame.
-    private final Object mPacketLock = new Object();
+    private final Lock mPacketLock;
     private boolean mRunning = false;
-    private List<AudioOutputSpeech.Result> mMixBuffer = new ArrayList<AudioOutputSpeech.Result>();
-    private List<AudioOutputSpeech.Result> mDelBuffer = new ArrayList<AudioOutputSpeech.Result>();
     private Handler mMainHandler;
     private AudioOutputListener mListener;
-    private int mAudioStream;
+    private final int mAudioStream;
+    private final IAudioMixer<float[], short[]> mMixer;
 
     private int mNumThreads; // Set the number of decoding threads to number of cores
     private ExecutorService mDecodeExecutorService;
@@ -73,16 +74,18 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
         mMainHandler = new Handler(Looper.getMainLooper());
         mNumThreads = Runtime.getRuntime().availableProcessors();
         mDecodeExecutorService = Executors.newFixedThreadPool(mNumThreads);
+        mPacketLock = new ReentrantLock();
+        mMixer = new BasicClippingShortMixer();
     }
 
-    public void startPlaying(boolean scoEnabled) throws AudioInitializationException {
-        if(mRunning)
-            return;
+    public Thread startPlaying(boolean scoEnabled) throws AudioInitializationException {
+        if (mThread != null || mRunning)
+            return null;
 
         int minBufferSize = AudioTrack.getMinBufferSize(AudioHandler.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
         mBufferSize = minBufferSize;
 //        mBufferSize = Math.max(minBufferSize, Audio.FRAME_SIZE * 12); // Make the buffer size a multiple of the largest possible frame.
-        Log.v(Constants.TAG, "Using buffer size "+mBufferSize+", system's min buffer size: "+minBufferSize);
+        Log.v(Constants.TAG, "Using buffer size " + mBufferSize + ", system's min buffer size: " + minBufferSize);
 
         // Force STREAM_VOICE_CALL for Bluetooth, as it's all that will work.
         try {
@@ -98,6 +101,7 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
 
         mThread = new Thread(this);
         mThread.start();
+        return mThread;
     }
 
     public void stopPlaying() {
@@ -114,9 +118,12 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
             e.printStackTrace();
         }
         mThread = null;
+
+        mPacketLock.lock();
         for(AudioOutputSpeech speech : mAudioOutputs.values()) {
             speech.destroy();
         }
+        mPacketLock.unlock();
 
         mAudioOutputs.clear();
         mAudioTrack.release();
@@ -137,10 +144,8 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
         final short[] mix = new short[BUFFER_SIZE];
 
         while(mRunning) {
-            Arrays.fill(mix, (short)0);
-            boolean play = mix(mix);
-            if(play) {
-                mAudioTrack.write(mix, 0, mix.length);
+            if(fetchAudio(mix, 0, BUFFER_SIZE)) {
+                mAudioTrack.write(mix, 0, BUFFER_SIZE);
             } else {
                 Log.v(Constants.TAG, "Pausing audio output thread.");
                 synchronized (mInactiveLock) {
@@ -163,50 +168,48 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
         mAudioTrack.stop();
     }
 
-    private boolean mix(short[] outBuffer) {
-        mMixBuffer.clear();
-        mDelBuffer.clear();
-        // TODO add priority speaker support
-
-        synchronized (mPacketLock) {
-            try {
-                // Parallelize decoding using a fixed thread pool equal to the number of cores
-                List<Future<AudioOutputSpeech.Result>> futureResults = mDecodeExecutorService.invokeAll(mAudioOutputs.values());
-                for(Future<AudioOutputSpeech.Result> future : futureResults) {
-                    AudioOutputSpeech.Result result = future.get();
-                    if(!result.isAlive()) {
-                        mDelBuffer.add(result);
-                    } else {
-                        mMixBuffer.add(result);
-                    }
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                return false;
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-                return false;
-            }
-
-            if(!mMixBuffer.isEmpty()) {
-                for(AudioOutputSpeech.Result result : mMixBuffer) {
-                    float[] buffer = result.getSamples();
-                    for(int i = 0; i < BUFFER_SIZE; i++) {
-                        short pcm = (short) (buffer[i]*Short.MAX_VALUE); // Convert float to short
-                        pcm = pcm <= Short.MAX_VALUE ? (pcm >= Short.MIN_VALUE ? pcm : Short.MIN_VALUE) : Short.MIN_VALUE; // Clip audio
-                        outBuffer[i] += pcm;
-                    }
+    /**
+     * Fetches audio data from registered audio output users and mixes them into the given buffer.
+     * TODO: add priority speaker support.
+     * @param buffer The buffer to mix output data into.
+     * @param bufferOffset The offset of the
+     * @param bufferSize The size of the buffer.
+     * @return true if the buffer contains audio data.
+     */
+    private boolean fetchAudio(short[] buffer, int bufferOffset, int bufferSize) {
+        Arrays.fill(buffer, bufferOffset, bufferOffset + bufferSize, (short) 0);
+        final List<IAudioMixerSource<float[]>> sources = new ArrayList<>();
+        try {
+            mPacketLock.lock();
+            // Parallelize decoding using a fixed thread pool equal to the number of cores
+            List<Future<AudioOutputSpeech.Result>> futureResults =
+                    mDecodeExecutorService.invokeAll(mAudioOutputs.values());
+            for(Future<AudioOutputSpeech.Result> future : futureResults) {
+                AudioOutputSpeech.Result result = future.get();
+                if (result.isAlive()) {
+                    sources.add(result);
+                } else {
+                    AudioOutputSpeech speech = result.getSpeechOutput();
+                    Log.v(Constants.TAG, "Deleted audio user " + speech.getUser().getName());
+                    mAudioOutputs.remove(speech.getSession());
+                    speech.destroy();
                 }
             }
-            for(AudioOutputSpeech.Result result : mDelBuffer) {
-                AudioOutputSpeech speech = result.getSpeechOutput();
-                Log.v(Constants.TAG, "Deleted audio user "+speech.getUser().getName());
-                mAudioOutputs.remove(speech.getSession());
-                speech.destroy();
-            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return false;
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            mPacketLock.unlock();
         }
 
-        return !mMixBuffer.isEmpty();
+        if (sources.size() == 0)
+            return false;
+
+        mMixer.mix(sources, buffer, bufferOffset, bufferSize);
+        return true;
     }
 
     public void queueVoiceData(byte[] data, JumbleUDPMessageType messageType) {
@@ -223,27 +226,27 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
             int seq = (int) pds.readLong();
 
             // Synchronize so we don't destroy an output while we add a buffer to it.
-            synchronized (mPacketLock) {
-                AudioOutputSpeech aop = mAudioOutputs.get(session);
-                if(aop != null && aop.getCodec() != messageType) {
-                    aop.destroy();
-                    aop = null;
-                }
-                if(aop == null) {
-                    try {
-                        aop = new AudioOutputSpeech(user, messageType, BUFFER_SIZE, this);
-                    } catch (NativeAudioException e) {
-                        Log.v(Constants.TAG, "Failed to create audio user "+user.getName());
-                        e.printStackTrace();
-                        return;
-                    }
-                    Log.v(Constants.TAG, "Created audio user "+user.getName());
-                    mAudioOutputs.put(session, aop);
-                }
-
-                PacketBuffer dataBuffer = new PacketBuffer(pds.bufferBlock(pds.left()));
-                aop.addFrameToBuffer(dataBuffer, msgFlags, seq);
+            mPacketLock.lock();
+            AudioOutputSpeech aop = mAudioOutputs.get(session);
+            if(aop != null && aop.getCodec() != messageType) {
+                aop.destroy();
+                aop = null;
             }
+            if(aop == null) {
+                try {
+                    aop = new AudioOutputSpeech(user, messageType, BUFFER_SIZE, this);
+                } catch (NativeAudioException e) {
+                    Log.v(Constants.TAG, "Failed to create audio user "+user.getName());
+                    e.printStackTrace();
+                    return;
+                }
+                Log.v(Constants.TAG, "Created audio user "+user.getName());
+                mAudioOutputs.put(session, aop);
+            }
+            mPacketLock.unlock();
+
+            PacketBuffer dataBuffer = new PacketBuffer(pds.bufferBlock(pds.left()));
+            aop.addFrameToBuffer(dataBuffer, msgFlags, seq);
 
             synchronized (mInactiveLock) {
                 mInactiveLock.notify();

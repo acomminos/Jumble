@@ -367,7 +367,7 @@ public class AudioOutputSpeech implements Callable<AudioOutputSpeech.Result> {
     /**
      * The outcome of a decoding pass.
      */
-    protected static class Result {
+    protected static class Result implements IAudioMixerSource<float[]> {
         private AudioOutputSpeech mSpeechOutput;
         private boolean mAlive;
         private float[] mSamples;
