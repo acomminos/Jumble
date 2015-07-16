@@ -88,7 +88,7 @@ public class JumbleUDP extends JumbleNetworkThread {
         mUDPSocket.connect(mResolvedHost, mPort);
         final DatagramPacket packet = new DatagramPacket(new byte[BUFFER_SIZE], BUFFER_SIZE);
 
-        Log.v(Constants.TAG, "Created UDP socket");
+        Log.d(Constants.TAG, "[UDP] Created socket");
         mConnected = true;
 
         while(mConnected) {
@@ -97,8 +97,14 @@ public class JumbleUDP extends JumbleNetworkThread {
                 final byte[] data = packet.getData();
                 final int length = packet.getLength();
 
-                if (!mCryptState.isValid()) continue;
-                if (length < 5) continue;
+                if (!mCryptState.isValid()) {
+                    Log.d(Constants.TAG, "[UDP] CryptState invalid, discarding packet");
+                    continue;
+                }
+                if (length < 5) {
+                    Log.d(Constants.TAG, "[UDP] Packet too short, discarding");
+                    continue;
+                }
 
                 try {
                     final byte[] buffer = mCryptState.decrypt(data, length);
@@ -120,14 +126,14 @@ public class JumbleUDP extends JumbleNetworkThread {
                                     mListener.resyncCryptState();
                                 }
                             });
+                            Log.d(Constants.TAG, "[UDP] Packet failed to decrypt, discarding and " +
+                                                 "requesting crypt state resync");
+                        } else {
+                            Log.d(Constants.TAG, "[UDP] Packet failed to decrypt, discarding");
                         }
                     }
-                } catch (BadPaddingException e) {
-                    e.printStackTrace();
-                } catch (IllegalBlockSizeException e) {
-                    e.printStackTrace();
-                } catch (ShortBufferException e) {
-                    e.printStackTrace();
+                } catch (BadPaddingException|IllegalBlockSizeException|ShortBufferException e) {
+                    Log.d(Constants.TAG, "[UDP] Discarding packet", e);
                 }
             } catch (final IOException e) {
                 // If a UDP exception is thrown while connected, notify the listener to fall back to TCP.
