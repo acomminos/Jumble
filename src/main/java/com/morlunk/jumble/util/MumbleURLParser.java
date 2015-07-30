@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
  */
 public class MumbleURLParser {
 
-    private static final Pattern URL_PATTERN = Pattern.compile("mumble://((.+?)(:(.+?))?@)?(.+?)(:([0-9]+?))?/");
+    private static final Pattern URL_PATTERN = Pattern.compile("mumble://(([^:]+)?(:(.+?))?@)?(.+?)(:([0-9]+?))?/");
 
     /**
      * Parses the passed Mumble URL into a Server object.
