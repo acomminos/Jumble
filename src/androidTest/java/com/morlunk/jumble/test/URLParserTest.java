@@ -78,6 +78,18 @@ public class URLParserTest extends TestCase {
         }
     }
 
+    public void testURLWithPassword() {
+        String url = "mumble://:mypassword@server.com/";
+        try {
+            Server server = MumbleURLParser.parseURL(url);
+            assertEquals(server.getHost(), "server.com");
+            assertEquals(server.getPassword(), "mypassword");
+            assertEquals(server.getPort(), Constants.DEFAULT_PORT);
+        } catch (MalformedURLException e) {
+            fail("Failed to parse URL.");
+        }
+    }
+
     public void testInvalidScheme() {
         String url = "grumble://server.com/";
         try {
