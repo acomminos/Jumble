@@ -123,6 +123,8 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     /** A list of users that should be local ignored upon connection. */
     public static final String EXTRAS_LOCAL_IGNORE_HISTORY = "local_ignore_history";
     public static final String EXTRAS_ENABLE_PREPROCESSOR = "enable_preprocessor";
+    /** True if bluetooth should be used by default. */
+    public static final String EXTRAS_USE_BLUETOOTH = "use_bluetooth";
 
     // Service settings
     private Server mServer;
@@ -571,6 +573,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
         if (extras.containsKey(EXTRAS_ENABLE_PREPROCESSOR)) {
             mAudioBuilder.setPreprocessorEnabled(extras.getBoolean(EXTRAS_ENABLE_PREPROCESSOR));
+        }
+        if (extras.containsKey(EXTRAS_USE_BLUETOOTH)) {
+            mAudioBuilder.setBluetoothEnabled(extras.getBoolean(EXTRAS_USE_BLUETOOTH));
         }
 
         // Reload audio subsystem if initialized

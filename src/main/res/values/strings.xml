@@ -51,6 +51,7 @@
     <string name="chat_notify_user_left_channel_by">%1$s moved to %2$s by %3$s.</string>
     <string name="bluetooth_connected">Bluetooth connected</string>
     <string name="bluetooth_disconnected">Bluetooth disconnected</string>
+    <string name="bluetooth_error">Failed to get bluetooth state.</string>
     <string name="deny_reason_channel_name">Denied: Invalid channel name.</string>
     <string name="deny_reason_text_too_long">Denied: Text message too long.</string>
     <string name="deny_reason_no_operation_temp">Denied: Operation not permitted in temporary channel.</string>

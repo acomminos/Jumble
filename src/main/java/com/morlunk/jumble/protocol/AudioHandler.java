@@ -92,7 +92,10 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     private boolean mTalking;
     /** True if the user is muted on the server. */
     private boolean mMuted;
-    private boolean mBluetoothOn;
+    /** True if a bluetooth SCO connection should be preferred. */
+    private boolean mUseBluetooth;
+    /** True if a bluetooth connection is currently active. */
+    private boolean mBluetoothActive;
     private boolean mHalfDuplex;
     private boolean mPreprocessorEnabled;
 
@@ -101,34 +104,34 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     private BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            synchronized (mOutput) {
-                int audioState = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, AudioManager.SCO_AUDIO_STATE_ERROR);
-                switch (audioState) {
-                    case AudioManager.SCO_AUDIO_STATE_CONNECTED:
-                        Toast.makeText(mContext, R.string.bluetooth_connected, Toast.LENGTH_LONG).show();
-                        mOutput.stopPlaying();
-                        mBluetoothOn = true;
-                        try {
-                            mOutput.startPlaying(true);
-                        } catch (AudioInitializationException e) {
-                            e.printStackTrace();
-                            mLogger.logError(e.getLocalizedMessage());
-                        }
-                        break;
-                    case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
-                    case AudioManager.SCO_AUDIO_STATE_ERROR:
-                        if (mOutput.isPlaying() && mBluetoothOn)
-                            Toast.makeText(mContext, R.string.bluetooth_disconnected, Toast.LENGTH_LONG).show();
-                        mOutput.stopPlaying();
-                        try {
-                            mOutput.startPlaying(false);
-                        } catch (AudioInitializationException e) {
-                            e.printStackTrace();
-                            mLogger.logError(e.getLocalizedMessage());
-                        }
-                        mBluetoothOn = false;
-                        break;
-                }
+            if (!intent.hasExtra(AudioManager.EXTRA_SCO_AUDIO_STATE))
+                return;
+            int audioState = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE,
+                                                AudioManager.SCO_AUDIO_STATE_ERROR);
+            switch (audioState) {
+                case AudioManager.SCO_AUDIO_STATE_CONNECTED:
+                    Toast.makeText(mContext, R.string.bluetooth_connected, Toast.LENGTH_LONG).show();
+                    break;
+                case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
+                    if (mUseBluetooth)
+                        Toast.makeText(mContext, R.string.bluetooth_disconnected, Toast.LENGTH_LONG).show();
+                    break;
+                case AudioManager.SCO_AUDIO_STATE_ERROR:
+                    if (mUseBluetooth)
+                        Toast.makeText(mContext, R.string.bluetooth_error, Toast.LENGTH_LONG).show();
+                    break;
+                default:
+                    // No change in bluetooth state.
+                    return;
+            }
+
+            mBluetoothActive = audioState == AudioManager.SCO_AUDIO_STATE_CONNECTED;
+            mOutput.stopPlaying();
+            try {
+                mOutput.startPlaying(mBluetoothActive);
+            } catch (AudioInitializationException e) {
+                e.printStackTrace();
+                mLogger.logError(e.getLocalizedMessage());
             }
         }
     };
@@ -149,7 +152,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         mTransmitMode = transmitMode;
         mVADThreshold = vadThreshold;
         mAmplitudeBoost = amplitudeBoost;
-        mBluetoothOn = bluetoothEnabled;
+        mBluetoothActive = bluetoothEnabled;
         mHalfDuplex = halfDuplexEnabled;
         mPreprocessorEnabled = preprocessorEnabled;
         mEncodeListener = encodeListener;
@@ -179,8 +182,11 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         setServerMuted(self.isMuted() || self.isLocalMuted() || self.isSuppressed());
         if (mTalking && !mMuted)
             startRecording();
+        if (mUseBluetooth)
+            mAudioManager.startBluetoothSco();
         // This sticky broadcast will initialize the audio output.
-        mContext.registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
+        mContext.registerReceiver(mBluetoothReceiver,
+                new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
 
         mInitialized = true;
     }
@@ -413,6 +419,13 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     }
 
     /**
+     * @return true if there is an active bluetooth SCO connection.
+     */
+    public boolean isBluetoothActive() {
+        return mBluetoothActive;
+    }
+
+    /**
      * Shuts down the audio handler, halting input and output.
      */
     public synchronized void shutdown() {
@@ -434,7 +447,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
             }
         }
         mInitialized = false;
-        mBluetoothOn = false;
+        mBluetoothActive = false;
         // Restore audio manager mode
         AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
         audioManager.stopBluetoothSco();
