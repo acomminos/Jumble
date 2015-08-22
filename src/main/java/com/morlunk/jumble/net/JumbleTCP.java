@@ -34,6 +34,9 @@ import java.security.cert.X509Certificate;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocket;
 
+import android.net.SSLCertificateSocketFactory;
+import android.os.Build;
+
 /**
  * Class to maintain and interface with the TCP connection to a Mumble server.
  * Parses Mumble protobuf packets according to the Mumble protocol specification.
@@ -81,6 +84,11 @@ public class JumbleTCP extends JumbleNetworkThread {
                 mTCPSocket = mSocketFactory.createTorSocket(address, mPort, JumbleConnection.TOR_HOST, JumbleConnection.TOR_PORT);
             else
                 mTCPSocket = mSocketFactory.createSocket(address, mPort);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) { // SNI support requires at least API 17
+                SSLCertificateSocketFactory scsf = (SSLCertificateSocketFactory) SSLCertificateSocketFactory.getDefault(0);
+                scsf.setHostname(mTCPSocket, mHost);
+            }
 
             mTCPSocket.setKeepAlive(true);
             mTCPSocket.startHandshake();
