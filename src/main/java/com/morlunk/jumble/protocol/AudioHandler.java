@@ -125,13 +125,17 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
                     return;
             }
 
-            mBluetoothActive = audioState == AudioManager.SCO_AUDIO_STATE_CONNECTED;
-            mOutput.stopPlaying();
-            try {
-                mOutput.startPlaying(mBluetoothActive);
-            } catch (AudioInitializationException e) {
-                e.printStackTrace();
-                mLogger.logError(e.getLocalizedMessage());
+            boolean bluetoothActive = mUseBluetooth &&
+                                      (audioState == AudioManager.SCO_AUDIO_STATE_CONNECTED);
+            if (mBluetoothActive != bluetoothActive) {
+                mBluetoothActive = bluetoothActive;
+                mOutput.stopPlaying();
+                try {
+                    mOutput.startPlaying(mBluetoothActive);
+                } catch (AudioInitializationException e) {
+                    e.printStackTrace();
+                    mLogger.logError(e.getLocalizedMessage());
+                }
             }
         }
     };
