@@ -422,9 +422,11 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         synchronized (mOutput) {
             mOutput.stopPlaying();
         }
-        if (mEncoder != null) {
-            mEncoder.destroy();
-            mEncoder = null;
+        synchronized (mEncoderLock) {
+            if (mEncoder != null) {
+                mEncoder.destroy();
+                mEncoder = null;
+            }
         }
         if(mInitialized) {
             try {
