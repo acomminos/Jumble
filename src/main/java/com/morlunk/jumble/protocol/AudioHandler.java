@@ -127,7 +127,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
             boolean bluetoothActive = mUseBluetooth &&
                                       (audioState == AudioManager.SCO_AUDIO_STATE_CONNECTED);
-            if (mBluetoothActive != bluetoothActive) {
+            if (!mOutput.isPlaying() || mBluetoothActive != bluetoothActive) {
                 mBluetoothActive = bluetoothActive;
                 mOutput.stopPlaying();
                 try {
@@ -156,7 +156,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         mTransmitMode = transmitMode;
         mVADThreshold = vadThreshold;
         mAmplitudeBoost = amplitudeBoost;
-        mBluetoothActive = bluetoothEnabled;
+        mUseBluetooth = bluetoothEnabled;
         mHalfDuplex = halfDuplexEnabled;
         mPreprocessorEnabled = preprocessorEnabled;
         mEncodeListener = encodeListener;
@@ -186,11 +186,11 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         setServerMuted(self.isMuted() || self.isLocalMuted() || self.isSuppressed());
         if (mTalking && !mMuted)
             startRecording();
-        if (mUseBluetooth)
-            mAudioManager.startBluetoothSco();
         // This sticky broadcast will initialize the audio output.
         mContext.registerReceiver(mBluetoothReceiver,
                 new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
+        if (mUseBluetooth)
+            mAudioManager.startBluetoothSco();
 
         mInitialized = true;
     }
