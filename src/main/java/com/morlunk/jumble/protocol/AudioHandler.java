@@ -93,7 +93,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     /** True if the user is muted on the server. */
     private boolean mMuted;
     /** True if a bluetooth SCO connection should be preferred. */
-    private boolean mUseBluetooth;
+    private final boolean mUseBluetooth;
     /** True if a bluetooth connection is currently active. */
     private boolean mBluetoothActive;
     private boolean mHalfDuplex;
@@ -113,20 +113,17 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
                     Toast.makeText(mContext, R.string.bluetooth_connected, Toast.LENGTH_LONG).show();
                     break;
                 case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
-                    if (mUseBluetooth)
-                        Toast.makeText(mContext, R.string.bluetooth_disconnected, Toast.LENGTH_LONG).show();
+                    Toast.makeText(mContext, R.string.bluetooth_disconnected, Toast.LENGTH_LONG).show();
                     break;
                 case AudioManager.SCO_AUDIO_STATE_ERROR:
-                    if (mUseBluetooth)
-                        Toast.makeText(mContext, R.string.bluetooth_error, Toast.LENGTH_LONG).show();
+                    Toast.makeText(mContext, R.string.bluetooth_error, Toast.LENGTH_LONG).show();
                     break;
                 default:
                     // No change in bluetooth state.
                     return;
             }
 
-            boolean bluetoothActive = mUseBluetooth &&
-                                      (audioState == AudioManager.SCO_AUDIO_STATE_CONNECTED);
+            boolean bluetoothActive = audioState == AudioManager.SCO_AUDIO_STATE_CONNECTED;
             if (!mOutput.isPlaying() || mBluetoothActive != bluetoothActive) {
                 mBluetoothActive = bluetoothActive;
                 mOutput.stopPlaying();
@@ -186,11 +183,15 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         setServerMuted(self.isMuted() || self.isLocalMuted() || self.isSuppressed());
         if (mTalking && !mMuted)
             startRecording();
-        // This sticky broadcast will initialize the audio output.
-        mContext.registerReceiver(mBluetoothReceiver,
-                new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
-        if (mUseBluetooth)
+
+        if (mUseBluetooth) {
             mAudioManager.startBluetoothSco();
+            // This sticky broadcast will initialize the audio output.
+            mContext.registerReceiver(mBluetoothReceiver,
+                    new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
+        } else {
+            mOutput.startPlaying(false);
+        }
 
         mInitialized = true;
     }
