@@ -109,7 +109,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
                         mOutput.stopPlaying();
                         mBluetoothOn = true;
                         try {
-                            mOutput.startPlaying(true);
+                            mOutput.startPlaying(AudioManager.STREAM_VOICE_CALL);
                         } catch (AudioInitializationException e) {
                             e.printStackTrace();
                             mLogger.logError(e.getLocalizedMessage());
@@ -121,7 +121,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
                             Toast.makeText(mContext, R.string.bluetooth_disconnected, Toast.LENGTH_LONG).show();
                         mOutput.stopPlaying();
                         try {
-                            mOutput.startPlaying(false);
+                            mOutput.startPlaying(mAudioStream);
                         } catch (AudioInitializationException e) {
                             e.printStackTrace();
                             mLogger.logError(e.getLocalizedMessage());
@@ -160,7 +160,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
         mInput = new AudioInput(this, mAudioSource, mSampleRate, mTransmitMode,
                 mVADThreshold, mAmplitudeBoost);
-        mOutput = new AudioOutput(mOutputListener, mAudioStream);
+        mOutput = new AudioOutput(mOutputListener);
     }
 
     /**

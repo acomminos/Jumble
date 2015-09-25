@@ -325,7 +325,7 @@ public class AudioOutputSpeech implements Callable<AudioOutputSpeech.Result> {
         boolean tmp = mLastAlive;
         mLastAlive = nextAlive;
 
-        return new Result(this, tmp, mBuffer, mBufferFilled);
+        return new Result(this, tmp, mBuffer, mRequestedSamples);
     }
 
     private void resizeBuffer(int newSize) {

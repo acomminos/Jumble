@@ -50,9 +50,6 @@ import java.util.concurrent.locks.ReentrantLock;
  * Created by andrew on 16/07/13.
  */
 public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListener {
-    /** The size (in samples) of the mixing buffer. */
-    public static final int BUFFER_SIZE = AudioHandler.FRAME_SIZE;
-
     private Map<Integer,AudioOutputSpeech> mAudioOutputs = new HashMap<>();
     private AudioTrack mAudioTrack;
     private int mBufferSize;
@@ -62,34 +59,28 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
     private boolean mRunning = false;
     private Handler mMainHandler;
     private AudioOutputListener mListener;
-    private final int mAudioStream;
     private final IAudioMixer<float[], short[]> mMixer;
-
-    private int mNumThreads; // Set the number of decoding threads to number of cores
     private ExecutorService mDecodeExecutorService;
 
-    public AudioOutput(AudioOutputListener listener, int audioStream) {
+    public AudioOutput(AudioOutputListener listener) {
         mListener = listener;
-        mAudioStream = audioStream;
         mMainHandler = new Handler(Looper.getMainLooper());
-        mNumThreads = Runtime.getRuntime().availableProcessors();
-        mDecodeExecutorService = Executors.newFixedThreadPool(mNumThreads);
+        mDecodeExecutorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         mPacketLock = new ReentrantLock();
         mMixer = new BasicClippingShortMixer();
     }
 
-    public Thread startPlaying(boolean scoEnabled) throws AudioInitializationException {
+    public Thread startPlaying(int audioStream) throws AudioInitializationException {
         if (mThread != null || mRunning)
             return null;
 
-        int minBufferSize = AudioTrack.getMinBufferSize(AudioHandler.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
-        mBufferSize = minBufferSize;
-//        mBufferSize = Math.max(minBufferSize, Audio.FRAME_SIZE * 12); // Make the buffer size a multiple of the largest possible frame.
+        int minBufferSize = AudioTrack.getMinBufferSize(AudioHandler.SAMPLE_RATE,
+                AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        mBufferSize = Math.min(minBufferSize, AudioHandler.FRAME_SIZE * 12);
         Log.v(Constants.TAG, "Using buffer size " + mBufferSize + ", system's min buffer size: " + minBufferSize);
 
-        // Force STREAM_VOICE_CALL for Bluetooth, as it's all that will work.
         try {
-            mAudioTrack = new AudioTrack(scoEnabled ? AudioManager.STREAM_VOICE_CALL : mAudioStream,
+            mAudioTrack = new AudioTrack(audioStream,
                     AudioHandler.SAMPLE_RATE,
                     AudioFormat.CHANNEL_OUT_MONO,
                     AudioFormat.ENCODING_PCM_16BIT,
@@ -141,11 +132,11 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
         mRunning = true;
         mAudioTrack.play();
 
-        final short[] mix = new short[BUFFER_SIZE];
+        final short[] mix = new short[mBufferSize];
 
         while(mRunning) {
-            if(fetchAudio(mix, 0, BUFFER_SIZE)) {
-                mAudioTrack.write(mix, 0, BUFFER_SIZE);
+            if(fetchAudio(mix, 0, mBufferSize)) {
+                mAudioTrack.write(mix, 0, mBufferSize);
             } else {
                 Log.v(Constants.TAG, "Pausing audio output thread.");
                 synchronized (mInactiveLock) {
@@ -234,7 +225,7 @@ public class AudioOutput implements Runnable, AudioOutputSpeech.TalkStateListene
             }
             if(aop == null) {
                 try {
-                    aop = new AudioOutputSpeech(user, messageType, BUFFER_SIZE, this);
+                    aop = new AudioOutputSpeech(user, messageType, mBufferSize, this);
                 } catch (NativeAudioException e) {
                     Log.v(Constants.TAG, "Failed to create audio user "+user.getName());
                     e.printStackTrace();
