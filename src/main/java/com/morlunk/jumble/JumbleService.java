@@ -34,6 +34,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.morlunk.jumble.audio.AudioOutput;
+import com.morlunk.jumble.audio.BluetoothScoReceiver;
 import com.morlunk.jumble.exception.AudioException;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.IChannel;
@@ -58,7 +59,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
-public class JumbleService extends Service implements JumbleConnection.JumbleConnectionListener, JumbleLogger {
+public class JumbleService extends Service implements JumbleConnection.JumbleConnectionListener, JumbleLogger, BluetoothScoReceiver.Listener {
 
     static {
         // Use Spongy Castle for crypto implementation so we can create and manage PKCS #12 (.p12) certificates.
@@ -151,6 +152,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private int mConnectionState;
     private ModelHandler mModelHandler;
     private AudioHandler mAudioHandler;
+    private BluetoothScoReceiver mBluetoothReceiver;
 
     private boolean mReconnecting;
 
@@ -255,10 +257,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 .setEncodeListener(mAudioInputListener)
                 .setTalkingListener(mAudioOutputListener);
         mConnectionState = STATE_DISCONNECTED;
+        mBluetoothReceiver = new BluetoothScoReceiver(this, this);
+        registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
     }
 
     @Override
     public void onDestroy() {
+        unregisterReceiver(mBluetoothReceiver);
         mCallbacks.kill();
         super.onDestroy();
     }
@@ -397,6 +402,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mModelHandler = null;
         mAudioHandler = null;
 
+        // Halt SCO connection on shutdown.
+        mBluetoothReceiver.stopBluetoothSco();
+
         try {
             mCallbacks.onDisconnected(e);
         } catch (RemoteException re) {
@@ -470,6 +478,29 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * Instantiates an audio handler with the current service settings, destroying any previous
+     * handler. Requires synchronization with the server, as the maximum bandwidth and session must
+     * be known.
+     */
+    private void createAudioHandler() throws AudioException {
+        if (BuildConfig.DEBUG && mConnectionState != STATE_CONNECTED) {
+            throw new AssertionError("Attempted to instantiate audio handler when not connected!");
+        }
+
+        if (mAudioHandler != null) {
+            mConnection.removeTCPMessageHandler(mAudioHandler);
+            mConnection.removeUDPMessageHandler(mAudioHandler);
+            mAudioHandler.shutdown();
+        }
+
+        mAudioHandler = mAudioBuilder.initialize(
+                mModelHandler.getUser(mConnection.getSession()),
+                mConnection.getMaxBandwidth(), mConnection.getCodec());
+        mConnection.addTCPMessageHandlers(mAudioHandler);
+        mConnection.addUDPMessageHandlers(mAudioHandler);
     }
 
     /**
@@ -575,19 +606,36 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
         // Reload audio subsystem if initialized
         if (mAudioHandler != null && mAudioHandler.isInitialized()) {
-            mConnection.removeTCPMessageHandler(mAudioHandler);
-            mConnection.removeUDPMessageHandler(mAudioHandler);
-            mAudioHandler.shutdown();
-
-            mAudioHandler = mAudioBuilder.initialize(
-                    mModelHandler.getUser(mConnection.getSession()),
-                    mConnection.getMaxBandwidth(), mConnection.getCodec());
-            mConnection.addTCPMessageHandlers(mAudioHandler);
-            mConnection.addUDPMessageHandlers(mAudioHandler);
-
+            createAudioHandler();
             Log.i(Constants.TAG, "Audio subsystem reloaded after settings change.");
         }
         return reconnectNeeded;
+    }
+
+    @Override
+    public void onBluetoothScoConnected() {
+        // After an SCO connection is established, audio is rerouted to be compatible with SCO.
+        mAudioBuilder.setBluetoothEnabled(true);
+        if (mAudioHandler != null) {
+            try {
+                createAudioHandler();
+            } catch (AudioException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void onBluetoothScoDisconnected() {
+        // Restore audio settings after disconnection.
+        mAudioBuilder.setBluetoothEnabled(false);
+        if (mAudioHandler != null) {
+            try {
+                createAudioHandler();
+            } catch (AudioException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public class JumbleBinder extends IJumbleService.Stub {
@@ -715,6 +763,21 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
 
         @Override
+        public boolean usingBluetoothSco() throws RemoteException {
+            return mBluetoothReceiver.isBluetoothScoOn();
+        }
+
+        @Override
+        public void enableBluetoothSco() throws RemoteException {
+            mBluetoothReceiver.startBluetoothSco();
+        }
+
+        @Override
+        public void disableBluetoothSco() throws RemoteException {
+            mBluetoothReceiver.stopBluetoothSco();
+        }
+
+        @Override
         public boolean isTalking() throws RemoteException {
             return mAudioHandler != null && mAudioHandler.isRecording();
         }
@@ -736,12 +799,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             } catch (AudioException e) {
                 logError(e.getMessage());
             }
-        }
-
-        @Override
-        public boolean isBluetoothAvailable() throws RemoteException {
-            AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-            return audioManager.isBluetoothScoOn();
         }
 
         @Override

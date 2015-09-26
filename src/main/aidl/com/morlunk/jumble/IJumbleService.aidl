@@ -64,7 +64,9 @@ interface IJumbleService {
     int getCodec();
 
     // Bluetooth
-    boolean isBluetoothAvailable();
+    boolean usingBluetoothSco();
+    void enableBluetoothSco();
+    void disableBluetoothSco();
 
     // Server actions
     void joinChannel(int channel);
