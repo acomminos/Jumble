@@ -45,15 +45,18 @@ import javax.net.ssl.X509TrustManager;
 
 public class JumbleSSLSocketFactory {
     private SSLContext mContext;
-    private JumbleTrustManagerWrapper mTrustWrapper;
+    private X509TrustManager mTrustWrapper;
 
-    public JumbleSSLSocketFactory(KeyStore keystore, String keystorePassword, String trustStorePath, String trustStorePassword, String trustStoreFormat) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException, UnrecoverableKeyException, NoSuchProviderException, IOException, CertificateException {
+    public JumbleSSLSocketFactory(KeyStore keystore, String keystorePassword, String trustStorePath, String trustStorePassword, String trustStoreFormat, boolean trustEveryone) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException, UnrecoverableKeyException, NoSuchProviderException, IOException, CertificateException {
         mContext = SSLContext.getInstance("TLS");
 
         KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
         kmf.init(keystore, keystorePassword != null ? keystorePassword.toCharArray() : new char[0]);
 
-        if(trustStorePath != null) {
+        if(trustEveryone) {
+            mTrustWrapper = new JumbleTrustManagerTrustEveryone();
+            Log.i(Constants.TAG, "Trusting everyone...");
+        } else if(trustStorePath != null) {
             KeyStore trustStore = KeyStore.getInstance(trustStoreFormat);
             FileInputStream fis = new FileInputStream(trustStorePath);
             trustStore.load(fis, trustStorePassword.toCharArray());
@@ -89,7 +92,11 @@ public class JumbleSSLSocketFactory {
      * @return The remote server's certificate chain, or null if a connection has not reached handshake yet.
      */
     public X509Certificate[] getServerChain() {
-        return mTrustWrapper.getServerChain();
+        if(mTrustWrapper instanceof JumbleTrustManagerWrapper) {
+            return ((JumbleTrustManagerWrapper)mTrustWrapper).getServerChain();
+        } else {
+            return new X509Certificate[0];
+        }
     }
 
     /**
@@ -139,4 +146,20 @@ public class JumbleSSLSocketFactory {
             return mServerChain;
         }
     }
+
+    private static class JumbleTrustManagerTrustEveryone implements X509TrustManager {
+        public JumbleTrustManagerTrustEveryone() { }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException { }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException { }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    }
+
 }

@@ -81,6 +81,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
     private String mTrustStorePath;
     private String mTrustStorePassword;
     private String mTrustStoreFormat;
+    private boolean mTrustEveryone;
 
     // Threading
     private ScheduledExecutorService mPingExecutorService;
@@ -398,6 +399,10 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         mTrustStoreFormat = format;
     }
 
+    public void setTrustEveryone(boolean trustEveryone) {
+        mTrustEveryone = trustEveryone;
+    }
+
     public int getServerVersion() {
         return mServerVersion;
     }
@@ -497,7 +502,7 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
             }
 
             return new JumbleSSLSocketFactory(keyStore, mCertificatePassword, mTrustStorePath,
-                    mTrustStorePassword, mTrustStoreFormat);
+                    mTrustStorePassword, mTrustStoreFormat, mTrustEveryone);
         } catch (KeyManagementException e) {
             throw new JumbleException("Could not recover keys from certificate", e,
                     JumbleException.JumbleDisconnectReason.OTHER_ERROR);

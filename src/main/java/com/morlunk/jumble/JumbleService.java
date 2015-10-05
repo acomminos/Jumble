@@ -118,6 +118,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public static final String EXTRAS_TRUST_STORE_PASSWORD = "trust_store_password";
     /** The trust store's format. */
     public static final String EXTRAS_TRUST_STORE_FORMAT = "trust_store_format";
+    public static final String EXTRAS_TRUST_EVERYONE = "trust_everyone";
     public static final String EXTRAS_HALF_DUPLEX = "half_duplex";
     /** A list of users that should be local muted upon connection. */
     public static final String EXTRAS_LOCAL_MUTE_HISTORY = "local_mute_history";
@@ -139,6 +140,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private String mTrustStore;
     private String mTrustStorePassword;
     private String mTrustStoreFormat;
+    private boolean mTrustEveryone;
     private List<Integer> mLocalMuteHistory;
     private List<Integer> mLocalIgnoreHistory;
     private AudioHandler.Builder mAudioBuilder;
@@ -286,6 +288,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mConnection.setUseTor(mUseTor);
             mConnection.setKeys(mCertificate, mCertificatePassword);
             mConnection.setTrustStore(mTrustStore, mTrustStorePassword, mTrustStoreFormat);
+            mConnection.setTrustEveryone(mTrustEveryone);
 
             mModelHandler = new ModelHandler(this, mCallbacks, this,
                     mLocalMuteHistory, mLocalIgnoreHistory);
@@ -587,6 +590,10 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
         if (extras.containsKey(EXTRAS_TRUST_STORE_FORMAT)) {
             mTrustStoreFormat = extras.getString(EXTRAS_TRUST_STORE_FORMAT);
+            reconnectNeeded = true;
+        }
+        if (extras.containsKey(EXTRAS_TRUST_EVERYONE)) {
+            mTrustEveryone = extras.getBoolean(EXTRAS_TRUST_EVERYONE);
             reconnectNeeded = true;
         }
         if (extras.containsKey(EXTRAS_HALF_DUPLEX)) {
