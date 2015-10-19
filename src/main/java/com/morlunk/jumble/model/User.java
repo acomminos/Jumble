@@ -19,7 +19,7 @@ package com.morlunk.jumble.model;
 
 import com.google.protobuf.ByteString;
 
-public class User extends IUser.Stub implements Comparable<User> {
+public class User implements IUser, Comparable<User> {
 
     private int mSession;
     private int mId = -1;
@@ -60,10 +60,12 @@ public class User extends IUser.Stub implements Comparable<User> {
         mName = name;
     }
 
+    @Override
     public int getSession() {
         return mSession;
     }
 
+    @Override
     public Channel getChannel() {
         return mChannel;
     }
@@ -82,6 +84,7 @@ public class User extends IUser.Stub implements Comparable<User> {
             mChannel.addUser(this);
     }
 
+    @Override
     public int getUserId() {
         return mId;
     }
@@ -90,6 +93,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         this.mId = mId;
     }
 
+    @Override
     public String getName() {
         return mName;
     }
@@ -98,6 +102,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         this.mName = mName;
     }
 
+    @Override
     public String getComment() {
         return mComment;
     }
@@ -106,6 +111,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         this.mComment = mComment;
     }
 
+    @Override
     public byte[] getCommentHash() {
         return mCommentHash != null ? mCommentHash.toByteArray() : null;
     }
@@ -114,6 +120,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         mCommentHash = commentHash;
     }
 
+    @Override
     public byte[] getTexture() {
         return mTexture != null ? mTexture.toByteArray() : null;
     }
@@ -122,6 +129,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         mTexture = texture;
     }
 
+    @Override
     public byte[] getTextureHash() {
         return mTextureHash != null ? mTextureHash.toByteArray() : null;
     }
@@ -130,6 +138,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         mTextureHash = textureHash;
     }
 
+    @Override
     public String getHash() {
         return mHash;
     }
@@ -138,6 +147,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         this.mHash = mHash;
     }
 
+    @Override
     public boolean isMuted() {
         return mMuted;
     }
@@ -146,6 +156,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         this.mMuted = mMuted;
     }
 
+    @Override
     public boolean isDeafened() {
         return mDeafened;
     }
@@ -154,6 +165,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         this.mDeafened = mDeafened;
     }
 
+    @Override
     public boolean isSuppressed() {
         return mSuppressed;
     }
@@ -162,6 +174,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         this.mSuppressed = mSuppressed;
     }
 
+    @Override
     public boolean isSelfMuted() {
         return mSelfMuted;
     }
@@ -170,6 +183,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         this.mSelfMuted = mSelfMuted;
     }
 
+    @Override
     public boolean isSelfDeafened() {
         return mSelfDeafened;
     }
@@ -178,6 +192,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         this.mSelfDeafened = mSelfDeafened;
     }
 
+    @Override
     public boolean isPrioritySpeaker() {
         return mPrioritySpeaker;
     }
@@ -186,6 +201,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         this.mPrioritySpeaker = mPrioritySpeaker;
     }
 
+    @Override
     public boolean isRecording() {
         return mRecording;
     }
@@ -194,6 +210,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         this.mRecording = mRecording;
     }
 
+    @Override
     public boolean isLocalMuted() {
         return mLocalMuted;
     }
@@ -202,6 +219,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         this.mLocalMuted = mLocalMuted;
     }
 
+    @Override
     public boolean isLocalIgnored() {
         return mLocalIgnored;
     }
@@ -210,6 +228,7 @@ public class User extends IUser.Stub implements Comparable<User> {
         mLocalIgnored = localIgnored;
     }
 
+    @Override
     public TalkState getTalkState() {
         return mTalkState;
     }

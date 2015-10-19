@@ -17,109 +17,104 @@
 
 package com.morlunk.jumble.util;
 
-import android.os.RemoteException;
-
-import com.morlunk.jumble.IJumbleObserver;
-import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.IChannel;
 import com.morlunk.jumble.model.IMessage;
 import com.morlunk.jumble.model.IUser;
-import com.morlunk.jumble.model.Message;
-import com.morlunk.jumble.model.User;
+
+import java.security.cert.X509Certificate;
 
 /**
  * Stub class for Jumble service observation.
  * Created by andrew on 31/07/13.
  */
-public class JumbleObserver extends IJumbleObserver.Stub {
+public class JumbleObserver implements IJumbleObserver {
     @Override
-    public void onConnected() throws RemoteException {
+    public void onConnected() {
 
     }
 
     @Override
-    public void onConnecting() throws RemoteException {
+    public void onConnecting() {
 
     }
 
     @Override
-    public void onDisconnected(JumbleException e) throws RemoteException {
+    public void onDisconnected(JumbleException e) {
 
     }
 
     @Override
-    public void onTLSHandshakeFailed(ParcelableByteArray cert) throws RemoteException {
+    public void onTLSHandshakeFailed(X509Certificate[] chain) {
 
     }
 
     @Override
-    public void onChannelAdded(IChannel channel) throws RemoteException {
+    public void onChannelAdded(IChannel channel) {
 
     }
 
     @Override
-    public void onChannelStateUpdated(IChannel channel) throws RemoteException {
+    public void onChannelStateUpdated(IChannel channel) {
 
     }
 
     @Override
-    public void onChannelRemoved(IChannel channel) throws RemoteException {
+    public void onChannelRemoved(IChannel channel) {
 
     }
 
     @Override
-    public void onChannelPermissionsUpdated(IChannel channel) throws RemoteException {
+    public void onChannelPermissionsUpdated(IChannel channel) {
 
     }
 
     @Override
-    public void onUserConnected(IUser user) throws RemoteException {
+    public void onUserConnected(IUser user) {
 
     }
 
     @Override
-    public void onUserStateUpdated(IUser user) throws RemoteException {
+    public void onUserStateUpdated(IUser user) {
 
     }
 
     @Override
-    public void onUserTalkStateUpdated(IUser user) throws RemoteException {
-        
-    }
-
-    @Override
-    public void onUserJoinedChannel(IUser user, IChannel newChannel, IChannel oldChannel) throws RemoteException {
+    public void onUserTalkStateUpdated(IUser user) {
 
     }
 
     @Override
-    public void onUserRemoved(IUser user, String reason) throws RemoteException {
+    public void onUserJoinedChannel(IUser user, IChannel newChannel, IChannel oldChannel) {
 
     }
 
     @Override
-    public void onPermissionDenied(String reason) throws RemoteException {
+    public void onUserRemoved(IUser user, String reason) {
 
     }
 
     @Override
-    public void onMessageLogged(IMessage message) throws RemoteException {
+    public void onPermissionDenied(String reason) {
 
     }
 
     @Override
-    public void onLogInfo(String message) throws RemoteException {
+    public void onMessageLogged(IMessage message) {
 
     }
 
     @Override
-    public void onLogWarning(String message) throws RemoteException {
+    public void onLogInfo(String message) {
 
     }
 
     @Override
-    public void onLogError(String message) throws RemoteException {
+    public void onLogWarning(String message) {
 
     }
 
+    @Override
+    public void onLogError(String message) {
+
+    }
 }

@@ -17,214 +17,158 @@
 
 package com.morlunk.jumble.util;
 
-import android.os.RemoteCallbackList;
-import android.os.RemoteException;
-
-import com.morlunk.jumble.IJumbleObserver;
 import com.morlunk.jumble.model.IChannel;
 import com.morlunk.jumble.model.IMessage;
 import com.morlunk.jumble.model.IUser;
+
+import org.spongycastle.jcajce.provider.asymmetric.X509;
+
+import java.security.cert.X509Certificate;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A composite wrapper around Jumble observers to easily broadcast to each observer.
  * Created by andrew on 12/07/14.
  */
-public class JumbleCallbacks extends JumbleObserver.Stub {
-    private final RemoteCallbackList<IJumbleObserver> mCallbacks;
+public class JumbleCallbacks implements IJumbleObserver {
+    private final Set<IJumbleObserver> mCallbacks;
 
     public JumbleCallbacks() {
-        mCallbacks = new RemoteCallbackList<IJumbleObserver>();
+        mCallbacks = new HashSet<>();
     }
 
     public void registerObserver(IJumbleObserver observer) {
-        mCallbacks.register(observer);
+        mCallbacks.add(observer);
     }
 
     public void unregisterObserver(IJumbleObserver observer) {
-        mCallbacks.unregister(observer);
-    }
-
-    public void kill() {
-        mCallbacks.kill();
+        mCallbacks.remove(observer);
     }
 
     @Override
-    public void onConnected() throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onConnected();
+    public void onConnected() {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onConnected();
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onConnecting() throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onConnecting();
+    public void onConnecting() {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onConnecting();
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onDisconnected(JumbleException e) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onDisconnected(e);
+    public void onDisconnected(JumbleException e) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onDisconnected(e);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onTLSHandshakeFailed(ParcelableByteArray cert) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onTLSHandshakeFailed(cert);
+    public void onTLSHandshakeFailed(X509Certificate[] chain) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onTLSHandshakeFailed(chain);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onChannelAdded(IChannel channel) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onChannelAdded(channel);
+    public void onChannelAdded(IChannel channel) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onChannelAdded(channel);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onChannelStateUpdated(IChannel channel) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onChannelStateUpdated(channel);
+    public void onChannelStateUpdated(IChannel channel) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onChannelStateUpdated(channel);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onChannelRemoved(IChannel channel) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onChannelRemoved(channel);
+    public void onChannelRemoved(IChannel channel) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onChannelRemoved(channel);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onChannelPermissionsUpdated(IChannel channel) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onChannelPermissionsUpdated(channel);
+    public void onChannelPermissionsUpdated(IChannel channel) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onChannelPermissionsUpdated(channel);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onUserConnected(IUser user) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onUserConnected(user);
+    public void onUserConnected(IUser user) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onUserConnected(user);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onUserStateUpdated(IUser user) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onUserStateUpdated(user);
+    public void onUserStateUpdated(IUser user) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onUserStateUpdated(user);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onUserTalkStateUpdated(IUser user) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onUserTalkStateUpdated(user);
+    public void onUserTalkStateUpdated(IUser user) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onUserTalkStateUpdated(user);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onUserJoinedChannel(IUser user, IChannel newChannel, IChannel oldChannel) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onUserJoinedChannel(user, newChannel, oldChannel);
+    public void onUserJoinedChannel(IUser user, IChannel newChannel, IChannel oldChannel) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onUserJoinedChannel(user, newChannel, oldChannel);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onUserRemoved(IUser user, String reason) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onUserRemoved(user, reason);
+    public void onUserRemoved(IUser user, String reason) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onUserRemoved(user, reason);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onPermissionDenied(String reason) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onPermissionDenied(reason);
+    public void onPermissionDenied(String reason) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onPermissionDenied(reason);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onMessageLogged(IMessage message) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onMessageLogged(message);
+    public void onMessageLogged(IMessage message) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onMessageLogged(message);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onLogInfo(String message) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onLogInfo(message);
+    public void onLogInfo(String message) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onLogInfo(message);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onLogWarning(String message) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onLogWarning(message);
+    public void onLogWarning(String message) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onLogWarning(message);
         }
-        mCallbacks.finishBroadcast();
     }
 
     @Override
-    public void onLogError(String message) throws RemoteException {
-        int i = mCallbacks.beginBroadcast();
-        while(i > 0) {
-            i--;
-            mCallbacks.getBroadcastItem(i).onLogError(message);
+    public void onLogError(String message) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onLogError(message);
         }
-        mCallbacks.finishBroadcast();
     }
 }

@@ -399,30 +399,44 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
     }
 
     public int getServerVersion() {
+        if (!isSynchronized())
+            throw new IllegalStateException("Not synchronized");
         return mServerVersion;
     }
 
     public String getServerRelease() {
+        if (!isSynchronized())
+            throw new IllegalStateException("Not synchronized");
         return mServerRelease;
     }
 
     public String getServerOSName() {
+        if (!isSynchronized())
+            throw new IllegalStateException("Not synchronized");
         return mServerOSName;
     }
 
     public String getServerOSVersion() {
+        if (!isSynchronized())
+            throw new IllegalStateException("Not synchronized");
         return mServerOSVersion;
     }
 
     public long getTCPLatency() {
+        if (!isConnected())
+            throw new IllegalStateException("Not connected");
         return mLastTCPPing;
     }
 
     public long getUDPLatency() {
+        if (!isConnected())
+            throw new IllegalStateException("Not connected");
         return mLastUDPPing;
     }
 
     public int getSession() {
+        if (!isSynchronized())
+            throw new IllegalStateException("Not synchronized");
         return mSession;
     }
 
@@ -431,10 +445,14 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
      * @return the input bandwidth in bps, or -1 if not set.
      */
     public int getMaxBandwidth() {
+        if (!isSynchronized())
+            throw new IllegalStateException("Not synchronized");
         return mMaxBandwidth;
     }
 
     public JumbleUDPMessageType getCodec() {
+        if (!isSynchronized())
+            throw new IllegalStateException("Not synchronized");
         return mCodec;
     }
 

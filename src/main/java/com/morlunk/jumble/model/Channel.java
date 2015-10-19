@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public final class Channel extends IChannel.Stub implements Comparable<Channel> {
+public final class Channel implements IChannel, Comparable<Channel> {
     private int mId;
     private int mPosition;
     private int mLevel;
@@ -68,10 +68,12 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
         mUsers.remove(user);
     }
 
+    @Override
     public List<User> getUsers() {
         return Collections.unmodifiableList(mUsers);
     }
 
+    @Override
     public int getId() {
         return mId;
     }
@@ -80,6 +82,7 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
         this.mId = mId;
     }
 
+    @Override
     public int getPosition() {
         return mPosition;
     }
@@ -88,6 +91,7 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
         this.mPosition = mPosition;
     }
 
+    @Override
     public boolean isTemporary() {
         return mTemporary;
     }
@@ -96,6 +100,7 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
         this.mTemporary = mTemporary;
     }
 
+    @Override
     public Channel getParent() {
         return mParent;
     }
@@ -104,6 +109,7 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
         this.mParent = mParent;
     }
 
+    @Override
     public String getName() {
         return mName;
     }
@@ -112,6 +118,7 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
         this.mName = mName;
     }
 
+    @Override
     public String getDescription() {
         return mDescription;
     }
@@ -120,6 +127,7 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
         this.mDescription = mDescription;
     }
 
+    @Override
     public byte[] getDescriptionHash() {
         return mDescriptionHash;
     }
@@ -128,6 +136,7 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
         this.mDescriptionHash = mDescriptionHash;
     }
 
+    @Override
     public List<Channel> getSubchannels() {
         return Collections.unmodifiableList(mSubchannels);
     }
@@ -147,6 +156,7 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
         mSubchannels.remove(channel);
     }
 
+    @Override
     public List<Channel> getLinks() {
         return Collections.unmodifiableList(mLinks);
     }
@@ -183,6 +193,7 @@ public final class Channel extends IChannel.Stub implements Comparable<Channel> 
         return userCount;
     }
 
+    @Override
     public int getPermissions() {
         return mPermissions;
     }

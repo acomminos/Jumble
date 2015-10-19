@@ -30,20 +30,16 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
-import android.os.RemoteException;
 import android.util.Log;
 
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.audio.BluetoothScoReceiver;
 import com.morlunk.jumble.exception.AudioException;
-import com.morlunk.jumble.model.Channel;
-import com.morlunk.jumble.model.IChannel;
-import com.morlunk.jumble.model.IUser;
-import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.TalkState;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleConnection;
+import com.morlunk.jumble.util.IJumbleObserver;
 import com.morlunk.jumble.util.JumbleException;
 import com.morlunk.jumble.net.JumbleTCPMessageType;
 import com.morlunk.jumble.protobuf.Mumble;
@@ -51,12 +47,9 @@ import com.morlunk.jumble.protocol.AudioHandler;
 import com.morlunk.jumble.protocol.ModelHandler;
 import com.morlunk.jumble.util.JumbleCallbacks;
 import com.morlunk.jumble.util.JumbleLogger;
-import com.morlunk.jumble.util.ParcelableByteArray;
 
 import java.security.Security;
-import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.List;
 
 public class JumbleService extends Service implements JumbleConnection.JumbleConnectionListener, JumbleLogger, BluetoothScoReceiver.Listener {
@@ -65,27 +58,6 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         // Use Spongy Castle for crypto implementation so we can create and manage PKCS #12 (.p12) certificates.
         Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
     }
-
-    /**
-     * The default state of Jumble, before connection to a server and after graceful/expected
-     * disconnection from a server.
-     */
-    public static final int STATE_DISCONNECTED = 0;
-    /**
-     * A connection to the server is currently in progress.
-     */
-    public static final int STATE_CONNECTING = 1;
-    /**
-     * Jumble has received all data necessary for normal protocol communication with the server.
-     */
-    public static final int STATE_CONNECTED = 2;
-    /**
-     * The connection was lost due to either a kick/ban or socket I/O error.
-     * Jumble can be reconnecting in this state.
-     * @see IJumbleService#isReconnecting()
-     * @see IJumbleService#cancelReconnect()
-     */
-    public static final int STATE_CONNECTION_LOST = 3;
 
     /**
      * An action to immediately connect to a given Mumble server.
@@ -146,10 +118,9 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private PowerManager.WakeLock mWakeLock;
     private Handler mHandler;
     private JumbleCallbacks mCallbacks;
-    private IJumbleService.Stub mBinder = new JumbleBinder();
 
     private JumbleConnection mConnection;
-    private int mConnectionState;
+    private ConnectionState mConnectionState;
     private ModelHandler mModelHandler;
     private AudioHandler mAudioHandler;
     private BluetoothScoReceiver mBluetoothReceiver;
@@ -189,16 +160,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    if(!isConnected()) return;
+                    if(!isConnectionEstablished()) return;
                     final User currentUser = mModelHandler.getUser(mConnection.getSession());
                     if(currentUser == null) return;
 
                     currentUser.setTalkState(state);
-                    try {
-                        mCallbacks.onUserTalkStateUpdated(currentUser);
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
+                    mCallbacks.onUserTalkStateUpdated(currentUser);
                 }
             });
         }
@@ -207,11 +174,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     private AudioOutput.AudioOutputListener mAudioOutputListener = new AudioOutput.AudioOutputListener() {
         @Override
         public void onUserTalkStateUpdated(final User user) {
-            try {
-                mCallbacks.onUserTalkStateUpdated(user);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+            mCallbacks.onUserTalkStateUpdated(user);
         }
 
         @Override
@@ -234,7 +197,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
             if (ACTION_CONNECT.equals(intent.getAction())) {
                 if (extras == null || !extras.containsKey(EXTRAS_SERVER)) {
-                    // Ensure that we have been provided all required attributes.
+                    // Ensure that we have been provided all required attributes.```
                     throw new RuntimeException(ACTION_CONNECT + " requires a server provided in extras.");
                 }
                 connect();
@@ -256,7 +219,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                 .setLogger(this)
                 .setEncodeListener(mAudioInputListener)
                 .setTalkingListener(mAudioOutputListener);
-        mConnectionState = STATE_DISCONNECTED;
+        mConnectionState = ConnectionState.DISCONNECTED;
         mBluetoothReceiver = new BluetoothScoReceiver(this, this);
         registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
     }
@@ -264,22 +227,17 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     @Override
     public void onDestroy() {
         unregisterReceiver(mBluetoothReceiver);
-        mCallbacks.kill();
         super.onDestroy();
     }
 
     public IBinder onBind(Intent intent) {
-        return mBinder;
+        return new JumbleBinder(this);
     }
 
-    public IJumbleService getBinder() {
-        return mBinder;
-    }
-
-    public void connect() {
+    private void connect() {
         try {
             setReconnecting(false);
-            mConnectionState = STATE_DISCONNECTED;
+            mConnectionState = ConnectionState.DISCONNECTED;
 
             mConnection = new JumbleConnection(this);
             mConnection.setForceTCP(mForceTcp);
@@ -291,22 +249,14 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
                     mLocalMuteHistory, mLocalIgnoreHistory);
             mConnection.addTCPMessageHandlers(mModelHandler);
 
-            mConnectionState = STATE_CONNECTING;
+            mConnectionState = ConnectionState.CONNECTING;
 
-            try {
-                mCallbacks.onConnecting();
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+            mCallbacks.onConnecting();
 
             mConnection.connect(mServer.getHost(), mServer.getPort());
         } catch (JumbleException e) {
             e.printStackTrace();
-            try {
-                mCallbacks.onDisconnected(e);
-            } catch (RemoteException e1) {
-                e1.printStackTrace();
-            }
+            mCallbacks.onDisconnected(e);
         }
     }
 
@@ -314,8 +264,16 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         mConnection.disconnect();
     }
 
-    public boolean isConnected() {
+    public boolean isConnectionEstablished() {
         return mConnection != null && mConnection.isConnected();
+    }
+
+    /**
+     * @return true if Jumble has received the ServerSync message, indicating synchronization with
+     * the server's model and settings. This is the main state of the service.
+     */
+    public boolean isSynchronized() {
+        return mConnectionState == ConnectionState.CONNECTED;
     }
 
     @Override
@@ -342,7 +300,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
 
     @Override
     public void onConnectionSynchronized() {
-        mConnectionState = STATE_CONNECTED;
+        mConnectionState = ConnectionState.CONNECTED;
 
         Log.v(Constants.TAG, "Connected");
         mWakeLock.acquire();
@@ -358,23 +316,12 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
             onConnectionWarning(e.getMessage());
         }
 
-        try {
-            mCallbacks.onConnected();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        mCallbacks.onConnected();
     }
 
     @Override
     public void onConnectionHandshakeFailed(X509Certificate[] chain) {
-        try {
-            final ParcelableByteArray encodedCert = new ParcelableByteArray(chain[0].getEncoded());
-            mCallbacks.onTLSHandshakeFailed(encodedCert);
-        } catch (CertificateEncodingException e) {
-            e.printStackTrace();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        mCallbacks.onTLSHandshakeFailed(chain);
     }
 
     @Override
@@ -382,13 +329,13 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         if (e != null) {
             Log.e(Constants.TAG, "Error: " + e.getMessage() +
                     " (reason: " + e.getReason().name() + ")");
-            mConnectionState = STATE_CONNECTION_LOST;
+            mConnectionState = ConnectionState.CONNECTION_LOST;
 
             setReconnecting(mAutoReconnect
                     && e.getReason() == JumbleException.JumbleDisconnectReason.CONNECTION_ERROR);
         } else {
             Log.v(Constants.TAG, "Disconnected");
-            mConnectionState = STATE_DISCONNECTED;
+            mConnectionState = ConnectionState.DISCONNECTED;
         }
 
         if(mWakeLock.isHeld()) {
@@ -405,11 +352,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         // Halt SCO connection on shutdown.
         mBluetoothReceiver.stopBluetoothSco();
 
-        try {
-            mCallbacks.onDisconnected(e);
-        } catch (RemoteException re) {
-            re.printStackTrace();
-        }
+        mCallbacks.onDisconnected(e);
     }
 
     @Override
@@ -421,32 +364,23 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void logInfo(String message) {
         if (mConnection == null || !mConnection.isSynchronized())
             return; // don't log info prior to synchronization
-        try {
-            mCallbacks.onLogInfo(message);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        mCallbacks.onLogInfo(message);
     }
 
     @Override
     public void logWarning(String message) {
-        try {
-            mCallbacks.onLogWarning(message);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        mCallbacks.onLogWarning(message);
     }
 
     @Override
     public void logError(String message) {
-        try {
-            mCallbacks.onLogError(message);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        mCallbacks.onLogError(message);
     }
 
-    private void setReconnecting(boolean reconnecting) {
+    public void setReconnecting(boolean reconnecting) {
+        if (mReconnecting == reconnecting)
+            return;
+
         mReconnecting = reconnecting;
         if (reconnecting) {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
@@ -486,7 +420,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * be known.
      */
     private void createAudioHandler() throws AudioException {
-        if (BuildConfig.DEBUG && mConnectionState != STATE_CONNECTED) {
+        if (BuildConfig.DEBUG && mConnectionState != ConnectionState.CONNECTED) {
             throw new AssertionError("Attempted to instantiate audio handler when not connected!");
         }
 
@@ -510,7 +444,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * @return true if a reconnect is required for changes to take effect.
      * @see com.morlunk.jumble.JumbleService
      */
-    private boolean configureExtras(Bundle extras) throws AudioException {
+    public boolean configureExtras(Bundle extras) throws AudioException {
         boolean reconnectNeeded = false;
         if (extras.containsKey(EXTRAS_SERVER)) {
             mServer = extras.getParcelable(EXTRAS_SERVER);
@@ -638,342 +572,97 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         }
     }
 
-    public class JumbleBinder extends IJumbleService.Stub {
-        @Override
-        public int getConnectionState() throws RemoteException {
-            return mConnectionState;
-        }
+    /**
+     * Exposes the current connection. The current connection is set once an attempt to connect to
+     * a server is made, and remains set until a subsequent connection. It remains available
+     * after disconnection to provide information regarding the terminated connection.
+     * @return The active {@link JumbleConnection}, or null if a connection has not been
+     *         established yet.
+     */
+    public JumbleConnection getConnection() {
+        return mConnection;
+    }
 
-        @Override
-        public JumbleException getConnectionError() throws RemoteException {
-            return mConnection != null ? mConnection.getError() : null;
-        }
+    /**
+     * Returnes the current {@link AudioHandler}. An AudioHandler is instantiated upon connection
+     * to a server, and destroyed upon disconnection.
+     * @return the active AudioHandler, or null if there is no active connection.
+     */
+    public AudioHandler getAudioHandler() {
+        if (!isSynchronized())
+            throw new IllegalStateException("Not synchronized");
+        if (mAudioHandler == null && mConnectionState == ConnectionState.CONNECTED)
+            throw new RuntimeException("Audio handler should always be instantiated while connected!");
+        return mAudioHandler;
+    }
 
-        @Override
-        public boolean isReconnecting() throws RemoteException {
-            return mReconnecting;
-        }
+    /**
+     * Returns the current {@link ModelHandler}, containing the channel tree. A model handler is
+     * valid for the lifetime of a connection.
+     * @return the active ModelHandler, or null if there is no active connection.
+     */
+    public ModelHandler getModelHandler() {
+        if (!isSynchronized())
+            throw new IllegalStateException("Not synchronized");
+        if (mModelHandler == null && mConnectionState == ConnectionState.CONNECTED)
+            throw new RuntimeException("Model handler should always be instantiated while connected!");
+        return mModelHandler;
+    }
 
-        @Override
-        public void cancelReconnect() throws RemoteException {
-            setReconnecting(false);
-        }
+    /**
+     * Returns the bluetooth service provider, established after synchronization.
+     * @return The {@link BluetoothScoReceiver} attached to this service.
+     * @throws IllegalStateException if not synchronized or disconnected.
+     */
+    public BluetoothScoReceiver getBluetoothReceiver() {
+        if (!isSynchronized())
+            throw new IllegalStateException("Not synchronized");
+        return mBluetoothReceiver;
+    }
 
-        @Override
-        public void disconnect() throws RemoteException {
-            JumbleService.this.disconnect();
-        }
+    public boolean isReconnecting() {
+        return mReconnecting;
+    }
 
-        @Override
-        public long getTCPLatency() throws RemoteException {
-            return mConnection.getTCPLatency();
-        }
+    public ConnectionState getConnectionState() {
+        return mConnectionState;
+    }
 
-        @Override
-        public long getUDPLatency() throws RemoteException {
-            return mConnection.getUDPLatency();
-        }
+    public Server getConnectedServer() {
+        return mServer;
+    }
 
-        @Override
-        public int getMaxBandwidth() throws RemoteException {
-            return mConnection.getMaxBandwidth();
-        }
+    public void registerObserver(IJumbleObserver observer) {
+        mCallbacks.registerObserver(observer);
+    }
 
-        @Override
-        public int getCurrentBandwidth() throws RemoteException {
-            return mAudioHandler.getCurrentBandwidth();
-        }
+    public void unregisterObserver(IJumbleObserver observer) {
+        mCallbacks.unregisterObserver(observer);
+    }
 
-        @Override
-        public int getServerVersion() throws RemoteException {
-            return mConnection.getServerVersion();
-        }
-
-        @Override
-        public String getServerRelease() throws RemoteException {
-            return mConnection.getServerRelease();
-        }
-
-        @Override
-        public String getServerOSName() throws RemoteException {
-            return mConnection.getServerOSName();
-        }
-
-        @Override
-        public String getServerOSVersion() throws RemoteException {
-            return mConnection.getServerOSVersion();
-        }
-
-        @Override
-        public int getSession() throws RemoteException {
-            return mConnection != null ? mConnection.getSession() : -1;
-        }
-
-        @Override
-        public IUser getSessionUser() throws RemoteException {
-            return mModelHandler != null ? mModelHandler.getUser(getSession()) : null;
-        }
-
-        @Override
-        public IChannel getSessionChannel() throws RemoteException {
-            IUser user = getSessionUser();
-            if (user != null) {
-                return user.getChannel();
-            }
-            return null;
-        }
-
-        @Override
-        public Server getConnectedServer() throws RemoteException {
-            return mServer;
-        }
-
-        @Override
-        public IUser getUser(int id) throws RemoteException {
-            if (mModelHandler != null)
-                return mModelHandler.getUser(id);
-            return null;
-        }
-
-        @Override
-        public IChannel getChannel(int id) throws RemoteException {
-            if (mModelHandler != null)
-                return mModelHandler.getChannel(id);
-            return null;
-        }
-
-        @Override
-        public IChannel getRootChannel() throws RemoteException {
-            return getChannel(0);
-        }
-
-        @Override
-        public int getPermissions() throws RemoteException {
-            return mModelHandler != null ? mModelHandler.getPermissions() : 0;
-        }
-
-        @Override
-        public int getTransmitMode() throws RemoteException {
-            return mAudioHandler.getTransmitMode();
-        }
-
-        @Override
-        public int getCodec() throws RemoteException {
-            return mConnection.getCodec().ordinal(); // FIXME: ordinal is bad, make enum method
-        }
-
-        @Override
-        public boolean usingBluetoothSco() throws RemoteException {
-            return mBluetoothReceiver.isBluetoothScoOn();
-        }
-
-        @Override
-        public void enableBluetoothSco() throws RemoteException {
-            mBluetoothReceiver.startBluetoothSco();
-        }
-
-        @Override
-        public void disableBluetoothSco() throws RemoteException {
-            mBluetoothReceiver.stopBluetoothSco();
-        }
-
-        @Override
-        public boolean isTalking() throws RemoteException {
-            return mAudioHandler != null && mAudioHandler.isRecording();
-        }
-
-        @Override
-        public void setTalkingState(boolean talking) throws RemoteException {
-            if(getSessionUser() != null &&
-                    (getSessionUser().isSelfMuted() || getSessionUser().isMuted())) {
-                return;
-            }
-
-            if (mAudioHandler.getTransmitMode() != Constants.TRANSMIT_PUSH_TO_TALK) {
-                Log.w(Constants.TAG, "Attempted to set talking state when not using PTT");
-                return;
-            }
-
-            try {
-                mAudioHandler.setTalking(talking);
-            } catch (AudioException e) {
-                logError(e.getMessage());
-            }
-        }
-
-        @Override
-        public void joinChannel(int channel) throws RemoteException {
-            moveUserToChannel(getSession(), channel);
-        }
-
-        @Override
-        public void moveUserToChannel(int session, int channel) throws RemoteException {
-            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSession(session);
-            usb.setChannelId(channel);
-            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
-        }
-
-        @Override
-        public void createChannel(int parent, String name, String description, int position, boolean temporary) throws RemoteException {
-            Mumble.ChannelState.Builder csb = Mumble.ChannelState.newBuilder();
-            csb.setParent(parent);
-            csb.setName(name);
-            csb.setDescription(description);
-            csb.setPosition(position);
-            csb.setTemporary(temporary);
-            mConnection.sendTCPMessage(csb.build(), JumbleTCPMessageType.ChannelState);
-        }
-
-        @Override
-        public void sendAccessTokens(List tokens) throws RemoteException {
-            mConnection.sendAccessTokens(tokens);
-        }
-
-        @Override
-        public void requestBanList() throws RemoteException {
-            throw new UnsupportedOperationException("Not yet implemented"); // TODO
-        }
-
-        @Override
-        public void requestUserList() throws RemoteException {
-            throw new UnsupportedOperationException("Not yet implemented"); // TODO
-        }
-
-        @Override
-        public void requestPermissions(int channel) throws RemoteException {
-            Mumble.PermissionQuery.Builder pqb = Mumble.PermissionQuery.newBuilder();
-            pqb.setChannelId(channel);
-            mConnection.sendTCPMessage(pqb.build(), JumbleTCPMessageType.PermissionQuery);
-        }
-
-        @Override
-        public void requestComment(int session) throws RemoteException {
-            Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
-            rbb.addSessionComment(session);
-            mConnection.sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
-        }
-
-        @Override
-        public void requestAvatar(int session) throws RemoteException {
-            Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
-            rbb.addSessionTexture(session);
-            mConnection.sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
-        }
-
-        @Override
-        public void requestChannelDescription(int channel) throws RemoteException {
-            Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
-            rbb.addChannelDescription(channel);
-            mConnection.sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
-        }
-
-        @Override
-        public void registerUser(int session) throws RemoteException {
-            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSession(session);
-            usb.setUserId(0);
-            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
-        }
-
-        @Override
-        public void kickBanUser(int session, String reason, boolean ban) throws RemoteException {
-            Mumble.UserRemove.Builder urb = Mumble.UserRemove.newBuilder();
-            urb.setSession(session);
-            urb.setReason(reason);
-            urb.setBan(ban);
-            mConnection.sendTCPMessage(urb.build(), JumbleTCPMessageType.UserRemove);
-        }
-
-        @Override
-        public Message sendUserTextMessage(int session, String message) throws RemoteException {
-            Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
-            tmb.addSession(session);
-            tmb.setMessage(message);
-            mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
-
-            User self = mModelHandler.getUser(getSession());
-            User user = mModelHandler.getUser(session);
-            List<User> users = new ArrayList<User>(1);
-            users.add(user);
-            return new Message(getSession(), self.getName(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
-        }
-
-        @Override
-        public Message sendChannelTextMessage(int channel, String message, boolean tree) throws RemoteException {
-            Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
-            if(tree) tmb.addTreeId(channel);
-            else tmb.addChannelId(channel);
-            tmb.setMessage(message);
-            mConnection.sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
-
-            User self = mModelHandler.getUser(getSession());
-            Channel targetChannel = mModelHandler.getChannel(channel);
-            List<Channel> targetChannels = new ArrayList<Channel>();
-            targetChannels.add(targetChannel);
-            return new Message(getSession(), self.getName(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
-        }
-
-        @Override
-        public void setUserComment(int session, String comment) throws RemoteException {
-            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSession(session);
-            usb.setComment(comment);
-            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
-        }
-
-        @Override
-        public void setPrioritySpeaker(int session, boolean priority) throws RemoteException {
-            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSession(session);
-            usb.setPrioritySpeaker(priority);
-            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
-        }
-
-        @Override
-        public void removeChannel(int channel) throws RemoteException {
-            Mumble.ChannelRemove.Builder crb = Mumble.ChannelRemove.newBuilder();
-            crb.setChannelId(channel);
-            mConnection.sendTCPMessage(crb.build(), JumbleTCPMessageType.ChannelRemove);
-        }
-
-        @Override
-        public void setMuteDeafState(int session, boolean mute, boolean deaf) throws RemoteException {
-            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSession(session);
-            usb.setMute(mute);
-            usb.setDeaf(deaf);
-            if (!mute) usb.setSuppress(false);
-            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
-        }
-
-        @Override
-        public void setSelfMuteDeafState(boolean mute, boolean deaf) throws RemoteException {
-            Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
-            usb.setSelfMute(mute);
-            usb.setSelfDeaf(deaf);
-            mConnection.sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
-        }
-
-        @Override
-        public void registerObserver(IJumbleObserver observer) throws RemoteException {
-            mCallbacks.registerObserver(observer);
-        }
-
-        @Override
-        public void unregisterObserver(IJumbleObserver observer) throws RemoteException {
-            mCallbacks.unregisterObserver(observer);
-        }
-
-        @Override
-        public boolean reconfigure(Bundle extras) throws RemoteException {
-            try {
-                return configureExtras(extras);
-            } catch (AudioException e) {
-                e.printStackTrace();
-                // TODO
-                return true;
-            }
-        }
+    /**
+     * The current connection state of the service.
+     */
+    public enum ConnectionState {
+        /**
+         * The default state of Jumble, before connection to a server and after graceful/expected
+         * disconnection from a server.
+         */
+        DISCONNECTED,
+        /**
+         * A connection to the server is currently in progress.
+         */
+        CONNECTING,
+        /**
+         * Jumble has received all data necessary for normal protocol communication with the server.
+         */
+        CONNECTED,
+        /**
+         * The connection was lost due to either a kick/ban or socket I/O error.
+         * Jumble may be reconnecting in this state.
+         * @see JumbleBinder#isReconnecting()
+         * @see JumbleBinder#cancelReconnect()
+         */
+        CONNECTION_LOST
     }
 }

@@ -24,13 +24,13 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.morlunk.jumble.Constants;
-import com.morlunk.jumble.IJumbleObserver;
 import com.morlunk.jumble.R;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.protocol.JumbleTCPMessageListener;
+import com.morlunk.jumble.util.IJumbleObserver;
 import com.morlunk.jumble.util.JumbleLogger;
 import com.morlunk.jumble.util.MessageFormatter;
 
@@ -165,15 +165,10 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
                 channel.addLink(mChannels.get(link));
         }
 
-        final Channel finalChannel = channel;
-        try {
-            if(newChannel)
-                mObserver.onChannelAdded(finalChannel);
-            else
-                mObserver.onChannelStateUpdated(finalChannel);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        if(newChannel)
+            mObserver.onChannelAdded(channel);
+        else
+            mObserver.onChannelStateUpdated(channel);
     }
 
     @Override
@@ -185,11 +180,7 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
             if(parent != null) {
                 parent.removeSubchannel(channel);
             }
-            try {
-                mObserver.onChannelRemoved(channel);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+            mObserver.onChannelRemoved(channel);
         }
     }
 
@@ -204,11 +195,7 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
             channel.setPermissions(msg.getPermissions());
             if(msg.getChannelId() == 0) // If we're provided permissions for the root channel, we'll apply these as our server permissions.
                 mPermissions = channel.getPermissions();
-            try {
-                mObserver.onChannelPermissionsUpdated(channel);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+            mObserver.onChannelPermissionsUpdated(channel);
         }
     }
 
@@ -343,11 +330,7 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
             user.setChannel(channel);
 
             if(!newUser) {
-                try {
-                    mObserver.onUserJoinedChannel(finalUser, channel, old);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
+                mObserver.onUserJoinedChannel(finalUser, channel, old);
             }
 
             Channel sessionChannel = self != null ? self.getChannel() : null;
@@ -402,16 +385,10 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
         if(msg.hasComment())
             user.setComment(msg.getComment());
 
-        final boolean finalNewUser = newUser;
-
-        try {
-            if(finalNewUser)
-                mObserver.onUserConnected(finalUser);
-            else
-                mObserver.onUserStateUpdated(finalUser);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        if (newUser)
+            mObserver.onUserConnected(user);
+        else
+            mObserver.onUserStateUpdated(user);
     }
 
     @Override
@@ -428,12 +405,7 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
             mLogger.logInfo(mContext.getString(R.string.chat_notify_disconnected, MessageFormatter.highlightString(user.getName())));
 
         user.setChannel(null);
-
-        try {
-            mObserver.onUserRemoved(user, reason);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        mObserver.onUserRemoved(user, reason);
     }
 
     @Override
@@ -466,11 +438,7 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
                 else reason = mContext.getString(R.string.perm_denied);
 
         }
-        try {
-            mObserver.onPermissionDenied(reason);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        mObserver.onPermissionDenied(reason);
     }
 
     @Override
@@ -490,11 +458,7 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
         String actorName = sender != null ? sender.getName() : mContext.getString(R.string.server);
 
         Message message = new Message(msg.getActor(), actorName, channels, trees, users, msg.getMessage());
-        try {
-            mObserver.onMessageLogged(message);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        mObserver.onMessageLogged(message);
     }
 
     @Override

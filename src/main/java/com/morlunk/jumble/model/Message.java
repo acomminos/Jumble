@@ -32,7 +32,7 @@ import java.util.List;
  * as the actor may no longer be on the server.
  * Created by andrew on 03/12/13.
  */
-public class Message extends IMessage.Stub {
+public class Message implements IMessage {
     private int mActor;
     private String mActorName;
     private List<Channel> mChannels;
@@ -58,30 +58,37 @@ public class Message extends IMessage.Stub {
         mTrees = trees;
         mUsers = users;
     }
+    @Override
     public int getActor() {
         return mActor;
     }
 
+    @Override
     public String getActorName() {
         return mActorName;
     }
 
+    @Override
     public List<Channel> getTargetChannels() {
         return Collections.unmodifiableList(mChannels);
     }
 
+    @Override
     public List<Channel> getTargetTrees() {
         return Collections.unmodifiableList(mTrees);
     }
 
+    @Override
     public List<User> getTargetUsers() {
         return Collections.unmodifiableList(mUsers);
     }
 
+    @Override
     public String getMessage() {
         return mMessage;
     }
 
+    @Override
     public long getReceivedTime() {
         return mReceivedTime;
     }
