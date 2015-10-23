@@ -21,7 +21,6 @@ import android.content.Intent;
 import android.os.RemoteException;
 import android.test.ServiceTestCase;
 
-import com.morlunk.jumble.JumbleBinder;
 import com.morlunk.jumble.JumbleService;
 import com.morlunk.jumble.model.Server;
 
@@ -45,11 +44,10 @@ public class JumbleServiceTest extends ServiceTestCase<JumbleService> {
         intent.putExtra(JumbleService.EXTRAS_SERVER, DUMMY_SERVER);
         startService(intent);
         JumbleService service = getService();
-        JumbleBinder binder = (JumbleBinder) service.onBind(intent);
-        assertFalse(binder.isReconnecting());
-        assertNull(binder.getConnectionError());
-        assertEquals(JumbleService.ConnectionState.DISCONNECTED, binder.getConnectionState());
-        assertEquals(DUMMY_SERVER, binder.getConnectedServer());
+        assertFalse(service.isReconnecting());
+        assertNull(service.getConnectionError());
+        assertEquals(JumbleService.ConnectionState.DISCONNECTED, service.getConnectionState());
+        assertEquals(DUMMY_SERVER, service.getConnectedServer());
     }
 
 }

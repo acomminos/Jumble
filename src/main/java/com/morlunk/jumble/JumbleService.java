@@ -25,6 +25,7 @@ import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -35,10 +36,15 @@ import android.util.Log;
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.audio.BluetoothScoReceiver;
 import com.morlunk.jumble.exception.AudioException;
+import com.morlunk.jumble.model.Channel;
+import com.morlunk.jumble.model.IChannel;
+import com.morlunk.jumble.model.IUser;
+import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.TalkState;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleConnection;
+import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.util.IJumbleObserver;
 import com.morlunk.jumble.util.JumbleException;
 import com.morlunk.jumble.net.JumbleTCPMessageType;
@@ -50,9 +56,10 @@ import com.morlunk.jumble.util.JumbleLogger;
 
 import java.security.Security;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.List;
 
-public class JumbleService extends Service implements JumbleConnection.JumbleConnectionListener, JumbleLogger, BluetoothScoReceiver.Listener {
+public class JumbleService extends Service implements IJumbleService, JumbleConnection.JumbleConnectionListener, JumbleLogger, BluetoothScoReceiver.Listener {
 
     static {
         // Use Spongy Castle for crypto implementation so we can create and manage PKCS #12 (.p12) certificates.
@@ -234,7 +241,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         return new JumbleBinder(this);
     }
 
-    private void connect() {
+    protected void connect() {
         try {
             setReconnecting(false);
             mConnectionState = ConnectionState.DISCONNECTED;
@@ -576,8 +583,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * Exposes the current connection. The current connection is set once an attempt to connect to
      * a server is made, and remains set until a subsequent connection. It remains available
      * after disconnection to provide information regarding the terminated connection.
-     * @return The active {@link JumbleConnection}, or null if a connection has not been
-     *         established yet.
+     * @return The active {@link JumbleConnection}.
      */
     public JumbleConnection getConnection() {
         return mConnection;
@@ -588,7 +594,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * to a server, and destroyed upon disconnection.
      * @return the active AudioHandler, or null if there is no active connection.
      */
-    public AudioHandler getAudioHandler() {
+    private AudioHandler getAudioHandler() {
         if (!isSynchronized())
             throw new IllegalStateException("Not synchronized");
         if (mAudioHandler == null && mConnectionState == ConnectionState.CONNECTED)
@@ -601,7 +607,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * valid for the lifetime of a connection.
      * @return the active ModelHandler, or null if there is no active connection.
      */
-    public ModelHandler getModelHandler() {
+    private ModelHandler getModelHandler() {
         if (!isSynchronized())
             throw new IllegalStateException("Not synchronized");
         if (mModelHandler == null && mConnectionState == ConnectionState.CONNECTED)
@@ -614,22 +620,315 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
      * @return The {@link BluetoothScoReceiver} attached to this service.
      * @throws IllegalStateException if not synchronized or disconnected.
      */
-    public BluetoothScoReceiver getBluetoothReceiver() {
+    private BluetoothScoReceiver getBluetoothReceiver() {
         if (!isSynchronized())
             throw new IllegalStateException("Not synchronized");
         return mBluetoothReceiver;
     }
 
+    @Override
+    public JumbleService.ConnectionState getConnectionState() {
+        return mConnectionState;
+    }
+
+    @Override
+    public JumbleException getConnectionError() {
+        JumbleConnection connection = getConnection();
+        return connection != null ? connection.getError() : null;
+    }
+
+    @Override
     public boolean isReconnecting() {
         return mReconnecting;
     }
 
-    public ConnectionState getConnectionState() {
-        return mConnectionState;
+    @Override
+    public void cancelReconnect() {
+        setReconnecting(false);
     }
 
+    @Override
+    public long getTCPLatency() {
+        return getConnection().getTCPLatency();
+    }
+
+    @Override
+    public long getUDPLatency() {
+        return getConnection().getUDPLatency();
+    }
+
+    @Override
+    public int getMaxBandwidth() {
+        return getConnection().getMaxBandwidth();
+    }
+
+    @Override
+    public int getCurrentBandwidth() {
+        return getAudioHandler().getCurrentBandwidth();
+    }
+
+    @Override
+    public int getServerVersion() {
+        return getConnection().getServerVersion();
+    }
+
+    @Override
+    public String getServerRelease() {
+        return getConnection().getServerRelease();
+    }
+
+    @Override
+    public String getServerOSName() {
+        return getConnection().getServerOSName();
+    }
+
+    @Override
+    public String getServerOSVersion() {
+        return getConnection().getServerOSVersion();
+    }
+
+    @Override
+    public int getSession() {
+        return getConnection().getSession();
+    }
+
+    @Override
+    public IUser getSessionUser() {
+        return getModelHandler().getUser(getSession());
+    }
+
+    @Override
+    public IChannel getSessionChannel() {
+        IUser user = getSessionUser();
+        if (user != null)
+            return user.getChannel();
+        throw new IllegalStateException("Session user should be set post-synchronization!");
+    }
+
+    @Override
     public Server getConnectedServer() {
         return mServer;
+    }
+
+    @Override
+    public IUser getUser(int session) {
+        return getModelHandler().getUser(session);
+    }
+
+    @Override
+    public IChannel getChannel(int id) {
+        return getModelHandler().getChannel(id);
+    }
+
+    @Override
+    public IChannel getRootChannel() {
+        return getChannel(0);
+    }
+
+    @Override
+    public int getPermissions() {
+        return getModelHandler().getPermissions();
+    }
+
+    @Override
+    public int getTransmitMode() {
+        return getAudioHandler().getTransmitMode();
+    }
+
+    @Override
+    public JumbleUDPMessageType getCodec() {
+        return getConnection().getCodec();
+    }
+
+    @Override
+    public boolean usingBluetoothSco() {
+        return getBluetoothReceiver().isBluetoothScoOn();
+    }
+
+    @Override
+    public void enableBluetoothSco() {
+        getBluetoothReceiver().startBluetoothSco();
+    }
+
+    @Override
+    public void disableBluetoothSco() {
+        getBluetoothReceiver().stopBluetoothSco();
+    }
+
+    @Override
+    public boolean isTalking() {
+        return getAudioHandler().isRecording();
+    }
+
+    @Override
+    public void setTalkingState(boolean talking) {
+        if (getSessionUser().isSelfMuted() || getSessionUser().isMuted())
+            return;
+
+        if (getAudioHandler().getTransmitMode() != Constants.TRANSMIT_PUSH_TO_TALK) {
+            Log.w(Constants.TAG, "Attempted to set talking state when not using PTT");
+            return;
+        }
+
+        try {
+            getAudioHandler().setTalking(talking);
+        } catch (AudioException e) {
+            logError(e.getMessage());
+        }
+    }
+
+    @Override
+    public void joinChannel(int channel) {
+        moveUserToChannel(getSession(), channel);
+    }
+
+    @Override
+    public void moveUserToChannel(int session, int channel) {
+        Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+        usb.setSession(session);
+        usb.setChannelId(channel);
+        getConnection().sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+    }
+
+    @Override
+    public void createChannel(int parent, String name, String description, int position, boolean temporary) {
+        Mumble.ChannelState.Builder csb = Mumble.ChannelState.newBuilder();
+        csb.setParent(parent);
+        csb.setName(name);
+        csb.setDescription(description);
+        csb.setPosition(position);
+        csb.setTemporary(temporary);
+        getConnection().sendTCPMessage(csb.build(), JumbleTCPMessageType.ChannelState);
+    }
+
+    @Override
+    public void sendAccessTokens(final List<String> tokens) {
+        getConnection().sendAccessTokens(tokens);
+    }
+
+    @Override
+    public void requestBanList() {
+        throw new UnsupportedOperationException("Not yet implemented"); // TODO
+    }
+
+    @Override
+    public void requestUserList() {
+        throw new UnsupportedOperationException("Not yet implemented"); // TODO
+    }
+
+    @Override
+    public void requestPermissions(int channel) {
+        Mumble.PermissionQuery.Builder pqb = Mumble.PermissionQuery.newBuilder();
+        pqb.setChannelId(channel);
+        getConnection().sendTCPMessage(pqb.build(), JumbleTCPMessageType.PermissionQuery);
+    }
+
+    @Override
+    public void requestComment(int session) {
+        Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
+        rbb.addSessionComment(session);
+        getConnection().sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
+    }
+
+    @Override
+    public void requestAvatar(int session) {
+        Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
+        rbb.addSessionTexture(session);
+        getConnection().sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
+    }
+
+    @Override
+    public void requestChannelDescription(int channel) {
+        Mumble.RequestBlob.Builder rbb = Mumble.RequestBlob.newBuilder();
+        rbb.addChannelDescription(channel);
+        getConnection().sendTCPMessage(rbb.build(), JumbleTCPMessageType.RequestBlob);
+    }
+
+    @Override
+    public void registerUser(int session) {
+        Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+        usb.setSession(session);
+        usb.setUserId(0);
+        getConnection().sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+    }
+
+    @Override
+    public void kickBanUser(int session, String reason, boolean ban) {
+        Mumble.UserRemove.Builder urb = Mumble.UserRemove.newBuilder();
+        urb.setSession(session);
+        urb.setReason(reason);
+        urb.setBan(ban);
+        getConnection().sendTCPMessage(urb.build(), JumbleTCPMessageType.UserRemove);
+    }
+
+    @Override
+    public Message sendUserTextMessage(int session, String message) {
+        Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
+        tmb.addSession(session);
+        tmb.setMessage(message);
+        getConnection().sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
+
+        User self = getModelHandler().getUser(getSession());
+        User user = getModelHandler().getUser(session);
+        List<User> users = new ArrayList<User>(1);
+        users.add(user);
+        return new Message(getSession(), self.getName(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
+    }
+
+    @Override
+    public Message sendChannelTextMessage(int channel, String message, boolean tree) {
+        Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
+        if(tree) tmb.addTreeId(channel);
+        else tmb.addChannelId(channel);
+        tmb.setMessage(message);
+        getConnection().sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
+
+        User self = getModelHandler().getUser(getSession());
+        Channel targetChannel = getModelHandler().getChannel(channel);
+        List<Channel> targetChannels = new ArrayList<Channel>();
+        targetChannels.add(targetChannel);
+        return new Message(getSession(), self.getName(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
+    }
+
+    @Override
+    public void setUserComment(int session, String comment) {
+        Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+        usb.setSession(session);
+        usb.setComment(comment);
+        getConnection().sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+    }
+
+    @Override
+    public void setPrioritySpeaker(int session, boolean priority) {
+        Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+        usb.setSession(session);
+        usb.setPrioritySpeaker(priority);
+        getConnection().sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+    }
+
+    @Override
+    public void removeChannel(int channel) {
+        Mumble.ChannelRemove.Builder crb = Mumble.ChannelRemove.newBuilder();
+        crb.setChannelId(channel);
+        getConnection().sendTCPMessage(crb.build(), JumbleTCPMessageType.ChannelRemove);
+    }
+
+    @Override
+    public void setMuteDeafState(int session, boolean mute, boolean deaf) {
+        Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+        usb.setSession(session);
+        usb.setMute(mute);
+        usb.setDeaf(deaf);
+        if (!mute) usb.setSuppress(false);
+        getConnection().sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
+    }
+
+    @Override
+    public void setSelfMuteDeafState(boolean mute, boolean deaf) {
+        Mumble.UserState.Builder usb = Mumble.UserState.newBuilder();
+        usb.setSelfMute(mute);
+        usb.setSelfDeaf(deaf);
+        getConnection().sendTCPMessage(usb.build(), JumbleTCPMessageType.UserState);
     }
 
     public void registerObserver(IJumbleObserver observer) {
@@ -639,6 +938,7 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
     public void unregisterObserver(IJumbleObserver observer) {
         mCallbacks.unregisterObserver(observer);
     }
+
 
     /**
      * The current connection state of the service.
@@ -660,9 +960,21 @@ public class JumbleService extends Service implements JumbleConnection.JumbleCon
         /**
          * The connection was lost due to either a kick/ban or socket I/O error.
          * Jumble may be reconnecting in this state.
-         * @see JumbleBinder#isReconnecting()
-         * @see JumbleBinder#cancelReconnect()
+         * @see #isReconnecting()
+         * @see #cancelReconnect()
          */
         CONNECTION_LOST
+    }
+
+    public static class JumbleBinder extends Binder {
+        private final IJumbleService mService;
+
+        private JumbleBinder(IJumbleService service) {
+            mService = service;
+        }
+
+        public IJumbleService getService() {
+            return mService;
+        }
     }
 }
