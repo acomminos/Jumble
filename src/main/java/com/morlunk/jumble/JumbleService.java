@@ -36,6 +36,8 @@ import android.util.Log;
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.audio.BluetoothScoReceiver;
 import com.morlunk.jumble.exception.AudioException;
+import com.morlunk.jumble.exception.NotConnectedException;
+import com.morlunk.jumble.exception.NotSynchronizedException;
 import com.morlunk.jumble.model.Channel;
 import com.morlunk.jumble.model.IChannel;
 import com.morlunk.jumble.model.IUser;
@@ -167,12 +169,18 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    if(!isConnectionEstablished()) return;
-                    final User currentUser = mModelHandler.getUser(mConnection.getSession());
-                    if(currentUser == null) return;
+                    try {
+                        if (!isSynchronized())
+                            throw new NotSynchronizedException();
 
-                    currentUser.setTalkState(state);
-                    mCallbacks.onUserTalkStateUpdated(currentUser);
+                        final User currentUser = mModelHandler.getUser(mConnection.getSession());
+                        if (currentUser == null) return;
+
+                        currentUser.setTalkState(state);
+                        mCallbacks.onUserTalkStateUpdated(currentUser);
+                    } catch (NotSynchronizedException e) {
+                        e.printStackTrace();
+                    }
                 }
             });
         }
@@ -280,7 +288,7 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
      * the server's model and settings. This is the main state of the service.
      */
     public boolean isSynchronized() {
-        return mConnectionState == ConnectionState.CONNECTED;
+        return mConnection != null && mConnection.isSynchronized();
     }
 
     @Override
@@ -321,6 +329,8 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
         } catch (AudioException e) {
             e.printStackTrace();
             onConnectionWarning(e.getMessage());
+        } catch (NotSynchronizedException e) {
+            throw new RuntimeException("Connection should be synchronized in callback for synchronization!", e);
         }
 
         mCallbacks.onConnected();
@@ -437,11 +447,15 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
             mAudioHandler.shutdown();
         }
 
-        mAudioHandler = mAudioBuilder.initialize(
-                mModelHandler.getUser(mConnection.getSession()),
-                mConnection.getMaxBandwidth(), mConnection.getCodec());
-        mConnection.addTCPMessageHandlers(mAudioHandler);
-        mConnection.addUDPMessageHandlers(mAudioHandler);
+        try {
+            mAudioHandler = mAudioBuilder.initialize(
+                    mModelHandler.getUser(mConnection.getSession()),
+                    mConnection.getMaxBandwidth(), mConnection.getCodec());
+            mConnection.addTCPMessageHandlers(mAudioHandler);
+            mConnection.addUDPMessageHandlers(mAudioHandler);
+        } catch (NotSynchronizedException e) {
+            throw new RuntimeException("Attempted to create audio handler when not synchronized!");
+        }
     }
 
     /**
@@ -594,9 +608,9 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
      * to a server, and destroyed upon disconnection.
      * @return the active AudioHandler, or null if there is no active connection.
      */
-    private AudioHandler getAudioHandler() {
+    private AudioHandler getAudioHandler() throws NotSynchronizedException {
         if (!isSynchronized())
-            throw new IllegalStateException("Not synchronized");
+            throw new NotSynchronizedException();
         if (mAudioHandler == null && mConnectionState == ConnectionState.CONNECTED)
             throw new RuntimeException("Audio handler should always be instantiated while connected!");
         return mAudioHandler;
@@ -607,9 +621,9 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
      * valid for the lifetime of a connection.
      * @return the active ModelHandler, or null if there is no active connection.
      */
-    private ModelHandler getModelHandler() {
+    private ModelHandler getModelHandler() throws NotSynchronizedException {
         if (!isSynchronized())
-            throw new IllegalStateException("Not synchronized");
+            throw new NotSynchronizedException();
         if (mModelHandler == null && mConnectionState == ConnectionState.CONNECTED)
             throw new RuntimeException("Model handler should always be instantiated while connected!");
         return mModelHandler;
@@ -618,11 +632,10 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
     /**
      * Returns the bluetooth service provider, established after synchronization.
      * @return The {@link BluetoothScoReceiver} attached to this service.
-     * @throws IllegalStateException if not synchronized or disconnected.
      */
-    private BluetoothScoReceiver getBluetoothReceiver() {
+    private BluetoothScoReceiver getBluetoothReceiver() throws NotSynchronizedException {
         if (!isSynchronized())
-            throw new IllegalStateException("Not synchronized");
+            throw new NotSynchronizedException();
         return mBluetoothReceiver;
     }
 
@@ -649,52 +662,92 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
 
     @Override
     public long getTCPLatency() {
-        return getConnection().getTCPLatency();
+        try {
+            return getConnection().getTCPLatency();
+        } catch (NotConnectedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public long getUDPLatency() {
-        return getConnection().getUDPLatency();
+        try {
+            return getConnection().getUDPLatency();
+        } catch (NotConnectedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public int getMaxBandwidth() {
-        return getConnection().getMaxBandwidth();
+        try {
+            return getConnection().getMaxBandwidth();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public int getCurrentBandwidth() {
-        return getAudioHandler().getCurrentBandwidth();
+        try {
+            return getAudioHandler().getCurrentBandwidth();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public int getServerVersion() {
-        return getConnection().getServerVersion();
+        try {
+            return getConnection().getServerVersion();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public String getServerRelease() {
-        return getConnection().getServerRelease();
+        try {
+            return getConnection().getServerRelease();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public String getServerOSName() {
-        return getConnection().getServerOSName();
+        try {
+            return getConnection().getServerOSName();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public String getServerOSVersion() {
-        return getConnection().getServerOSVersion();
+        try {
+            return getConnection().getServerOSVersion();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public int getSession() {
-        return getConnection().getSession();
+        try {
+            return getConnection().getSession();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public IUser getSessionUser() {
-        return getModelHandler().getUser(getSession());
+        try {
+            return getModelHandler().getUser(getSession());
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
@@ -712,12 +765,20 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
 
     @Override
     public IUser getUser(int session) {
-        return getModelHandler().getUser(session);
+        try {
+            return getModelHandler().getUser(session);
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public IChannel getChannel(int id) {
-        return getModelHandler().getChannel(id);
+        try {
+            return getModelHandler().getChannel(id);
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
@@ -727,37 +788,65 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
 
     @Override
     public int getPermissions() {
-        return getModelHandler().getPermissions();
+        try {
+            return getModelHandler().getPermissions();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public int getTransmitMode() {
-        return getAudioHandler().getTransmitMode();
+        try {
+            return getAudioHandler().getTransmitMode();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public JumbleUDPMessageType getCodec() {
-        return getConnection().getCodec();
+        try {
+            return getConnection().getCodec();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public boolean usingBluetoothSco() {
-        return getBluetoothReceiver().isBluetoothScoOn();
+        try {
+            return getBluetoothReceiver().isBluetoothScoOn();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public void enableBluetoothSco() {
-        getBluetoothReceiver().startBluetoothSco();
+        try {
+            getBluetoothReceiver().startBluetoothSco();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public void disableBluetoothSco() {
-        getBluetoothReceiver().stopBluetoothSco();
+        try {
+            getBluetoothReceiver().stopBluetoothSco();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public boolean isTalking() {
-        return getAudioHandler().isRecording();
+        try {
+            return getAudioHandler().isRecording();
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
@@ -765,15 +854,19 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
         if (getSessionUser().isSelfMuted() || getSessionUser().isMuted())
             return;
 
-        if (getAudioHandler().getTransmitMode() != Constants.TRANSMIT_PUSH_TO_TALK) {
-            Log.w(Constants.TAG, "Attempted to set talking state when not using PTT");
-            return;
-        }
-
         try {
-            getAudioHandler().setTalking(talking);
-        } catch (AudioException e) {
-            logError(e.getMessage());
+            if (getAudioHandler().getTransmitMode() != Constants.TRANSMIT_PUSH_TO_TALK) {
+                Log.w(Constants.TAG, "Attempted to set talking state when not using PTT");
+                return;
+            }
+
+            try {
+                getAudioHandler().setTalking(talking);
+            } catch (AudioException e) {
+                logError(e.getMessage());
+            }
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
         }
     }
 
@@ -863,31 +956,45 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
 
     @Override
     public Message sendUserTextMessage(int session, String message) {
-        Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
-        tmb.addSession(session);
-        tmb.setMessage(message);
-        getConnection().sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
+        try {
+            if (!isSynchronized())
+                throw new NotSynchronizedException();
 
-        User self = getModelHandler().getUser(getSession());
-        User user = getModelHandler().getUser(session);
-        List<User> users = new ArrayList<User>(1);
-        users.add(user);
-        return new Message(getSession(), self.getName(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
+            Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
+            tmb.addSession(session);
+            tmb.setMessage(message);
+            getConnection().sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
+
+            User self = getModelHandler().getUser(getSession());
+            User user = getModelHandler().getUser(session);
+            List<User> users = new ArrayList<User>(1);
+            users.add(user);
+            return new Message(getSession(), self.getName(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public Message sendChannelTextMessage(int channel, String message, boolean tree) {
-        Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
-        if(tree) tmb.addTreeId(channel);
-        else tmb.addChannelId(channel);
-        tmb.setMessage(message);
-        getConnection().sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
+        try {
+            if (!isSynchronized())
+                throw new NotSynchronizedException();
 
-        User self = getModelHandler().getUser(getSession());
-        Channel targetChannel = getModelHandler().getChannel(channel);
-        List<Channel> targetChannels = new ArrayList<Channel>();
-        targetChannels.add(targetChannel);
-        return new Message(getSession(), self.getName(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
+            Mumble.TextMessage.Builder tmb = Mumble.TextMessage.newBuilder();
+            if (tree) tmb.addTreeId(channel);
+            else tmb.addChannelId(channel);
+            tmb.setMessage(message);
+            getConnection().sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
+
+            User self = getModelHandler().getUser(getSession());
+            Channel targetChannel = getModelHandler().getChannel(channel);
+            List<Channel> targetChannels = new ArrayList<Channel>();
+            targetChannels.add(targetChannel);
+            return new Message(getSession(), self.getName(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
+        } catch (NotSynchronizedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override

@@ -25,6 +25,8 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.morlunk.jumble.Constants;
+import com.morlunk.jumble.exception.NotConnectedException;
+import com.morlunk.jumble.exception.NotSynchronizedException;
 import com.morlunk.jumble.protobuf.Mumble;
 import com.morlunk.jumble.protocol.JumbleTCPMessageListener;
 import com.morlunk.jumble.protocol.JumbleUDPMessageListener;
@@ -398,45 +400,45 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         mTrustStoreFormat = format;
     }
 
-    public int getServerVersion() {
+    public int getServerVersion() throws NotSynchronizedException {
         if (!isSynchronized())
-            throw new IllegalStateException("Not synchronized");
+            throw new NotSynchronizedException();
         return mServerVersion;
     }
 
-    public String getServerRelease() {
+    public String getServerRelease() throws NotSynchronizedException {
         if (!isSynchronized())
-            throw new IllegalStateException("Not synchronized");
+            throw new NotSynchronizedException();
         return mServerRelease;
     }
 
-    public String getServerOSName() {
+    public String getServerOSName() throws NotSynchronizedException {
         if (!isSynchronized())
-            throw new IllegalStateException("Not synchronized");
+            throw new NotSynchronizedException();
         return mServerOSName;
     }
 
-    public String getServerOSVersion() {
+    public String getServerOSVersion() throws NotSynchronizedException {
         if (!isSynchronized())
-            throw new IllegalStateException("Not synchronized");
+            throw new NotSynchronizedException();
         return mServerOSVersion;
     }
 
-    public long getTCPLatency() {
+    public long getTCPLatency() throws NotConnectedException {
         if (!isConnected())
-            throw new IllegalStateException("Not connected");
+            throw new NotConnectedException();
         return mLastTCPPing;
     }
 
-    public long getUDPLatency() {
+    public long getUDPLatency() throws NotConnectedException {
         if (!isConnected())
-            throw new IllegalStateException("Not connected");
+            throw new NotConnectedException();
         return mLastUDPPing;
     }
 
-    public int getSession() {
+    public int getSession() throws NotSynchronizedException {
         if (!isSynchronized())
-            throw new IllegalStateException("Not synchronized");
+            throw new NotSynchronizedException("Session is set during synchronization");
         return mSession;
     }
 
@@ -444,15 +446,15 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
      * Returns the server-reported maximum input bandwidth, or -1 if not set.
      * @return the input bandwidth in bps, or -1 if not set.
      */
-    public int getMaxBandwidth() {
+    public int getMaxBandwidth() throws NotSynchronizedException {
         if (!isSynchronized())
-            throw new IllegalStateException("Not synchronized");
+            throw new NotSynchronizedException();
         return mMaxBandwidth;
     }
 
-    public JumbleUDPMessageType getCodec() {
+    public JumbleUDPMessageType getCodec() throws NotSynchronizedException {
         if (!isSynchronized())
-            throw new IllegalStateException("Not synchronized");
+            throw new NotSynchronizedException();
         return mCodec;
     }
 
