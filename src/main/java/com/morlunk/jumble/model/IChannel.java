@@ -38,6 +38,8 @@ public interface IChannel {
 
     List<? extends IChannel> getSubchannels();
 
+    int getSubchannelUserCount();
+
     List<? extends IChannel> getLinks();
 
     int getPermissions();

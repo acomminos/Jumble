@@ -57,5 +57,9 @@ public interface IUser {
 
     boolean isLocalIgnored();
 
+    void setLocalMuted(boolean muted);
+
+    void setLocalIgnored(boolean ignored);
+
     TalkState getTalkState();
 }
