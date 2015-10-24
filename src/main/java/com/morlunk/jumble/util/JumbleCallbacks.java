@@ -24,8 +24,10 @@ import com.morlunk.jumble.model.IUser;
 import org.spongycastle.jcajce.provider.asymmetric.X509;
 
 import java.security.cert.X509Certificate;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A composite wrapper around Jumble observers to easily broadcast to each observer.
@@ -35,7 +37,7 @@ public class JumbleCallbacks implements IJumbleObserver {
     private final Set<IJumbleObserver> mCallbacks;
 
     public JumbleCallbacks() {
-        mCallbacks = new HashSet<>();
+        mCallbacks = Collections.newSetFromMap(new ConcurrentHashMap<IJumbleObserver, Boolean>());
     }
 
     public void registerObserver(IJumbleObserver observer) {
