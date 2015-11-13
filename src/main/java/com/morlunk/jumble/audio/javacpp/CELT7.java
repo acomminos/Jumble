@@ -24,6 +24,7 @@ import com.googlecode.javacpp.annotation.Cast;
 import com.googlecode.javacpp.annotation.Platform;
 import com.morlunk.jumble.audio.IDecoder;
 import com.morlunk.jumble.exception.NativeAudioException;
+import com.morlunk.jumble.protocol.AudioHandler;
 
 import java.nio.ByteBuffer;
 
@@ -55,6 +56,17 @@ public class CELT7 {
     public static native int celt_encoder_ctl(@Cast("CELTEncoder*")Pointer state, int request, int val);
     public static native int celt_encode(@Cast("CELTEncoder *") Pointer state, @Cast("const short *") short[] pcm, @Cast("short *") short[] optionalSynthesis, @Cast("unsigned char *") byte[] compressed, int nbCompressedBytes);
     public static native void celt_encoder_destroy(@Cast("CELTEncoder *") Pointer state);
+
+    /**
+     * @return an integer describing the CELT bitstream version.
+     */
+    public static int getBitstreamVersion() {
+        IntPointer versionPtr = new IntPointer();
+        Pointer modePtr = celt_mode_create(AudioHandler.SAMPLE_RATE, AudioHandler.FRAME_SIZE, null);
+        celt_mode_info(modePtr, CELT_GET_BITSTREAM_VERSION, versionPtr);
+        celt_mode_destroy(modePtr);
+        return versionPtr.get();
+    }
 
     public static class CELT7Decoder implements IDecoder {
 

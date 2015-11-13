@@ -35,6 +35,7 @@ import android.util.Log;
 
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.audio.BluetoothScoReceiver;
+import com.morlunk.jumble.audio.javacpp.CELT7;
 import com.morlunk.jumble.exception.AudioException;
 import com.morlunk.jumble.exception.NotConnectedException;
 import com.morlunk.jumble.exception.NotSynchronizedException;
@@ -303,7 +304,7 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
         final Mumble.Authenticate.Builder auth = Mumble.Authenticate.newBuilder();
         auth.setUsername(mServer.getUsername());
         auth.setPassword(mServer.getPassword());
-        auth.addCeltVersions(Constants.CELT_7_VERSION);
+        auth.addCeltVersions(CELT7.getBitstreamVersion());
         // FIXME: resolve issues with CELT 11 robot voices.
 //            auth.addCeltVersions(Constants.CELT_11_VERSION);
         auth.setOpus(mUseOpus);
