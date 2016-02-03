@@ -195,7 +195,10 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
 
         @Override
         public User getUser(int session) {
-            return mModelHandler.getUser(session);
+            if (mModelHandler != null) {
+                return mModelHandler.getUser(session);
+            }
+            return null;
         }
     };
 
