@@ -195,11 +195,18 @@ public class AudioInput implements Runnable {
             int shortsRead = mAudioRecord.read(mAudioBuffer, 0, mFrameSize);
             if(shortsRead > 0) {
                 // Boost/reduce amplitude based on user preference
+                // TODO: perhaps amplify to the largest value that does not result in clipping.
                 if(mAmplitudeBoost != 1.0f) {
                     for(int i = 0; i < mFrameSize; i++) {
-                        mAudioBuffer[i] *= mAmplitudeBoost;
-                        if(mAudioBuffer[i] > Short.MAX_VALUE) mAudioBuffer[i] = Short.MAX_VALUE;
-                        else if(mAudioBuffer[i] < Short.MIN_VALUE) mAudioBuffer[i] = Short.MIN_VALUE;
+                        // Java only guarantees the bounded preservation of sign in a narrowing
+                        // primitive conversion from float -> int, not float -> int -> short.
+                        float val = mAudioBuffer[i] * mAmplitudeBoost;
+                        if (val > Short.MAX_VALUE) {
+                            val = Short.MAX_VALUE;
+                        } else if (val < Short.MIN_VALUE) {
+                            val = Short.MIN_VALUE;
+                        }
+                        mAudioBuffer[i] = (short) val;
                     }
                 }
 
@@ -209,21 +216,24 @@ public class AudioInput implements Runnable {
                     // Use a logarithmic energy-based scale for VAD.
                     float sum = 1.0f;
                     for (int i = 0; i < mFrameSize; i++) {
-                        sum += mAudioBuffer[i] * mAudioBuffer[i];
+                        sum += Math.pow(mAudioBuffer[i], 2);
                     }
                     float micLevel = (float) Math.sqrt(sum / (float)mFrameSize);
                     float peakSignal = (float) (20.0f*Math.log10(micLevel / 32768.0f))/96.0f;
                     talking = (peakSignal+1) >= mVADThreshold;
 
                     /* Record the last time where VAD was detected in order to prevent speech dropping. */
-                    if(talking) vadLastDetectedTime = System.nanoTime();
+                    if(talking) {
+                        vadLastDetectedTime = System.nanoTime();
+                    } else {
+                        talking = (System.nanoTime() - vadLastDetectedTime) < SPEECH_DETECT_THRESHOLD;
+                    }
 
-//                    Log.v(Constants.TAG, String.format("Signal: %2f, Threshold: %2f", peakSignal+1, mVADThreshold));
-                    talking |= (System.nanoTime() - vadLastDetectedTime) < SPEECH_DETECT_THRESHOLD;
+                    // Update the service with the new talking state if we detected voice.
+                    if(talking ^ vadLastDetected) {
+                        mListener.onTalkStateChange(talking ? TalkState.TALKING : TalkState.PASSIVE);
+                    }
 
-                    if(talking ^ vadLastDetected) // Update the service with the new talking state if we detected voice.
-                        mListener.onTalkStateChange(talking ? TalkState.TALKING :
-                                                            TalkState.PASSIVE);
                     vadLastDetected = talking;
                 }
 
