@@ -25,7 +25,7 @@ public class ActivityInputMode implements IInputMode {
     // Continue speech for 250ms to prevent dropping.
     private static final int SPEECH_DELAY = (int) (0.25 * Math.pow(10, 9));
 
-    private final float mVADThreshold;
+    private float mVADThreshold;
     private long mVADLastDetected;
 
     public ActivityInputMode(float detectionThreshold) {
@@ -33,7 +33,7 @@ public class ActivityInputMode implements IInputMode {
     }
 
     @Override
-    public boolean onInputReceived(short[] pcm, int length) {
+    public boolean shouldTransmit(short[] pcm, int length) {
         // Use a logarithmic energy-based scale for VAD.
         float sum = 1.0f;
         for (int i = 0; i < length; i++) {
@@ -43,13 +43,17 @@ public class ActivityInputMode implements IInputMode {
         float peakSignal = (float) (20.0f * Math.log10(micLevel / 32768.0f)) / 96.0f;
         boolean talking = (peakSignal + 1) >= mVADThreshold;
 
-        talking |= (System.nanoTime() - mVADLastDetected) < SPEECH_DELAY;
-
         // Record the last time where VAD was detected in order to prevent speech dropping.
         if(talking) {
             mVADLastDetected = System.nanoTime();
         }
 
+        talking |= (System.nanoTime() - mVADLastDetected) < SPEECH_DELAY;
+
         return talking;
+    }
+
+    public void setThreshold(float threshold) {
+        mVADThreshold = threshold;
     }
 }

@@ -35,6 +35,10 @@ import android.util.Log;
 
 import com.morlunk.jumble.audio.AudioOutput;
 import com.morlunk.jumble.audio.BluetoothScoReceiver;
+import com.morlunk.jumble.audio.inputmode.ActivityInputMode;
+import com.morlunk.jumble.audio.inputmode.ContinuousInputMode;
+import com.morlunk.jumble.audio.inputmode.IInputMode;
+import com.morlunk.jumble.audio.inputmode.ToggleInputMode;
 import com.morlunk.jumble.audio.javacpp.CELT7;
 import com.morlunk.jumble.exception.AudioException;
 import com.morlunk.jumble.exception.NotConnectedException;
@@ -124,6 +128,7 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
     private List<Integer> mLocalMuteHistory;
     private List<Integer> mLocalIgnoreHistory;
     private AudioHandler.Builder mAudioBuilder;
+    private int mTransmitMode;
 
     private PowerManager.WakeLock mWakeLock;
     private Handler mHandler;
@@ -134,6 +139,10 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
     private ModelHandler mModelHandler;
     private AudioHandler mAudioHandler;
     private BluetoothScoReceiver mBluetoothReceiver;
+
+    private ActivityInputMode mActivityInputMode;
+    private ToggleInputMode mToggleInputMode;
+    private ContinuousInputMode mContinuousInputMode;
 
     private boolean mReconnecting;
 
@@ -158,34 +167,38 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
 
     private AudioHandler.AudioEncodeListener mAudioInputListener =
             new AudioHandler.AudioEncodeListener() {
-        @Override
-        public void onAudioEncoded(byte[] data, int length) {
-            if(mConnection != null && mConnection.isSynchronized()) {
-                mConnection.sendUDPMessage(data, length, false);
-            }
-        }
-
-        @Override
-        public void onTalkStateChange(final TalkState state) {
-            mHandler.post(new Runnable() {
                 @Override
-                public void run() {
-                    try {
-                        if (!isSynchronized())
-                            throw new NotSynchronizedException();
-
-                        final User currentUser = mModelHandler.getUser(mConnection.getSession());
-                        if (currentUser == null) return;
-
-                        currentUser.setTalkState(state);
-                        mCallbacks.onUserTalkStateUpdated(currentUser);
-                    } catch (NotSynchronizedException e) {
-                        e.printStackTrace();
+                public void onAudioEncoded(byte[] data, int length) {
+                    if(mConnection != null && mConnection.isSynchronized()) {
+                        mConnection.sendUDPMessage(data, length, false);
                     }
                 }
-            });
-        }
-    };
+
+                @Override
+                public void setTransmitting(final boolean talking) {
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                if (!isSynchronized())
+                                    throw new NotSynchronizedException();
+
+                                final User currentUser = mModelHandler.getUser(mConnection.getSession());
+                                if (currentUser == null) return;
+
+                                // FIXME: should be changed to work for whispers.
+                                if ((currentUser.getTalkState() == TalkState.TALKING) ^ talking) {
+                                    currentUser.setTalkState(talking ? TalkState.TALKING : TalkState.PASSIVE);
+                                    mCallbacks.onUserTalkStateUpdated(currentUser);
+
+                                }
+                            } catch (NotSynchronizedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                }
+            };
 
     private AudioOutput.AudioOutputListener mAudioOutputListener = new AudioOutput.AudioOutputListener() {
         @Override
@@ -241,6 +254,9 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
         mConnectionState = ConnectionState.DISCONNECTED;
         mBluetoothReceiver = new BluetoothScoReceiver(this, this);
         registerReceiver(mBluetoothReceiver, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_CHANGED));
+        mToggleInputMode = new ToggleInputMode();
+        mActivityInputMode = new ActivityInputMode(0); // FIXME: reasonable default
+        mContinuousInputMode = new ContinuousInputMode();
     }
 
     @Override
@@ -490,13 +506,28 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
             reconnectNeeded = true;
         }
         if (extras.containsKey(EXTRAS_DETECTION_THRESHOLD)) {
-            mAudioBuilder.setVADThreshold(extras.getFloat(EXTRAS_DETECTION_THRESHOLD));
+            mActivityInputMode.setThreshold(extras.getFloat(EXTRAS_DETECTION_THRESHOLD));
         }
         if (extras.containsKey(EXTRAS_AMPLITUDE_BOOST)) {
             mAudioBuilder.setAmplitudeBoost(extras.getFloat(EXTRAS_AMPLITUDE_BOOST));
         }
         if (extras.containsKey(EXTRAS_TRANSMIT_MODE)) {
-            mAudioBuilder.setTransmitMode(extras.getInt(EXTRAS_TRANSMIT_MODE));
+            mTransmitMode = extras.getInt(EXTRAS_TRANSMIT_MODE);
+            IInputMode inputMode;
+            switch (mTransmitMode) {
+                case Constants.TRANSMIT_PUSH_TO_TALK:
+                    inputMode = mToggleInputMode;
+                    break;
+                case Constants.TRANSMIT_CONTINUOUS:
+                    inputMode = mContinuousInputMode;
+                    break;
+                case Constants.TRANSMIT_VOICE_ACTIVITY:
+                    inputMode = mActivityInputMode;
+                    break;
+                default:
+                    throw new IllegalArgumentException();
+            }
+            mAudioBuilder.setInputMode(inputMode);
         }
         if (extras.containsKey(EXTRAS_INPUT_RATE)) {
             mAudioBuilder.setInputSampleRate(extras.getInt(EXTRAS_INPUT_RATE));
@@ -549,7 +580,9 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
             reconnectNeeded = true;
         }
         if (extras.containsKey(EXTRAS_HALF_DUPLEX)) {
-            mAudioBuilder.setHalfDuplexEnabled(extras.getBoolean(EXTRAS_HALF_DUPLEX));
+            mAudioBuilder.setHalfDuplexEnabled(
+                    extras.getInt(EXTRAS_TRANSMIT_MODE) == Constants.TRANSMIT_PUSH_TO_TALK
+                            && extras.getBoolean(EXTRAS_HALF_DUPLEX));
         }
         if (extras.containsKey(EXTRAS_LOCAL_MUTE_HISTORY)) {
             mLocalMuteHistory = extras.getIntegerArrayList(EXTRAS_LOCAL_MUTE_HISTORY);
@@ -801,11 +834,7 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
 
     @Override
     public int getTransmitMode() {
-        try {
-            return getAudioHandler().getTransmitMode();
-        } catch (NotSynchronizedException e) {
-            throw new IllegalStateException(e);
-        }
+        return mTransmitMode;
     }
 
     @Override
@@ -846,32 +875,12 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
 
     @Override
     public boolean isTalking() {
-        try {
-            return getAudioHandler().isRecording();
-        } catch (NotSynchronizedException e) {
-            throw new IllegalStateException(e);
-        }
+        return mToggleInputMode.isTalkingOn();
     }
 
     @Override
     public void setTalkingState(boolean talking) {
-        if (getSessionUser().isSelfMuted() || getSessionUser().isMuted())
-            return;
-
-        try {
-            if (getAudioHandler().getTransmitMode() != Constants.TRANSMIT_PUSH_TO_TALK) {
-                Log.w(Constants.TAG, "Attempted to set talking state when not using PTT");
-                return;
-            }
-
-            try {
-                getAudioHandler().setTalking(talking);
-            } catch (AudioException e) {
-                logError(e.getMessage());
-            }
-        } catch (NotSynchronizedException e) {
-            throw new IllegalStateException(e);
-        }
+        mToggleInputMode.setTalkingOn(talking);
     }
 
     @Override

@@ -32,28 +32,18 @@ import com.morlunk.jumble.protocol.AudioHandler;
  */
 public class AudioInput implements Runnable {
     public static final int[] SAMPLE_RATES = { 48000, 44100, 16000, 8000 };
-    private static final int SPEECH_DETECT_THRESHOLD = (int) (0.25 * Math.pow(10, 9)); // Continue speech for 250ms to prevent dropping
 
     // AudioRecord state
     private AudioInputListener mListener;
     private AudioRecord mAudioRecord;
     private final int mFrameSize;
 
-    // Preferences
-    private int mTransmitMode;
-    private float mVADThreshold;
-    private float mAmplitudeBoost = 1.0f;
-
     private Thread mRecordThread;
     private boolean mRecording;
 
-    public AudioInput(AudioInputListener listener, int audioSource, int targetSampleRate,
-                      int transmitMode, float vadThreshold, float amplitudeBoost) throws
-            NativeAudioException, AudioInitializationException {
+    public AudioInput(AudioInputListener listener, int audioSource, int targetSampleRate)
+            throws NativeAudioException, AudioInitializationException {
         mListener = listener;
-        mTransmitMode = transmitMode;
-        mVADThreshold = vadThreshold;
-        mAmplitudeBoost = amplitudeBoost;
 
         // Attempt to construct an AudioRecord with the target sample rate first.
         // If it fails, keep producing AudioRecord instances until we find one that initializes
@@ -122,15 +112,6 @@ public class AudioInput implements Runnable {
         }
     }
 
-    public void setVADThreshold(float threshold) {
-        mVADThreshold = threshold;
-    }
-
-    public void setAmplitudeBoost(float boost) {
-        if(boost < 0) throw new IllegalArgumentException("Amplitude boost must not be a negative number!");
-        mAmplitudeBoost = boost;
-    }
-
     /**
      * Stops the record loop and waits on it to finish.
      * Releases native audio resources.
@@ -178,68 +159,17 @@ public class AudioInput implements Runnable {
 
         Log.i(Constants.TAG, "AudioInput: started");
 
-        boolean vadLastDetected = false;
-        long vadLastDetectedTime = 0;
-
         mAudioRecord.startRecording();
 
         if(mAudioRecord.getState() != AudioRecord.STATE_INITIALIZED)
             return;
-
-        if(mTransmitMode == Constants.TRANSMIT_CONTINUOUS || mTransmitMode == Constants.TRANSMIT_PUSH_TO_TALK)
-            mListener.onTalkStateChange(TalkState.TALKING);
 
         final short[] mAudioBuffer = new short[mFrameSize];
         // We loop when the 'recording' instance var is true instead of checking audio record state because we want to always cleanly shutdown.
         while(mRecording) {
             int shortsRead = mAudioRecord.read(mAudioBuffer, 0, mFrameSize);
             if(shortsRead > 0) {
-                // Boost/reduce amplitude based on user preference
-                // TODO: perhaps amplify to the largest value that does not result in clipping.
-                if(mAmplitudeBoost != 1.0f) {
-                    for(int i = 0; i < mFrameSize; i++) {
-                        // Java only guarantees the bounded preservation of sign in a narrowing
-                        // primitive conversion from float -> int, not float -> int -> short.
-                        float val = mAudioBuffer[i] * mAmplitudeBoost;
-                        if (val > Short.MAX_VALUE) {
-                            val = Short.MAX_VALUE;
-                        } else if (val < Short.MIN_VALUE) {
-                            val = Short.MIN_VALUE;
-                        }
-                        mAudioBuffer[i] = (short) val;
-                    }
-                }
-
-                boolean talking = true;
-
-                if(mTransmitMode == Constants.TRANSMIT_VOICE_ACTIVITY) {
-                    // Use a logarithmic energy-based scale for VAD.
-                    float sum = 1.0f;
-                    for (int i = 0; i < mFrameSize; i++) {
-                        sum += Math.pow(mAudioBuffer[i], 2);
-                    }
-                    float micLevel = (float) Math.sqrt(sum / (float)mFrameSize);
-                    float peakSignal = (float) (20.0f*Math.log10(micLevel / 32768.0f))/96.0f;
-                    talking = (peakSignal+1) >= mVADThreshold;
-
-                    /* Record the last time where VAD was detected in order to prevent speech dropping. */
-                    if(talking) {
-                        vadLastDetectedTime = System.nanoTime();
-                    } else {
-                        talking = (System.nanoTime() - vadLastDetectedTime) < SPEECH_DETECT_THRESHOLD;
-                    }
-
-                    // Update the service with the new talking state if we detected voice.
-                    if(talking ^ vadLastDetected) {
-                        mListener.onTalkStateChange(talking ? TalkState.TALKING : TalkState.PASSIVE);
-                    }
-
-                    vadLastDetected = talking;
-                }
-
-                if(talking) {
-                    mListener.onAudioInputReceived(mAudioBuffer, mFrameSize);
-                }
+                mListener.onAudioInputReceived(mAudioBuffer, mFrameSize);
             } else {
                 Log.e(Constants.TAG, "Error fetching audio! AudioRecord error " + shortsRead);
             }
@@ -247,13 +177,10 @@ public class AudioInput implements Runnable {
 
         mAudioRecord.stop();
 
-        mListener.onTalkStateChange(TalkState.PASSIVE);
-
         Log.i(Constants.TAG, "AudioInput: stopped");
     }
 
     public interface AudioInputListener {
-        public void onTalkStateChange(TalkState state);
-        public void onAudioInputReceived(short[] frame, int frameSize);
+        void onAudioInputReceived(short[] frame, int frameSize);
     }
 }

@@ -28,5 +28,5 @@ public interface IInputMode {
      * @param length The number of shorts in the PCM data.
      * @return true if the input should be transmitted.
      */
-    boolean onInputReceived(short[] pcm, int length);
+    boolean shouldTransmit(short[] pcm, int length);
 }

@@ -23,7 +23,7 @@ package com.morlunk.jumble.audio.inputmode;
  */
 public class ContinuousInputMode implements IInputMode {
     @Override
-    public boolean onInputReceived(short[] pcm, int length) {
+    public boolean shouldTransmit(short[] pcm, int length) {
         return true;
     }
 }

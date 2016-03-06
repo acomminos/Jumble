@@ -41,7 +41,7 @@ public class ToggleInputMode implements IInputMode {
     }
 
     @Override
-    public boolean onInputReceived(short[] pcm, int length) {
+    public boolean shouldTransmit(short[] pcm, int length) {
         return mInputOn;
     }
 }
