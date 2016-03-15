@@ -85,7 +85,7 @@ public class CELT7Encoder implements IEncoder {
 
     @Override
     public boolean isReady() {
-        return mReady;
+        return mReady && mBufferedFrames > 0;
     }
 
     @Override
