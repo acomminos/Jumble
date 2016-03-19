@@ -175,7 +175,7 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
                 }
 
                 @Override
-                public void setTransmitting(final boolean talking) {
+                public void onTalkingStateChanged(final boolean talking) {
                     mHandler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -186,12 +186,8 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
                                 final User currentUser = mModelHandler.getUser(mConnection.getSession());
                                 if (currentUser == null) return;
 
-                                // FIXME: should be changed to work for whispers.
-                                if ((currentUser.getTalkState() == TalkState.TALKING) ^ talking) {
-                                    currentUser.setTalkState(talking ? TalkState.TALKING : TalkState.PASSIVE);
-                                    mCallbacks.onUserTalkStateUpdated(currentUser);
-
-                                }
+                                currentUser.setTalkState(talking ? TalkState.TALKING : TalkState.PASSIVE);
+                                mCallbacks.onUserTalkStateUpdated(currentUser);
                             } catch (NotSynchronizedException e) {
                                 e.printStackTrace();
                             }

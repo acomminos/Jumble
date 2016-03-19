@@ -35,7 +35,6 @@ import com.morlunk.jumble.audio.inputmode.IInputMode;
 import com.morlunk.jumble.exception.AudioException;
 import com.morlunk.jumble.exception.AudioInitializationException;
 import com.morlunk.jumble.exception.NativeAudioException;
-import com.morlunk.jumble.model.TalkState;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
@@ -85,6 +84,8 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     private boolean mBluetoothOn;
     private boolean mHalfDuplex;
     private boolean mPreprocessorEnabled;
+    /** The last observed talking state. False if muted, or the input mode is not active. */
+    private boolean mTalking;
 
     private final Object mEncoderLock;
 
@@ -108,6 +109,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         mPreprocessorEnabled = preprocessorEnabled;
         mEncodeListener = encodeListener;
         mOutputListener = outputListener;
+        mTalking = false;
 
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mEncoderLock = new Object();
@@ -144,9 +146,6 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         synchronized (mInput) {
             if (!mInput.isRecording()) {
                 mInput.startRecording();
-                if (mHalfDuplex) {
-                    mAudioManager.setStreamMute(getAudioStream(), true);
-                }
             } else {
                 throw new AudioException("Attempted to start recording while recording!");
             }
@@ -161,9 +160,6 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         synchronized (mInput) {
             if (mInput.isRecording()) {
                 mInput.stopRecording();
-                if (mHalfDuplex) {
-                    mAudioManager.setStreamMute(getAudioStream(), false);
-                }
             } else {
                 throw new AudioException("Attempted to stop recording while not recording!");
             }
@@ -329,6 +325,8 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         }
         mInitialized = false;
         mBluetoothOn = false;
+
+        mEncodeListener.onTalkingStateChanged(false);
     }
 
 
@@ -392,50 +390,62 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     @Override
     public void onAudioInputReceived(short[] frame, int frameSize) {
         boolean talking = mInputMode.shouldTransmit(frame, frameSize);
-        mEncodeListener.setTransmitting(talking);
-        synchronized (mEncoderLock) {
-            if (!talking || mMuted) {
-                if (mEncoder != null) {
+        talking &= !mMuted;
+
+        if (mTalking ^ talking) {
+            mEncodeListener.onTalkingStateChanged(talking);
+            if (mHalfDuplex) {
+                mAudioManager.setStreamMute(getAudioStream(), talking);
+            }
+
+            synchronized (mEncoderLock) {
+                // Terminate encoding when talking stops.
+                if (!talking && mEncoder != null) {
                     try {
                         mEncoder.terminate();
-                        if (mEncoder.isReady()) {
-                            sendEncodedAudio();
-                        }
-                    } catch (NativeAudioException e) {
-                        e.printStackTrace();
-                    }
-                }
-            } else {
-                // Boost/reduce amplitude based on user preference
-                // TODO: perhaps amplify to the largest value that does not result in clipping.
-                if (mAmplitudeBoost != 1.0f) {
-                    for (int i = 0; i < frameSize; i++) {
-                        // Java only guarantees the bounded preservation of sign in a narrowing
-                        // primitive conversion from float -> int, not float -> int -> short.
-                        float val = frame[i] * mAmplitudeBoost;
-                        if (val > Short.MAX_VALUE) {
-                            val = Short.MAX_VALUE;
-                        } else if (val < Short.MIN_VALUE) {
-                            val = Short.MIN_VALUE;
-                        }
-                        frame[i] = (short) val;
-                    }
-                }
-
-                if (mEncoder != null) {
-                    try {
-                        mEncoder.encode(frame, frameSize);
-                        mFrameCounter++;
-
-                        if (mEncoder.isReady()) {
-                            sendEncodedAudio();
-                        }
                     } catch (NativeAudioException e) {
                         e.printStackTrace();
                     }
                 }
             }
         }
+
+        if (talking) {
+            // Boost/reduce amplitude based on user preference
+            // TODO: perhaps amplify to the largest value that does not result in clipping.
+            if (mAmplitudeBoost != 1.0f) {
+                for (int i = 0; i < frameSize; i++) {
+                    // Java only guarantees the bounded preservation of sign in a narrowing
+                    // primitive conversion from float -> int, not float -> int -> short.
+                    float val = frame[i] * mAmplitudeBoost;
+                    if (val > Short.MAX_VALUE) {
+                        val = Short.MAX_VALUE;
+                    } else if (val < Short.MIN_VALUE) {
+                        val = Short.MIN_VALUE;
+                    }
+                    frame[i] = (short) val;
+                }
+            }
+
+            synchronized (mEncoderLock) {
+                if (mEncoder != null) {
+                    try {
+                        mEncoder.encode(frame, frameSize);
+                        mFrameCounter++;
+                    } catch (NativeAudioException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+        synchronized (mEncoderLock) {
+            if (mEncoder != null && mEncoder.isReady()) {
+                sendEncodedAudio();
+            }
+        }
+
+        mTalking = talking;
     }
 
     /**
@@ -463,7 +473,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
     public interface AudioEncodeListener {
         void onAudioEncoded(byte[] data, int length);
-        void setTransmitting(boolean talking);
+        void onTalkingStateChanged(boolean talking);
     }
 
     /**
@@ -477,7 +487,6 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         private int mTargetBitrate;
         private int mTargetFramesPerPacket;
         private int mInputSampleRate;
-        private float mVADThreshold;
         private float mAmplitudeBoost;
         private boolean mBluetoothEnabled;
         private boolean mHalfDuplexEnabled;
@@ -518,11 +527,6 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
         public Builder setInputSampleRate(int inputSampleRate) {
             mInputSampleRate = inputSampleRate;
-            return this;
-        }
-
-        public Builder setVADThreshold(float vadThreshold) {
-            mVADThreshold = vadThreshold;
             return this;
         }
 
