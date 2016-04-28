@@ -222,4 +222,20 @@ public interface IJumbleService {
     void registerObserver(IJumbleObserver observer);
 
     void unregisterObserver(IJumbleObserver observer);
+
+    /**
+     * Links the provided two channels together.
+     */
+    void linkChannels(IChannel channelA, IChannel channelB);
+
+    /**
+     * Unlinks the two provided channels.
+     */
+    void unlinkChannels(IChannel channelA, IChannel channelB);
+
+    /**
+     * Unlinks all channels from the provided channel.
+     * @param channel The channel to be unlinked.
+     */
+    void unlinkAllChannels(IChannel channel);
 }

@@ -151,18 +151,26 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
         if(msg.getLinksCount() > 0) {
             channel.clearLinks();
             for(int link : msg.getLinksList()) {
-                channel.addLink(mChannels.get(link));
+                Channel linked = mChannels.get(link);
+                channel.addLink(linked);
+                linked.addLink(channel);
             }
         }
 
         if(msg.getLinksRemoveCount() > 0) {
-            for(int link : msg.getLinksRemoveList())
-                channel.removeLink(mChannels.get(link));
+            for(int link : msg.getLinksRemoveList()) {
+                Channel linked = mChannels.get(link);
+                channel.removeLink(linked);
+                linked.removeLink(channel);
+            }
         }
 
         if(msg.getLinksAddCount() > 0) {
-            for(int link : msg.getLinksAddList())
-                channel.addLink(mChannels.get(link));
+            for(int link : msg.getLinksAddList()) {
+                Channel linked = mChannels.get(link);
+                channel.addLink(linked);
+                linked.addLink(channel);
+            }
         }
 
         if(newChannel)

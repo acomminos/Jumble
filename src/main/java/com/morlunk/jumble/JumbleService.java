@@ -1055,6 +1055,31 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
         mCallbacks.unregisterObserver(observer);
     }
 
+    @Override
+    public void linkChannels(IChannel channelA, IChannel channelB) {
+        Mumble.ChannelState.Builder csb = Mumble.ChannelState.newBuilder();
+        csb.setChannelId(channelA.getId());
+        csb.addLinksAdd(channelB.getId());
+        getConnection().sendTCPMessage(csb.build(), JumbleTCPMessageType.ChannelState);
+    }
+
+    @Override
+    public void unlinkChannels(IChannel channelA, IChannel channelB) {
+        Mumble.ChannelState.Builder csb = Mumble.ChannelState.newBuilder();
+        csb.setChannelId(channelA.getId());
+        csb.addLinksRemove(channelB.getId());
+        getConnection().sendTCPMessage(csb.build(), JumbleTCPMessageType.ChannelState);
+    }
+
+    @Override
+    public void unlinkAllChannels(IChannel channel) {
+        Mumble.ChannelState.Builder csb = Mumble.ChannelState.newBuilder();
+        csb.setChannelId(channel.getId());
+        for (IChannel linked : channel.getLinks()) {
+            csb.addLinksRemove(linked.getId());
+        }
+        getConnection().sendTCPMessage(csb.build(), JumbleTCPMessageType.ChannelState);
+    }
 
     /**
      * The current connection state of the service.
