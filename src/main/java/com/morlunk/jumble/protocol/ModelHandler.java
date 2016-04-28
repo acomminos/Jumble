@@ -153,7 +153,9 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
             for(int link : msg.getLinksList()) {
                 Channel linked = mChannels.get(link);
                 channel.addLink(linked);
-                linked.addLink(channel);
+                // Don't add this channel to the other channel's link list- this update occurs on
+                // server synchronization, and we will get a message for the other channels' links
+                // laster.
             }
         }
 
