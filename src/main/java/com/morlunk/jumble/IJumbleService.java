@@ -21,6 +21,7 @@ import com.morlunk.jumble.model.IChannel;
 import com.morlunk.jumble.model.IUser;
 import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
+import com.morlunk.jumble.model.WhisperTarget;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.util.IJumbleObserver;
 import com.morlunk.jumble.util.JumbleException;
@@ -238,4 +239,34 @@ public interface IJumbleService {
      * @param channel The channel to be unlinked.
      */
     void unlinkAllChannels(IChannel channel);
+
+    /**
+     * Registers a whisper target to be used as a voice target on the server.
+     * Note that Mumble only supports a maximum of 30 active voice targets at once.
+     * @param target The target to register.
+     * @return A voice target ID in the range [1, 30].
+     */
+    byte registerWhisperTarget(final WhisperTarget target);
+
+    /**
+     * Unregisters a whisper target from the server.
+     * Note that Mumble only supports a maximum of 30 active voice targets at once.
+     * @param target The target to unregister.
+     */
+    void unregisterWhisperTarget(final WhisperTarget target);
+
+    /**
+     * Sets the active voice target to the provided ID.<br>
+     * 0: Normal speech<br>
+     * 1-30: Whisper targets<br>
+     * 31: Server loopback
+     * @param targetId A voice target ID in the range [0, 31].
+     */
+    void setVoiceTarget(byte targetId);
+
+    /**
+     * Returns the current whisper target.
+     * @return the set whisper target, or null if the user is not whispering.
+     */
+    WhisperTarget getWhisperTarget();
 }

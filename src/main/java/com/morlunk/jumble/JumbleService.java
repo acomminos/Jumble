@@ -50,6 +50,7 @@ import com.morlunk.jumble.model.Message;
 import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.TalkState;
 import com.morlunk.jumble.model.User;
+import com.morlunk.jumble.model.WhisperTarget;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.util.IJumbleObserver;
@@ -1079,6 +1080,35 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
             csb.addLinksRemove(linked.getId());
         }
         getConnection().sendTCPMessage(csb.build(), JumbleTCPMessageType.ChannelState);
+    }
+
+    /**
+     * Registers a whisper target to an unassigned ID on the server.
+     * @param target The whisper target to register.
+     * @return A free voice target ID in the range [1, 30].
+     */
+    @Override
+    public byte registerWhisperTarget(final WhisperTarget target) {
+        Mumble.VoiceTarget.Target voiceTarget = target.createTarget();
+        Mumble.VoiceTarget.Builder vtb = Mumble.VoiceTarget.newBuilder();
+        vtb.setId(1); // TODO: assign free ID.
+        vtb.addTargets(voiceTarget);
+        getConnection().sendTCPMessage(vtb.build(), JumbleTCPMessageType.VoiceTarget);
+        return 1; // FIXME
+    }
+
+    @Override
+    public void unregisterWhisperTarget(final WhisperTarget target) {
+        // TODO
+    }
+
+    @Override
+    public void setVoiceTarget(byte targetId) {
+        if ((targetId & ~0x1F) > 0) {
+            throw new IllegalArgumentException("Target ID must be at most 5 bits.");
+        }
+        // TODO: persist over handler recreation
+        mAudioHandler.setVoiceTargetId(targetId);
     }
 
     /**

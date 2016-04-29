@@ -88,6 +88,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
     private boolean mTalking;
 
     private final Object mEncoderLock;
+    private byte mTargetId;
 
     public AudioHandler(Context context, JumbleLogger logger, int audioStream, int audioSource,
                         int sampleRate, int targetBitrate, int targetFramesPerPacket,
@@ -110,6 +111,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         mEncodeListener = encodeListener;
         mOutputListener = outputListener;
         mTalking = false;
+        mTargetId = 0;
 
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mEncoderLock = new Object();
@@ -448,6 +450,15 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         mTalking = talking;
     }
 
+    public void setVoiceTargetId(byte id) {
+        mTargetId = id;
+    }
+
+    public void clearVoiceTarget() {
+        // A target ID of 0 indicates normal talking.
+        mTargetId = 0;
+    }
+
     /**
      * Fetches the buffered audio from the current encoder and sends it to the server.
      */
@@ -456,6 +467,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
         int flags = 0;
         flags |= mCodec.ordinal() << 5;
+        flags |= mTargetId & 0x1F;
 
         final byte[] packetBuffer = new byte[1024];
         packetBuffer[0] = (byte) (flags & 0xFF);
