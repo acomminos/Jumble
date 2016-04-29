@@ -25,6 +25,7 @@ import com.morlunk.jumble.model.WhisperTarget;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.util.IJumbleObserver;
 import com.morlunk.jumble.util.JumbleException;
+import com.morlunk.jumble.util.VoiceTargetMode;
 
 import java.util.List;
 
@@ -244,16 +245,16 @@ public interface IJumbleService {
      * Registers a whisper target to be used as a voice target on the server.
      * Note that Mumble only supports a maximum of 30 active voice targets at once.
      * @param target The target to register.
-     * @return A voice target ID in the range [1, 30].
+     * @return A voice target ID in the range [1, 30], or a negative value if all slots are full.
      */
     byte registerWhisperTarget(final WhisperTarget target);
 
     /**
      * Unregisters a whisper target from the server.
      * Note that Mumble only supports a maximum of 30 active voice targets at once.
-     * @param target The target to unregister.
+     * @param target The target ID to unregister.
      */
-    void unregisterWhisperTarget(final WhisperTarget target);
+    void unregisterWhisperTarget(byte targetId);
 
     /**
      * Sets the active voice target to the provided ID.<br>
@@ -262,7 +263,19 @@ public interface IJumbleService {
      * 31: Server loopback
      * @param targetId A voice target ID in the range [0, 31].
      */
-    void setVoiceTarget(byte targetId);
+    void setVoiceTargetId(byte targetId);
+
+    /**
+     * Gets the current voice target ID in use, in the range [0, 31].
+     * @return The active voice target ID.
+     */
+    byte getVoiceTargetId();
+
+    /**
+     * Gets the current voice target mode.
+     * @return The active voice target mode.
+     */
+    VoiceTargetMode getVoiceTargetMode();
 
     /**
      * Returns the current whisper target.

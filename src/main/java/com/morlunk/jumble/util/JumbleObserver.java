@@ -104,6 +104,11 @@ public class JumbleObserver implements IJumbleObserver {
     }
 
     @Override
+    public void onVoiceTargetChanged(VoiceTargetMode mode) {
+
+    }
+
+    @Override
     public void onLogInfo(String message) {
 
     }

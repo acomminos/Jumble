@@ -28,19 +28,7 @@ import java.util.List;
  * An abstraction around a channel whisper target.
  * Created by andrew on 28/04/16.
  */
-public class WhisperTargetChannel implements WhisperTarget, Parcelable {
-    public static final Parcelable.Creator<WhisperTargetChannel> CREATOR = new Creator<WhisperTargetChannel>() {
-        @Override
-        public WhisperTargetChannel createFromParcel(Parcel source) {
-            return null;
-        }
-
-        @Override
-        public WhisperTargetChannel[] newArray(int size) {
-            return new WhisperTargetChannel[size];
-        }
-    };
-
+public class WhisperTargetChannel implements WhisperTarget {
     private final IChannel mChannel;
     private final boolean mIncludeLinked;
     private final boolean mIncludeSubchannels;
@@ -59,18 +47,14 @@ public class WhisperTargetChannel implements WhisperTarget, Parcelable {
         Mumble.VoiceTarget.Target.Builder vtb = Mumble.VoiceTarget.Target.newBuilder();
         vtb.setLinks(mIncludeLinked);
         vtb.setChildren(mIncludeSubchannels);
-        vtb.setGroup(mGroupRestriction);
+        if (mGroupRestriction != null)
+            vtb.setGroup(mGroupRestriction);
         vtb.setChannelId(mChannel.getId());
         return vtb.build();
     }
 
     @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-
+    public String getName() {
+        return mChannel.getName();
     }
 }

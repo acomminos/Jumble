@@ -57,6 +57,8 @@ public interface IJumbleObserver {
 
     void onMessageLogged(IMessage message);
 
+    void onVoiceTargetChanged(VoiceTargetMode mode);
+
     void onLogInfo(String message);
 
     void onLogWarning(String message);

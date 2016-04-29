@@ -92,7 +92,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
 
     public AudioHandler(Context context, JumbleLogger logger, int audioStream, int audioSource,
                         int sampleRate, int targetBitrate, int targetFramesPerPacket,
-                        IInputMode inputMode, float amplitudeBoost,
+                        IInputMode inputMode, byte targetId, float amplitudeBoost,
                         boolean bluetoothEnabled, boolean halfDuplexEnabled,
                         boolean preprocessorEnabled, AudioEncodeListener encodeListener,
                         AudioOutput.AudioOutputListener outputListener) throws AudioInitializationException, NativeAudioException {
@@ -111,7 +111,7 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         mEncodeListener = encodeListener;
         mOutputListener = outputListener;
         mTalking = false;
-        mTargetId = 0;
+        mTargetId = targetId;
 
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mEncoderLock = new Object();
@@ -581,9 +581,9 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
          * Creates a new AudioHandler for the given session and begins managing input/output.
          * @return An initialized audio handler.
          */
-        public AudioHandler initialize(User self, int maxBandwidth, JumbleUDPMessageType codec) throws AudioException {
+        public AudioHandler initialize(User self, int maxBandwidth, JumbleUDPMessageType codec, byte targetId) throws AudioException {
             AudioHandler handler = new AudioHandler(mContext, mLogger, mAudioStream, mAudioSource,
-                    mInputSampleRate, mTargetBitrate, mTargetFramesPerPacket, mInputMode,
+                    mInputSampleRate, mTargetBitrate, mTargetFramesPerPacket, mInputMode, targetId,
                     mAmplitudeBoost, mBluetoothEnabled, mHalfDuplexEnabled,
                     mPreprocessorEnabled, mEncodeListener, mTalkingListener);
             handler.initialize(self, maxBandwidth, codec);

@@ -51,6 +51,7 @@ import com.morlunk.jumble.model.Server;
 import com.morlunk.jumble.model.TalkState;
 import com.morlunk.jumble.model.User;
 import com.morlunk.jumble.model.WhisperTarget;
+import com.morlunk.jumble.model.WhisperTargetList;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.util.IJumbleObserver;
@@ -61,11 +62,14 @@ import com.morlunk.jumble.protocol.AudioHandler;
 import com.morlunk.jumble.protocol.ModelHandler;
 import com.morlunk.jumble.util.JumbleCallbacks;
 import com.morlunk.jumble.util.JumbleLogger;
+import com.morlunk.jumble.util.VoiceTargetMode;
 
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Queue;
 
 public class JumbleService extends Service implements IJumbleService, JumbleConnection.JumbleConnectionListener, JumbleLogger, BluetoothScoReceiver.Listener {
 
@@ -130,6 +134,9 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
     private List<Integer> mLocalIgnoreHistory;
     private AudioHandler.Builder mAudioBuilder;
     private int mTransmitMode;
+
+    private byte mVoiceTargetId;
+    private WhisperTargetList mWhisperTargetList;
 
     private PowerManager.WakeLock mWakeLock;
     private Handler mHandler;
@@ -254,6 +261,7 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
         mToggleInputMode = new ToggleInputMode();
         mActivityInputMode = new ActivityInputMode(0); // FIXME: reasonable default
         mContinuousInputMode = new ContinuousInputMode();
+        mWhisperTargetList = new WhisperTargetList();
     }
 
     @Override
@@ -270,6 +278,8 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
         try {
             setReconnecting(false);
             mConnectionState = ConnectionState.DISCONNECTED;
+            mVoiceTargetId = 0;
+            mWhisperTargetList.clear();
 
             mConnection = new JumbleConnection(this);
             mConnection.setForceTCP(mForceTcp);
@@ -340,7 +350,8 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
         try {
             mAudioHandler = mAudioBuilder.initialize(
                     mModelHandler.getUser(mConnection.getSession()),
-                    mConnection.getMaxBandwidth(), mConnection.getCodec());
+                    mConnection.getMaxBandwidth(), mConnection.getCodec(),
+                    mVoiceTargetId);
             mConnection.addTCPMessageHandlers(mAudioHandler);
             mConnection.addUDPMessageHandlers(mAudioHandler);
         } catch (AudioException e) {
@@ -382,6 +393,8 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
 
         mModelHandler = null;
         mAudioHandler = null;
+        mVoiceTargetId = 0;
+        mWhisperTargetList.clear();
 
         // Halt SCO connection on shutdown.
         mBluetoothReceiver.stopBluetoothSco();
@@ -467,7 +480,8 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
         try {
             mAudioHandler = mAudioBuilder.initialize(
                     mModelHandler.getUser(mConnection.getSession()),
-                    mConnection.getMaxBandwidth(), mConnection.getCodec());
+                    mConnection.getMaxBandwidth(), mConnection.getCodec(),
+                    mVoiceTargetId);
             mConnection.addTCPMessageHandlers(mAudioHandler);
             mConnection.addUDPMessageHandlers(mAudioHandler);
         } catch (NotSynchronizedException e) {
@@ -1082,33 +1096,52 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
         getConnection().sendTCPMessage(csb.build(), JumbleTCPMessageType.ChannelState);
     }
 
-    /**
-     * Registers a whisper target to an unassigned ID on the server.
-     * @param target The whisper target to register.
-     * @return A free voice target ID in the range [1, 30].
-     */
     @Override
     public byte registerWhisperTarget(final WhisperTarget target) {
+        byte id = mWhisperTargetList.append(target);
+        if (id < 0) {
+            return -1;
+        }
+
         Mumble.VoiceTarget.Target voiceTarget = target.createTarget();
         Mumble.VoiceTarget.Builder vtb = Mumble.VoiceTarget.newBuilder();
-        vtb.setId(1); // TODO: assign free ID.
+        vtb.setId(id);
         vtb.addTargets(voiceTarget);
         getConnection().sendTCPMessage(vtb.build(), JumbleTCPMessageType.VoiceTarget);
-        return 1; // FIXME
+        return id;
     }
 
     @Override
-    public void unregisterWhisperTarget(final WhisperTarget target) {
-        // TODO
+    public void unregisterWhisperTarget(byte targetId) {
+        mWhisperTargetList.free(targetId);
     }
 
     @Override
-    public void setVoiceTarget(byte targetId) {
+    public void setVoiceTargetId(byte targetId) {
         if ((targetId & ~0x1F) > 0) {
             throw new IllegalArgumentException("Target ID must be at most 5 bits.");
         }
-        // TODO: persist over handler recreation
+        mVoiceTargetId = targetId;
         mAudioHandler.setVoiceTargetId(targetId);
+        mCallbacks.onVoiceTargetChanged(VoiceTargetMode.fromId(targetId));
+    }
+
+    @Override
+    public byte getVoiceTargetId() {
+        return mVoiceTargetId;
+    }
+
+    @Override
+    public VoiceTargetMode getVoiceTargetMode() {
+        return VoiceTargetMode.fromId(mVoiceTargetId);
+    }
+
+    @Override
+    public WhisperTarget getWhisperTarget() {
+        if (VoiceTargetMode.fromId(mVoiceTargetId) == VoiceTargetMode.WHISPER) {
+            return mWhisperTargetList.get(mVoiceTargetId);
+        }
+        return null;
     }
 
     /**

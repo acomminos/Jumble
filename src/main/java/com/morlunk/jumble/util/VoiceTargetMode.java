@@ -15,21 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.morlunk.jumble.model;
-
-import com.morlunk.jumble.protobuf.Mumble;
+package com.morlunk.jumble.util;
 
 /**
- * Created by andrew on 28/04/16.
+ * Created by andrew on 29/04/16.
  */
-public class WhisperTargetUsers implements WhisperTarget {
-    @Override
-    public Mumble.VoiceTarget.Target createTarget() {
-        throw new UnsupportedOperationException(); // TODO
-    }
+public enum VoiceTargetMode {
+    NORMAL,
+    WHISPER,
+    SERVER_LOOPBACK;
 
-    @Override
-    public String getName() {
-        throw new UnsupportedOperationException(); // TODO
+    public static VoiceTargetMode fromId(byte targetId) {
+        if (targetId == 0) {
+            return VoiceTargetMode.NORMAL;
+        } else if (targetId > 0 && targetId < 31) {
+            return VoiceTargetMode.WHISPER;
+        } else if (targetId == 31) {
+            return VoiceTargetMode.SERVER_LOOPBACK;
+        } else {
+            throw new IllegalArgumentException();
+        }
     }
 }

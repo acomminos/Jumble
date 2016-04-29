@@ -154,6 +154,13 @@ public class JumbleCallbacks implements IJumbleObserver {
     }
 
     @Override
+    public void onVoiceTargetChanged(VoiceTargetMode mode) {
+        for (IJumbleObserver observer : mCallbacks) {
+            observer.onVoiceTargetChanged(mode);
+        }
+    }
+
+    @Override
     public void onLogInfo(String message) {
         for (IJumbleObserver observer : mCallbacks) {
             observer.onLogInfo(message);
