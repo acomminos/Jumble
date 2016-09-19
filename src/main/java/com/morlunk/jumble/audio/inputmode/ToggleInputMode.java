@@ -17,19 +17,31 @@
 
 package com.morlunk.jumble.audio.inputmode;
 
+import android.util.Log;
+
+import com.morlunk.jumble.Constants;
+
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * An input mode that depends on a toggle, such as push to talk.
  * Created by andrew on 13/02/16.
  */
 public class ToggleInputMode implements IInputMode {
     private boolean mInputOn;
+    private final Lock mToggleLock;
+    private final Condition mToggleCondition;
 
     public ToggleInputMode() {
         mInputOn = false;
+        mToggleLock = new ReentrantLock();
+        mToggleCondition = mToggleLock.newCondition();
     }
 
     public void toggleTalkingOn() {
-        mInputOn = !mInputOn;
+        setTalkingOn(!mInputOn);
     }
 
     public boolean isTalkingOn() {
@@ -37,11 +49,30 @@ public class ToggleInputMode implements IInputMode {
     }
 
     public void setTalkingOn(boolean talking) {
+        mToggleLock.lock();
         mInputOn = talking;
+        mToggleCondition.signalAll();
+        mToggleLock.unlock();
     }
 
     @Override
     public boolean shouldTransmit(short[] pcm, int length) {
         return mInputOn;
+    }
+
+    @Override
+    public void waitForInput() {
+        mToggleLock.lock();
+        if (!mInputOn) {
+            Log.v(Constants.TAG, "PTT: Suspending audio input.");
+            long startTime = System.currentTimeMillis();
+            try {
+                mToggleCondition.await();
+            } catch (InterruptedException e) {
+                Log.w(Constants.TAG, "Blocking for PTT interrupted, likely due to input thread shutdown.");
+            }
+            Log.v(Constants.TAG, "PTT: Suspended audio input for " + (System.currentTimeMillis() - startTime) + "ms.");
+        }
+        mToggleLock.unlock();
     }
 }

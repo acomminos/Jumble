@@ -26,4 +26,9 @@ public class ContinuousInputMode implements IInputMode {
     public boolean shouldTransmit(short[] pcm, int length) {
         return true;
     }
+
+    @Override
+    public void waitForInput() {
+
+    }
 }

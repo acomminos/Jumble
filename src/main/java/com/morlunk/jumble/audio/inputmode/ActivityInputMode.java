@@ -53,6 +53,11 @@ public class ActivityInputMode implements IInputMode {
         return talking;
     }
 
+    @Override
+    public void waitForInput() {
+
+    }
+
     public void setThreshold(float threshold) {
         mVADThreshold = threshold;
     }

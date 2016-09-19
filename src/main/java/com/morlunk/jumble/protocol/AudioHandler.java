@@ -448,6 +448,9 @@ public class AudioHandler extends JumbleNetworkListener implements AudioInput.Au
         }
 
         mTalking = talking;
+        if (!talking) {
+            mInputMode.waitForInput();
+        }
     }
 
     public void setVoiceTargetId(byte id) {

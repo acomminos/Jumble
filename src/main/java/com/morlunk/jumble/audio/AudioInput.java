@@ -21,6 +21,7 @@ import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.util.Log;
 
+import com.morlunk.jumble.BuildConfig;
 import com.morlunk.jumble.Constants;
 import com.morlunk.jumble.exception.AudioInitializationException;
 import com.morlunk.jumble.exception.NativeAudioException;
@@ -121,6 +122,8 @@ public class AudioInput implements Runnable {
         if(mRecording) {
             mRecording = false;
             try {
+                // Interrupt so that we stop waiting on the PTT CV.
+                mRecordThread.interrupt();
                 mRecordThread.join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
