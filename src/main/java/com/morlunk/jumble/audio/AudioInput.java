@@ -109,6 +109,7 @@ public class AudioInput implements Runnable {
         if(!mRecording) return;
         mRecording = false;
         try {
+            mRecordThread.interrupt();
             mRecordThread.join();
             mRecordThread = null;
         } catch (InterruptedException e) {
@@ -122,19 +123,7 @@ public class AudioInput implements Runnable {
      * NOTE: It is not safe to call startRecording after.
      */
     public void shutdown() {
-        if(mRecording) {
-            mRecording = false;
-            try {
-                // Interrupt so that we stop waiting on the PTT CV.
-                mRecordThread.interrupt();
-                mRecordThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
-        mRecordThread = null;
-
+        stopRecording();
         if(mAudioRecord != null) {
             mAudioRecord.release();
             mAudioRecord = null;
