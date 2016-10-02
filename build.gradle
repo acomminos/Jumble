@@ -31,7 +31,7 @@ repositories {
 
 dependencies {
     compile 'com.android.support:support-v4:21.+'
-    compile 'com.google.protobuf:protobuf-java:2.5.0'
+    compile 'com.google.protobuf:protobuf-java:3.0.0'
     compile 'com.madgag.spongycastle:core:1.51.0.0'
 
     // Custom PKCS12 keybag parse modifications to support Mumble unencrypted certificates
