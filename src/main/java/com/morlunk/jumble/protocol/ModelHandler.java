@@ -315,8 +315,8 @@ public class ModelHandler extends JumbleTCPMessageListener.Stub {
             if(msg.hasPrioritySpeaker())
                 user.setPrioritySpeaker(msg.getPrioritySpeaker());
 
-//            if(self != null && ((user.getChannelId() == self.getChannelId()) || (actor.getSession() == self.getSession()))) {
-//                if(user.getSession() == self.getSession()) {
+//            if(self != null && ((user.getChannelId() == self.getChannelId()) || (actor.getSessionId() == self.getSessionId()))) {
+//                if(user.getSessionId() == self.getSessionId()) {
 //                    if(msg.hasMute() && msg.hasDeaf() && user.isMuted() && user.isDeafened()) {
 //                        mLogger.logInfo();
 //                    }

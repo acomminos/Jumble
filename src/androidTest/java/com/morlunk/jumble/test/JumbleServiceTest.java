@@ -48,7 +48,7 @@ public class JumbleServiceTest extends ServiceTestCase<JumbleService> {
         assertFalse(service.isReconnecting());
         assertNull(service.getConnectionError());
         assertEquals(JumbleService.ConnectionState.DISCONNECTED, service.getConnectionState());
-        assertEquals(DUMMY_SERVER, service.getConnectedServer());
+        assertEquals(DUMMY_SERVER, service.getTargetServer());
     }
 
 }

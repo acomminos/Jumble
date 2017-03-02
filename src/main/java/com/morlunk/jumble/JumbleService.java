@@ -55,6 +55,7 @@ import com.morlunk.jumble.model.WhisperTargetList;
 import com.morlunk.jumble.net.JumbleConnection;
 import com.morlunk.jumble.net.JumbleUDPMessageType;
 import com.morlunk.jumble.util.IJumbleObserver;
+import com.morlunk.jumble.util.JumbleDisconnectedException;
 import com.morlunk.jumble.util.JumbleException;
 import com.morlunk.jumble.net.JumbleTCPMessageType;
 import com.morlunk.jumble.protobuf.Mumble;
@@ -67,11 +68,9 @@ import com.morlunk.jumble.util.VoiceTargetMode;
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
-import java.util.Queue;
 
-public class JumbleService extends Service implements IJumbleService, JumbleConnection.JumbleConnectionListener, JumbleLogger, BluetoothScoReceiver.Listener {
+public class JumbleService extends Service implements IJumbleService, IJumbleSession, JumbleConnection.JumbleConnectionListener, JumbleLogger, BluetoothScoReceiver.Listener {
 
     static {
         // Use Spongy Castle for crypto implementation so we can create and manage PKCS #12 (.p12) certificates.
@@ -303,7 +302,9 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
     }
 
     public void disconnect() {
-        mConnection.disconnect();
+        if (mConnection != null) {
+            mConnection.disconnect();
+        }
     }
 
     public boolean isConnectionEstablished() {
@@ -709,6 +710,18 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
     }
 
     @Override
+    public Server getTargetServer() {
+        return mServer;
+    }
+
+    @Override
+    public IJumbleSession getSession() throws JumbleDisconnectedException {
+        if (mConnectionState != ConnectionState.CONNECTED)
+            throw new JumbleDisconnectedException();
+        return this;
+    }
+
+    @Override
     public long getTCPLatency() {
         try {
             return getConnection().getTCPLatency();
@@ -781,7 +794,7 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
     }
 
     @Override
-    public int getSession() {
+    public int getSessionId() {
         try {
             return getConnection().getSession();
         } catch (NotSynchronizedException e) {
@@ -792,7 +805,7 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
     @Override
     public IUser getSessionUser() {
         try {
-            return getModelHandler().getUser(getSession());
+            return getModelHandler().getUser(getSessionId());
         } catch (NotSynchronizedException e) {
             throw new IllegalStateException(e);
         }
@@ -804,11 +817,6 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
         if (user != null)
             return user.getChannel();
         throw new IllegalStateException("Session user should be set post-synchronization!");
-    }
-
-    @Override
-    public Server getConnectedServer() {
-        return mServer;
     }
 
     @Override
@@ -896,7 +904,7 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
 
     @Override
     public void joinChannel(int channel) {
-        moveUserToChannel(getSession(), channel);
+        moveUserToChannel(getSessionId(), channel);
     }
 
     @Override
@@ -989,11 +997,11 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
             tmb.setMessage(message);
             getConnection().sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
 
-            User self = getModelHandler().getUser(getSession());
+            User self = getModelHandler().getUser(getSessionId());
             User user = getModelHandler().getUser(session);
             List<User> users = new ArrayList<User>(1);
             users.add(user);
-            return new Message(getSession(), self.getName(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
+            return new Message(getSessionId(), self.getName(), new ArrayList<Channel>(0), new ArrayList<Channel>(0), users, message);
         } catch (NotSynchronizedException e) {
             throw new IllegalStateException(e);
         }
@@ -1011,11 +1019,11 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
             tmb.setMessage(message);
             getConnection().sendTCPMessage(tmb.build(), JumbleTCPMessageType.TextMessage);
 
-            User self = getModelHandler().getUser(getSession());
+            User self = getModelHandler().getUser(getSessionId());
             Channel targetChannel = getModelHandler().getChannel(channel);
             List<Channel> targetChannels = new ArrayList<Channel>();
             targetChannels.add(targetChannel);
-            return new Message(getSession(), self.getName(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
+            return new Message(getSessionId(), self.getName(), targetChannels, tree ? targetChannels : new ArrayList<Channel>(0), new ArrayList<User>(0), message);
         } catch (NotSynchronizedException e) {
             throw new IllegalStateException(e);
         }
@@ -1068,6 +1076,11 @@ public class JumbleService extends Service implements IJumbleService, JumbleConn
 
     public void unregisterObserver(IJumbleObserver observer) {
         mCallbacks.unregisterObserver(observer);
+    }
+
+    @Override
+    public boolean isConnected() {
+        return mConnectionState == ConnectionState.CONNECTED;
     }
 
     @Override
