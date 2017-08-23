@@ -187,8 +187,10 @@ public class JumbleService extends Service implements IJumbleService, IJumbleSes
                         @Override
                         public void run() {
                             try {
+                                // If the server session is inactive, ignore this message.
+                                // It's likely that this is leftover from a terminated connection.
                                 if (!isSynchronized())
-                                    throw new NotSynchronizedException();
+                                    return;
 
                                 final User currentUser = mModelHandler.getUser(mConnection.getSession());
                                 if (currentUser == null) return;
