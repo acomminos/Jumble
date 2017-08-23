@@ -625,17 +625,12 @@ public class JumbleConnection implements JumbleTCP.TCPConnectionListener, Jumble
         mConnected = true;
 
         // Attempt to start UDP thread once connected.
-        if(!shouldForceTCP()) {
-            try {
-                mUDP = new JumbleUDP(mCryptState);
-                mUDP.setUDPConnectionListener(this);
-                mUDP.connect(mHost, mPort);
-            } catch (ConnectException e) {
-                onUDPConnectionError(e);
-            }
+        if (!shouldForceTCP()) {
+            mUDP = new JumbleUDP(mCryptState, this, mMainHandler);
+            mUDP.connect(mHost, mPort);
         }
 
-        if(mListener != null) mListener.onConnectionEstablished();
+        if (mListener != null) mListener.onConnectionEstablished();
     }
 
     @Override

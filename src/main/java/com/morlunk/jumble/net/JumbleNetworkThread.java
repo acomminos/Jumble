@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
  * Base class for TCP/UDP protocol implementations.
  * Provides a common threading model (single threaded queue for write)
  * Created by andrew on 25/03/14.
+ * @deprecated This shouldn't be needed. Redundant inheritance with limited shared code.
  */
 public abstract class JumbleNetworkThread implements Runnable {
 

@@ -126,15 +126,6 @@ public class JumbleTCP extends JumbleNetworkThread {
                     });
                 }
             }
-
-            if(mListener != null) {
-                executeOnMainThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mListener.onTCPConnectionDisconnect();
-                    }
-                });
-            }
         } catch (SocketException e) {
             error("Could not open a connection to the host", e);
         } catch (SSLHandshakeException e) {
@@ -162,6 +153,13 @@ public class JumbleTCP extends JumbleNetworkThread {
                 e.printStackTrace();
             }
             mRunning = false;
+
+            executeOnMainThread(new Runnable() {
+                @Override
+                public void run() {
+                    mListener.onTCPConnectionDisconnect();
+                }
+            });
             stopThreads();
         }
     }
@@ -215,6 +213,8 @@ public class JumbleTCP extends JumbleNetworkThread {
      * Attempts to disconnect gracefully on the Tx thread.
      * Disconnects interrupt the socket listening on the Tx thread, suppressing any exceptions
      * caused by this request. Any remaining protobuf messages will be dispatched first.
+     *
+     * Suppresses all future errors on this connection.
      */
     public void disconnect() {
         if (!mRunning) return;
@@ -254,6 +254,18 @@ public class JumbleTCP extends JumbleNetworkThread {
                     mListener.onTCPConnectionFailed(ce);
                 }
             });
+    }
+
+    /**
+     * Runnable that
+     */
+    private static class OutboxConsumer implements Runnable {
+
+
+        @Override
+        public void run() {
+
+        }
     }
 
     public interface TCPConnectionListener {
