@@ -256,18 +256,6 @@ public class JumbleTCP extends JumbleNetworkThread {
             });
     }
 
-    /**
-     * Runnable that
-     */
-    private static class OutboxConsumer implements Runnable {
-
-
-        @Override
-        public void run() {
-
-        }
-    }
-
     public interface TCPConnectionListener {
         public void onTCPConnectionEstablished();
         public void onTLSHandshakeFailed(X509Certificate[] chain);
