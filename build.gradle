@@ -17,34 +17,35 @@
 
 buildscript {
     repositories {
+        google()
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:3.3.0-alpha11'
     }
 }
 apply plugin: 'com.android.library'
 
 repositories {
+    google()
     jcenter()
 }
 
 dependencies {
-    compile 'com.android.support:support-v4:21.+'
-    compile 'com.google.protobuf:protobuf-java:3.0.0'
-    compile 'com.madgag.spongycastle:core:1.51.0.0'
+    implementation 'com.android.support:support-v4:21.+'
+    implementation 'com.google.protobuf:protobuf-java:3.0.0'
 
+    api 'com.madgag.spongycastle:core:1.51.0.0'
     // Custom PKCS12 keybag parse modifications to support Mumble unencrypted certificates
     // Source: https://github.com/Morlunk/spongycastle/tree/pkcs12-keybag-fixes
-    compile files('libs/sc-morlunk-prov-1.51.0.0.jar', 'libs/sc-morlunk-pkix-1.51.0.0.jar')
+    api files('libs/sc-morlunk-prov-1.51.0.0.jar', 'libs/sc-morlunk-pkix-1.51.0.0.jar')
 
-    compile 'com.googlecode.javacpp:javacpp:0.7'
-    compile 'com.intellij:annotations:+@jar'
+    implementation 'com.googlecode.javacpp:javacpp:0.7'
+    implementation 'com.intellij:annotations:+@jar'
 }
 
 android {
-    compileSdkVersion 21
-    buildToolsVersion "21.1.1"
+    compileSdkVersion 28
 
     sourceSets.main.jniLibs.srcDir 'src/main/libs/'
     sourceSets.main.jni.srcDirs = [] // Disable NDK build support until it supports multiple modules.
@@ -53,18 +54,19 @@ android {
         testApplicationId "com.morlunk.jumble.test"
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
         minSdkVersion 9
-        targetSdkVersion 19
+        targetSdkVersion 28
 
-//        ndk {
-//            abiFilters "armeabi", "armeabi-v7a", "x86"
-//            stl "gnustl_static"
-//            cFlags "-I\$(LOCAL_PATH)/speex/include/ -I\$(LOCAL_PATH)/celt-0.11.0-src/include/ -I\$(LOCAL_PATH)/celt-0.7.0-src/include/ -I\$(LOCAL_PATH)/opus/include -D__EMX__ -DUSE_KISS_FFT -DFIXED_POINT -DEXPORT='' -DHAVE_CONFIG_H -fvisibility=hidden -DOPUS_BUILD -DVAR_ARRAYS -Wno-traditional -DFIXED_POINT"
-//        }
+       ndk {
+           abiFilters "armeabi-v7a", "x86"
+           stl "gnustl_static"
+           cFlags "-I\$(LOCAL_PATH)/speex/include/ -I\$(LOCAL_PATH)/celt-0.11.0-src/include/ -I\$(LOCAL_PATH)/celt-0.7.0-src/include/ -I\$(LOCAL_PATH)/opus/include -D__EMX__ -DUSE_KISS_FFT -DFIXED_POINT -DEXPORT='' -DHAVE_CONFIG_H -fvisibility=hidden -DOPUS_BUILD -DVAR_ARRAYS -Wno-traditional -DFIXED_POINT"
+       }
     }
 
     // Trigger NDK build on java compilation task.
     task ndkBuild(type: Exec) {
-        commandLine 'ndk-build', '-C', file('src/main/jni/').absolutePath
+        def ndkDir = project.android.ndkDirectory
+        commandLine "$ndkDir/ndk-build", '-C', file('src/main/jni/').absolutePath
     }
 
     tasks.withType(JavaCompile) {

@@ -87,6 +87,11 @@ public class JumbleException extends Exception implements Parcelable {
         return mReject;
     }
 
+    public boolean isAuthenticationFailure() {
+        return getReject().getType() == Mumble.Reject.RejectType.WrongUserPW ||
+                getReject().getType() == Mumble.Reject.RejectType.WrongServerPW;
+    }
+
     public Mumble.UserRemove getUserRemove() {
         return mUserRemove;
     }
