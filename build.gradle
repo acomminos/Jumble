@@ -57,7 +57,7 @@ android {
         targetSdkVersion 28
 
        ndk {
-           abiFilters "armeabi-v7a", "x86"
+           abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
            stl "gnustl_static"
            cFlags "-I\$(LOCAL_PATH)/speex/include/ -I\$(LOCAL_PATH)/celt-0.11.0-src/include/ -I\$(LOCAL_PATH)/celt-0.7.0-src/include/ -I\$(LOCAL_PATH)/opus/include -D__EMX__ -DUSE_KISS_FFT -DFIXED_POINT -DEXPORT='' -DHAVE_CONFIG_H -fvisibility=hidden -DOPUS_BUILD -DVAR_ARRAYS -Wno-traditional -DFIXED_POINT"
        }
